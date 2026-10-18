@@ -1,31 +1,31 @@
 {
-  "schemaVersion": 1,
-  "levelId": "straight-ahead",
-  "levelVersion": 1,
-  "slug": "straight-ahead",
-  "title": "Straight ahead",
-  "description": "Move to the target.",
-  "difficulty": "easy",
-  "requires": {
-    "mechanics": []
-  },
-  "board": {
-    "width": 5,
-    "height": 5,
-    "walls": []
-  },
-  "initialState": {
-    "position": [0, 4],
-    "direction": "north"
-  },
-  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"],
-  "constraints": {
-    "maxCommands": 5,
-    "maxSteps": 60
-  },
   "goal": {
     "type": "reach_tile",
     "position": [0, 1]
   },
-  "hints": ["Each MOVE steps one cell the way the automaton faces."]
+  "slug": "straight-ahead",
+  "board": {
+    "walls": [],
+    "width": 5,
+    "height": 5
+  },
+  "hints": ["Move forward until the automaton reaches the target."],
+  "title": "Straight ahead",
+  "levelId": "58fb101a-da03-4862-9bcd-86a97fcf4d5c",
+  "requires": {
+    "mechanics": []
+  },
+  "difficulty": "easy",
+  "constraints": {
+    "maxSteps": 100,
+    "maxCommands": 5
+  },
+  "description": "",
+  "initialState": {
+    "position": [0, 4],
+    "direction": "north"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
 }

@@ -1,0 +1,71 @@
+class_name AccountSync
+extends Node
+## Decides when progress is synced and shows the state to the screens. Sync runs after sign-in,
+## after a level is solved, after a synced setting changes, and when the app starts; a failure
+## is retried with growing waits (30 s up to 15 min) for as long as the app runs, which also
+## covers the connection coming back. Signed out, `request` does nothing at all.
+
+signal changed
+
+const DEBOUNCE_SECONDS := 2.0
+const FIRST_RETRY_SECONDS := 30.0
+const MAX_RETRY_SECONDS := 900.0
+
+## "idle", "syncing", "synced", "offline", "failed", or "signed_out".
+var status := "idle"
+var message := ""
+
+var _client: AccountClient
+var _progress: ProgressStore
+var _timer: Timer
+var _wait := FIRST_RETRY_SECONDS
+var _running := false
+
+
+func _init(client: AccountClient = null, store: ProgressStore = null) -> void:
+	_client = client
+	_progress = store
+
+
+func _ready() -> void:
+	_timer = Timer.new()
+	_timer.one_shot = true
+	_timer.timeout.connect(sync_now)
+	add_child(_timer)
+
+
+## Asks for a sync soon; several requests close together become one.
+func request() -> void:
+	if _client == null or not _client.account.signed_in() or _timer == null:
+		return
+	_timer.start(DEBOUNCE_SECONDS)
+
+
+## Syncs now. Returns when it is done.
+func sync_now() -> void:
+	if _client == null or _running:
+		return
+	_running = true
+	status = "syncing"
+	message = ""
+	changed.emit()
+	var result := await ProgressSync.run(_client, _progress)
+	_running = false
+	status = str(result["status"])
+	message = str(result["message"])
+	if status == "synced":
+		_wait = FIRST_RETRY_SECONDS
+	elif status in ["offline", "failed"] and _timer != null:
+		_timer.start(_wait)
+		_wait = minf(_wait * 2.0, MAX_RETRY_SECONDS)
+	changed.emit()
+
+
+## Forget the state after signing out or deleting the account.
+func reset() -> void:
+	status = "signed_out"
+	message = ""
+	_wait = FIRST_RETRY_SECONDS
+	if _timer != null:
+		_timer.stop()
+	changed.emit()

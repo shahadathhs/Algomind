@@ -656,6 +656,7 @@ func _after_step() -> void:
 		if persist:
 			app.progress.record_completion(_entry["id"], int(_level["levelVersion"]), _tape.size())
 			app.progress.save()
+			app.request_sync()
 	elif _session.state == PlaySession.State.FAILED:
 		app.sfx("fail")
 	_refresh()

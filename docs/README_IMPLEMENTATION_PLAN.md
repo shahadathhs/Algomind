@@ -94,7 +94,7 @@ The architecture is complete after step 6 with only a handful of test levels. Th
 
 - API can store drafts, publish a level version, list published levels, and retrieve a selected published version.
 - Migrations apply from a clean database.
-- Automated tests (against a real PostgreSQL) cover public/private access and publishing behavior. No API test framework is set up yet; choose one when writing the first of these.
+- Automated tests cover publishing behavior and authorization (Vitest, no database); public/private access and the database constraints are checked against a real PostgreSQL in CI and by hand.
 - **Status:** implemented except automated tests and the web revalidation call after publish. Auth, worlds and chapters, ordering, drafts and versions, validate, the publish gates, unpublish, restore, duplicate, import and export, playtests, the client registry, the audit log, and the public catalog exist (route list in [README_ARCHITECTURE.md](README_ARCHITECTURE.md), section 7.1). Behavior was checked by hand against a real PostgreSQL (clean migration, every gate failing alone, the public catalog, round trips, DB constraints), not by an automated suite.
 
 ### Exit criteria
@@ -136,7 +136,7 @@ Build a modest editor that helps create valid content. Do not build a general-pu
 
 ## Phase 4 — Game client
 
-**Status: the offline game and the download path are built; accounts are not.** Done: Menu, Worlds (solved, current, locked, and not-downloaded states) and World, the gameplay screen (ready, running, paused, failed, solved) with the board renderer, automaton, and tape editor, the first-run coach on level 1, Hint, Pause, How to play, Settings (sound, music, vibration, reduce motion, run speed, theme), Load error, and Update required; sound and music generated in code, vibration, and run speed (never above 0.25 s a step); a bundled 9-level campaign loaded from data through the validator; hints on the starter levels; local progress in a versioned, atomically written save with backup recovery; the networked half: the API base URL from the `algomind/network/api_base_url` project setting (CI fills it; `ALGOMIND_API_BASE_URL` overrides it in debug builds), the public catalog and each level fetched from `/v1/campaign` and `/v1/levels/:slug` (public routes only), every level checked by the validator before it is stored, a cache on the device keyed by slug and level version that a bad response can never replace, offline and unreadable-response states with Retry, levels needing a newer game shown as Update required, and the served par on the result. Not done: Sign in and Account (phase 8), any run on a device or as an APK. The game only follows its own reduce-motion setting because Godot cannot read the phone's. Verified on a desktop with host Godot only; 142 GUT tests.
+**Status: every planned screen, the download path, and optional accounts with sync are built.** Done: Menu, Worlds (solved, current, locked, and not-downloaded states) and World, the gameplay screen (ready, running, paused, failed, solved) with the board renderer, automaton, and tape editor, the first-run coach on level 1, Hint, Pause, How to play, Settings (sound, music, vibration, reduce motion, run speed, theme), Load error, and Update required; sound and music generated in code, vibration, and run speed (never above 0.25 s a step); a bundled 9-level campaign loaded from data through the validator; hints on the starter levels; local progress in a versioned, atomically written save with backup recovery; the networked half: the API base URL from the `algomind/network/api_base_url` project setting (CI fills it; `ALGOMIND_API_BASE_URL` overrides it in debug builds), the public catalog and each level fetched from `/v1/campaign` and `/v1/levels/:slug` (public routes only), every level checked by the validator before it is stored, a cache on the device keyed by slug and level version that a bad response can never replace, offline and unreadable-response states with Retry, levels needing a newer game shown as Update required, and the served par on the result. Sign in and Account (phase 8) are built too. Not done: any run on a device or as an APK. The game only follows its own reduce-motion setting because Godot cannot read the phone's. Verified on a desktop with host Godot only; 169 GUT tests.
 
 ### Tasks
 
@@ -237,6 +237,8 @@ Build a modest editor that helps create valid content. Do not build a general-pu
 - The project clearly distinguishes working features from planned features.
 
 ## Phase 8 — Optional accounts and cloud sync (after the core release)
+
+**Status: built.** API: registration, `/v1/me/progress` with the merge, `/v1/me/settings`, and account deletion, with tests for the merge rules and authorization (see [README_ARCHITECTURE.md](README_ARCHITECTURE.md) section 7.2). Game: Sign in and Account screens, a sync that is the only code allowed to upload progress (signed out it makes no request at all, a failed sync never touches local data), a rotating refresh token kept in the app's private storage, retry with growing waits, and account deletion that asks for the password. Not run on a device yet.
 
 ### Tasks
 

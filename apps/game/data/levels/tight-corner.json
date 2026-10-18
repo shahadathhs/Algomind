@@ -1,0 +1,31 @@
+{
+  "goal": {
+    "type": "reach_tile",
+    "position": [2, 2]
+  },
+  "slug": "tight-corner",
+  "board": {
+    "walls": [],
+    "width": 5,
+    "height": 5
+  },
+  "hints": [],
+  "title": "Tight corner",
+  "levelId": "2a9433ae-c25f-436f-91d8-03f4fb87b483",
+  "requires": {
+    "mechanics": []
+  },
+  "difficulty": "medium",
+  "constraints": {
+    "maxSteps": 100,
+    "maxCommands": 5
+  },
+  "description": "",
+  "initialState": {
+    "position": [0, 4],
+    "direction": "east"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+}

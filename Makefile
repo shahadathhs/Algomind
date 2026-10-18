@@ -19,7 +19,7 @@ GDPATHS   := $(GAME)/scripts $(GAME)/tests
         db-up db-down db-reset db-psql \
         api-generate api-dev api-build api-start api-migrate api-migration \
         web-dev web-build web-start \
-        game-fixtures game-import game-check game-test game-lint game-format game-run game-shots \
+        game-fixtures game-import game-check game-test game-lint game-format game-run game-shots game-bundle \
         game-docker-image game-docker-check game-docker-test game-apk android-key \
         up down build logs ps clean version release
 
@@ -140,6 +140,9 @@ game-check: game-fixtures game-import ## Load the project headless; fails on par
 
 game-test: game-fixtures game-import ## Run the game tests (GUT)
 	$(GODOT) --headless --path $(GAME) -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit
+
+game-bundle: ## Refresh the game's bundled levels from a running API (API_BASE_URL, default localhost:8000/v1)
+	node scripts/bundle-levels.mjs
 
 game-lint: ## GDScript style gate: gdlint + gdformat --check (config: gdlintrc)
 	$(GDLINT) $(GDPATHS)

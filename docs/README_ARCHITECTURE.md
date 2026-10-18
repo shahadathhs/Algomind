@@ -434,6 +434,20 @@ Publishing, under a row lock on the level: re-validates the draft, checks every 
 
 Seeds: on startup, after the admin seed, `SEED_STARTER_CAMPAIGN` (default true outside production, false in production) creates four worlds (Sequences, Turns, Planning, Limits), five chapters and nineteen published starter levels (converted to the contract, validated and solved with the solver at seed time, each with a "seed" playtest) plus a client-registry row for the API's package version supporting `move` and `turn`. It skips anything that exists by slug and fails startup if the starter content does not validate.
 
+### 7.2 Accounts and sync (implemented)
+
+Optional player accounts, built on the same auth as the dashboard. Nothing here is required to play.
+
+| Route                        | Behavior                                                                                                                                                         |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /v1/auth/register`     | `{ email, password }` creates a `PLAYER` and signs in (same session shape as login). 409 `EMAIL_TAKEN`, 422 for a bad email or a weak password, rate limited     |
+| `GET /v1/me/progress`        | `{ completed: [{ levelSlug, levelVersion, bestCommands, completedAt }], settings: { settings, updatedAt } or null }`; times are Unix seconds                     |
+| `POST /v1/me/progress/sync`  | The body is the same shape (`completed`, optional `settings`); the server merges and returns the merged result. Idempotent                                       |
+| `GET`, `PUT /v1/me/settings` | The synced settings (theme, reduceMotion, sound, music, vibration, runSpeed; unknown keys refused). `PUT` is last write wins by `updatedAt`                      |
+| `DELETE /v1/me`              | `{ password }`; deletes the account and, by cascade, its sessions, progress, and settings. 422 for a wrong password; admin accounts cannot be deleted here (403) |
+
+The merge only adds or improves, so a sync can never lose a completion: a level solved on either side stays solved; for one level the newer level version wins (a score is never read against other content); for the same version the fewer commands win; the earliest completion time is kept; the newest settings win. The rule is a pure function (`me.merge.ts`) with its own tests. Progress is keyed by the level's **slug**, the stable id the game keys its local progress by (so `LevelProgress.levelSlug`, not a level foreign key: progress survives a level being unpublished).
+
 ## 8. Publication lifecycle
 
 Recommended lifecycle:
@@ -535,7 +549,7 @@ Level validation issues use the stable codes defined in `packages/level-contract
 
 ### API
 
-The API has no automated tests for now (removed on purpose; add them when a feature's risk justifies it, publish gates and authorization first). The list below is what to cover when they return, against real PostgreSQL where behavior depends on it.
+The API has focused Vitest tests in `apps/api/test` (run by `make test`, no database needed): every publish gate failing on its own and passing together, the content hash, sign-in, refresh rotation and reuse detection, logout, change-password, registration, the guards (401 without a token, 401 expired, 403 for a non-admin, 403 until the seeded password is changed), a check that every admin controller is guarded, and the progress merge rules. Behavior that depends on real PostgreSQL (constraints, the immutability trigger, rollback) is checked by the CI `api` job that applies the migrations to an empty database and by hand; the list below is what a database-backed suite would add.
 
 - Test public routes do not expose drafts, reference solutions, or unassigned levels.
 - Test publish is blocked when validation fails, the budget is below par, there is no current solved playtest, or a required mechanic is unsupported.

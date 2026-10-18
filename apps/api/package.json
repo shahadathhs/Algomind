@@ -12,7 +12,8 @@
     "migrate": "prisma migrate deploy",
     "migrate:dev": "prisma migrate dev",
     "typecheck": "pnpm contract && pnpm generate && tsc --noEmit",
-    "contract": "pnpm --filter @algomind/level-contract build"
+    "contract": "pnpm --filter @algomind/level-contract build",
+    "test": "pnpm contract && pnpm generate && vitest run"
   },
   "dependencies": {
     "@algomind/level-contract": "workspace:*",
@@ -35,7 +36,8 @@
     "@swc/core": "^1.16.18",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.5",
-    "@types/pg": "^8.23.1"
+    "@types/pg": "^8.23.1",
+    "vitest": "^5.0.5"
   },
   "files": [
     "dist",

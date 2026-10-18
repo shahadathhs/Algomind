@@ -1,36 +1,36 @@
 {
-  "schemaVersion": 1,
-  "levelId": "the-wall",
-  "levelVersion": 1,
-  "slug": "the-wall",
-  "title": "The wall",
-  "description": "Find a route between the walls.",
-  "difficulty": "medium",
-  "requires": {
-    "mechanics": []
+  "goal": {
+    "type": "reach_tile",
+    "position": [3, 2]
   },
+  "slug": "the-wall",
   "board": {
-    "width": 5,
-    "height": 5,
     "walls": [
       [1, 2],
       [4, 2],
       [2, 3],
       [1, 4]
-    ]
+    ],
+    "width": 5,
+    "height": 5
   },
+  "hints": [],
+  "title": "The wall",
+  "levelId": "be92a4fd-f69c-4c10-8067-d0e5f4d39380",
+  "requires": {
+    "mechanics": []
+  },
+  "difficulty": "medium",
+  "constraints": {
+    "maxSteps": 100,
+    "maxCommands": 12
+  },
+  "description": "",
   "initialState": {
     "position": [0, 4],
     "direction": "north"
   },
-  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"],
-  "constraints": {
-    "maxCommands": 12,
-    "maxSteps": 60
-  },
-  "goal": {
-    "type": "reach_tile",
-    "position": [3, 2]
-  },
-  "hints": ["Look for a route around the wall."]
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
 }
