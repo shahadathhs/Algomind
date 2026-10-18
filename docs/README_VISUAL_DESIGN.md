@@ -169,9 +169,10 @@ The 14 game screens are listed in [design/SCREENS.md](design/SCREENS.md). Every 
 
 The public site uses the same tokens, shapes, tile wordmark, and rules as the game, so it reads as the same product.
 
-- Pages: landing, level catalog and detail, play (browser build), download, privacy, contact.
+- Purpose: get people to install the app. Download is the single primary action. Launch pages: landing, download, how to play, privacy, contact. Later: level catalog and detail, play (browser build). See [README_WEB_PLAN.md](README_WEB_PLAN.md) and the renders in [design/web/](design/web/).
+- The game appears as flat chamfered screens, not inside device bezels.
 - Show real board renderings of published levels using the game's tile semantics. The product is the visual; avoid stock imagery and illustration.
-- One primary action per screen (Play or Download); secondary actions are underlined text.
+- One primary action per screen (Download); secondary actions are underlined text.
 - Pages are complete and readable without JavaScript. The browser game loads only after the visitor presses Play.
 - Both themes follow the visitor's system setting, with a visible toggle.
 - Respect reduced-motion; nothing loops.

@@ -161,8 +161,7 @@ Build a modest editor that helps create valid content. Do not build a general-pu
 
 ### Tasks
 
-- Build the public pages in `apps/web`: landing, level catalog and detail, download, privacy, contact.
-- Add `/play`, which hosts the game's web export and loads it only after the visitor presses Play.
+- Build the launch pages of the public site in `apps/web` per [README_WEB_PLAN.md](README_WEB_PLAN.md): landing, download (GitHub Releases data, QR code, install steps), how to play, privacy, contact. The level catalog and `/play` (web export) come after launch.
 - Add on-demand revalidation after publish and unpublish.
 - Add sitemap and `robots.ts` that exclude `/admin`.
 - Run the end-to-end workflow: dashboard → API → database → game and public site.

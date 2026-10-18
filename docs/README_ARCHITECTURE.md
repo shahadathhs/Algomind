@@ -46,7 +46,7 @@ Owns:
 - Client-side checks that fetched level data has the required shape.
 - Loading, retry, offline, and cache behavior.
 - Local settings and initial local progress.
-- The Android build and the web export hosted by the public site at `/play`.
+- The Android build. A web export hosted by the public site at `/play` is a later, optional addition.
 
 Does not own:
 
@@ -60,7 +60,7 @@ Does not own:
 
 One codebase, two audiences, separated by route groups:
 
-- `(public)`: landing page, level catalog and level detail, `/play` (embeds the game's web export), download, privacy, contact. Server-rendered or statically generated with revalidation; it must work without client JavaScript except the user-started game island.
+- `(public)`: at launch the landing page, download (data from GitHub Releases, revalidated), how to play, privacy, and contact; later the level catalog and level detail, `/play` (embeds the game's web export), and account. Statically generated with revalidation; it must work without client JavaScript except the optional, user-started game island. Details in [README_WEB_PLAN.md](README_WEB_PLAN.md).
 - `(admin)` under `/admin`: sign-in, level list, level editor, board editor, preview, validation panel, publish and unpublish, version history. Client-heavy and dynamic; never indexed or cached publicly.
 
 Owns:

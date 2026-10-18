@@ -14,7 +14,7 @@ Rules are defined in [README_GAME_RULES.md](README_GAME_RULES.md).
 
 Levels are **managed from an admin dashboard from day one**. The dashboard is the only place levels are created, validated, previewed, published, and unpublished. The game downloads published level data from an API, so content can be added or revised without rebuilding or redistributing the mobile app, as long as the level uses mechanics the installed client already supports.
 
-The same web application also serves the **public Algomind website**: a landing page, a browsable level catalog, a browser build of the game, downloads, and legal pages.
+The same web application also serves the **public Algomind website**, whose job is to get people to install the Android app: a landing page, a download page (APK from GitHub Releases, no Google Play), a how-to-play page, and legal pages. A level catalog and browser play come later. See [README_WEB_PLAN.md](README_WEB_PLAN.md).
 
 ## 2. Product goals
 
@@ -106,7 +106,7 @@ The MVP is complete when it includes:
 - An API that exposes published levels publicly and protects draft and admin operations.
 - PostgreSQL persistence for levels and versions.
 - A game client that fetches published remote levels, caches them, and keeps a small bundled starter set for offline first launch.
-- A public website: landing page, level catalog, browser build of the game, download page, privacy page.
+- A public website, download first: landing page, download page with install steps and a QR code, how to play, privacy, contact. The level catalog and browser play follow after launch.
 - Loading, offline, empty-state, error, and success UI in the game; loading, error, and save states in the dashboard.
 - Automated tests for the simulation rules, level-data validation, publication behavior, and API authorization.
 - A full CI/CD pipeline, quality tooling, and deployment documentation.
@@ -166,6 +166,7 @@ Remote level publishing does not mean every future gameplay idea can be added re
  │   ├── README_GAME_RULES.md
  │   ├── README_GAMEPLAY_FEATURES.md
  │   ├── README_VISUAL_DESIGN.md
+ │   ├── README_WEB_PLAN.md
  │   ├── README_ARCHITECTURE.md
  │   ├── README_IMPLEMENTATION_PLAN.md
  │   ├── CI.md

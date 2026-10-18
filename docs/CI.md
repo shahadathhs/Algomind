@@ -55,7 +55,7 @@ One workflow, `.github/workflows/ci.yml`, with `concurrency` per ref, least-priv
 | `game` | every push and PR | `gdlint`, `gdformat --check`, headless project load, GUT tests (including every contract fixture) |
 | `deploy-api` | `main` | Triggers the Render deploy hook, then polls the Render API until live; fails the run on a failed or timed-out deploy |
 | `apk` | `main`, `v*` tags | Injects version and API URL, builds the Android package, uploads the artifact |
-| `web-export` | every push and PR | Builds the game's web export; PRs prove it still builds |
+| `web-export` | after launch, when browser play is added | Builds the game's web export; PRs prove it still builds |
 | `release` | `main` | Refreshes the rolling **Latest build**, triggers the Vercel rebuild hook, and publishes a versioned release when `VERSION` names a version without a release |
 
 A normal push to `main`: gates, API deploy, Android and web exports, rolling Latest build, web rebuild. A version bump does all of that plus the versioned release.
@@ -74,7 +74,7 @@ When that reaches `main`, the pipeline publishes **Algomind v0.2.0** with the An
 |---|---|---|
 | `RENDER_DEPLOY_HOOK_URL` | secret | `deploy-api` |
 | `RENDER_API_KEY` | secret | `deploy-api` (waits for the deploy to be live) |
-| `VERCEL_DEPLOY_HOOK` | secret | `release` (rebuild so the public site picks up the new web export) |
+| `VERCEL_DEPLOY_HOOK` | secret | `release` (rebuild the public site so the download page shows the new release; later also the web export) |
 | `ANDROID_DEBUG_KEYSTORE_BASE64` | secret | `apk` (fixed signing key so builds install over each other) |
 | `API_BASE_URL` | variable | `apk` (must be `https://…/v1`; the build fails otherwise) |
 

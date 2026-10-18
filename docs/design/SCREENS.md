@@ -26,5 +26,16 @@ Individual screens (390 × 844, 2x): `screens/light/` and `screens/dark/`.
 ## Not in this set
 
 - **Leaderboard:** out of scope until the score and verification design exists.
-- **Web screens:** the public website and the admin dashboard are separate sets, to be designed next.
+- **Admin dashboard screens:** a separate set, to be designed. The public site's launch pages are rendered under `web/`.
 - **Motion:** the tape sliding, the read-head, and run animation are described in the design doc, not shown in still images.
+
+## Web renders
+
+The public site is planned in [../README_WEB_PLAN.md](../README_WEB_PLAN.md). Renders (placeholders for version, size, hash, release notes, and QR):
+
+| Page | Light | Dark |
+|---|---|---|
+| Landing, desktop | [web/light/landing-desktop.png](web/light/landing-desktop.png) | [web/dark/landing-desktop.png](web/dark/landing-desktop.png) |
+| Landing, mobile | [web/light/landing-mobile.png](web/light/landing-mobile.png) | [web/dark/landing-mobile.png](web/dark/landing-mobile.png) |
+| Download, desktop | [web/light/download-desktop.png](web/light/download-desktop.png) | [web/dark/download-desktop.png](web/dark/download-desktop.png) |
+| Download, mobile | [web/light/download-mobile.png](web/light/download-mobile.png) | [web/dark/download-mobile.png](web/dark/download-mobile.png) |

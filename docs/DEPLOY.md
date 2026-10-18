@@ -9,7 +9,7 @@
 | API (`apps/api`) | Render web service, built from a Dockerfile | One instance while rate limiting is in-process |
 | Database | Neon PostgreSQL | Backups enabled; same region family as the API |
 | Web app (`apps/web`) | Vercel | Public site and `/admin` in one project |
-| Game | GitHub Releases (Android build) and the web export served by the public site at `/play` | |
+| Game | GitHub Releases hold the Android build (APK only, not on Google Play). A web export served at `/play` is a later option. | |
 
 > **Single instance only.** If rate limits live in the API's memory, a second instance would double the limits and split their counters. Move the limiter to a shared store before scaling out.
 
@@ -39,7 +39,7 @@
 
 1. Import the repository; set the root directory to `apps/web` with the workspace install.
 2. Set environment variables: the API base URL (server-side), the revalidation secret, and any public site URL.
-3. Add a Deploy Hook for `main` and store it as the `VERCEL_DEPLOY_HOOK` secret in GitHub so the site rebuilds after a new web export is published.
+3. Add a Deploy Hook for `main` and store it as the `VERCEL_DEPLOY_HOOK` secret in GitHub so the site rebuilds after a new release is published (and, later, after a new web export).
 4. Confirm `/admin` routes are not indexed and public pages render without JavaScript.
 
 ## 4. Smoke test
