@@ -15,7 +15,14 @@
     ],
     "typescript/no-explicit-any": "off",
     "react/react-in-jsx-scope": "off",
-    "nextjs/no-html-link-for-pages": "off"
+    "nextjs/no-html-link-for-pages": "off",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": [
+      "error",
+      {
+        "checksVoidReturn": false
+      }
+    ]
   },
   "ignorePatterns": [
     "node_modules",
@@ -26,5 +33,14 @@
     "pnpm-lock.yaml",
     "apps/api/src/generated",
     "apps/api/dist"
+  ],
+  "overrides": [
+    {
+      "files": ["packages/design-tokens/test/**/*.mjs"],
+      "rules": {
+        "typescript/no-floating-promises": "off",
+        "typescript/restrict-template-expressions": "off"
+      }
+    }
   ]
 }

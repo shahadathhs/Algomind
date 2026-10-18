@@ -3,7 +3,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppConfig } from "./core/config/app-config.js";
 import { HttpExceptionFilter } from "./core/errors/http-exception.filter.js";
 
-/** Shared by main.ts and the e2e tests so both run the same application. */
+/** Application-wide setup, kept separate from main.ts so it can be reused. */
 export function setupApp(app: INestApplication): void {
   const config = app.get(AppConfig);
   app.setGlobalPrefix("v1");
