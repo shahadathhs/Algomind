@@ -75,6 +75,12 @@ func refresh_content() -> void:
 	content_changed.emit()
 	var result: Dictionary = await ContentSync.refresh(api.fetch_json, content)
 	sync_status = str(result["status"])
+	print(
+		(
+			"[algomind] content sync: %s, %d level(s) updated, %d problem(s)"
+			% [sync_status, int(result["updated"]), (result["errors"] as Array).size()]
+		)
+	)
 	sync_errors.clear()
 	for message: Variant in result["errors"]:
 		sync_errors.append(str(message))

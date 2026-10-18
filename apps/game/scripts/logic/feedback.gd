@@ -29,9 +29,17 @@ func _ready() -> void:
 	add_child(_sfx)
 	_music = AudioStreamPlayer.new()
 	_music.stream = Tones.music()
-	_music.volume_db = -14.0
+	_music.volume_db = -9.0
 	add_child(_music)
-	apply_music()
+	# A sound started in the very first frame can be dropped because the audio device is not
+	# running yet, so music starts shortly after and is checked every couple of seconds. This
+	# also restarts it after the app was in the background.
+	var watchdog := Timer.new()
+	watchdog.wait_time = 2.0
+	watchdog.autostart = true
+	watchdog.timeout.connect(apply_music)
+	add_child(watchdog)
+	get_tree().create_timer(0.6).timeout.connect(apply_music)
 
 
 ## Plays a named effect when sound is on.

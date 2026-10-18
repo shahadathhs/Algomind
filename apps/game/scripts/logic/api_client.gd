@@ -52,7 +52,15 @@ func fetch_json(path: String) -> Dictionary:
 		return _result(false, 0, null, "offline")
 	var outcome: Array = await request.request_completed
 	request.queue_free()
-	return interpret(int(outcome[0]), int(outcome[1]), outcome[3] as PackedByteArray)
+	var result := interpret(int(outcome[0]), int(outcome[1]), outcome[3] as PackedByteArray)
+	if not result["ok"]:
+		print(
+			(
+				"[algomind] GET %s failed: %s (result %d, status %d)"
+				% [path, result["error"], int(outcome[0]), int(outcome[1])]
+			)
+		)
+	return result
 
 
 ## Turns an HTTPRequest completion into a result Dictionary (kept separate so it can be tested).

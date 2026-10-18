@@ -16,38 +16,39 @@ static func sequence(notes: Array, volume: float) -> AudioStreamWAV:
 	return _to_stream(samples, false)
 
 
-## A quiet looping pattern of a minor pentatonic scale, about eight seconds long.
+## A soft looping pattern of a minor pentatonic scale, about eight seconds long. It sits in the
+## octave phone speakers can reproduce and uses a few harmonics so it is audible on them.
 static func music() -> AudioStreamWAV:
-	var scale := [220.0, 261.63, 293.66, 329.63, 392.0, 440.0]
+	var scale := [440.0, 523.25, 587.33, 659.25, 783.99, 880.0]
 	var pattern := [0, 2, 4, 2, 5, 4, 2, 1, 0, 2, 3, 2, 4, 3, 1, 0]
 	var samples := PackedFloat32Array()
 	for step: int in pattern:
-		_append_note(samples, scale[step], 0.5, 0.16)
+		_append_note(samples, scale[step], 0.5, 0.45)
 	return _to_stream(samples, true)
 
 
 static func tap() -> AudioStreamWAV:
-	return sequence([[660.0, 0.04]], 0.3)
+	return sequence([[660.0, 0.05]], 0.6)
 
 
 static func step() -> AudioStreamWAV:
-	return sequence([[330.0, 0.05]], 0.22)
+	return sequence([[392.0, 0.06]], 0.45)
 
 
 static func blocked() -> AudioStreamWAV:
-	return sequence([[180.0, 0.09], [140.0, 0.12]], 0.4)
+	return sequence([[220.0, 0.1], [165.0, 0.14]], 0.7)
 
 
 static func success() -> AudioStreamWAV:
-	return sequence([[523.25, 0.1], [659.25, 0.1], [783.99, 0.1], [1046.5, 0.22]], 0.35)
+	return sequence([[523.25, 0.1], [659.25, 0.1], [783.99, 0.1], [1046.5, 0.22]], 0.6)
 
 
 static func fail() -> AudioStreamWAV:
-	return sequence([[330.0, 0.1], [262.0, 0.1], [196.0, 0.2]], 0.35)
+	return sequence([[349.0, 0.1], [277.0, 0.1], [220.0, 0.2]], 0.6)
 
 
 static func hint() -> AudioStreamWAV:
-	return sequence([[880.0, 0.06], [0.0, 0.03], [1174.66, 0.1]], 0.28)
+	return sequence([[880.0, 0.06], [0.0, 0.03], [1174.66, 0.1]], 0.5)
 
 
 static func _append_note(
@@ -61,7 +62,11 @@ static func _append_note(
 			envelope = float(i) / float(fade)
 		elif i > count - fade:
 			envelope = float(count - i) / float(fade)
-		var value := 0.0 if hz <= 0.0 else sin(TAU * hz * float(i) / RATE)
+		var value := 0.0
+		if hz > 0.0:
+			var phase := TAU * hz * float(i) / RATE
+			# A little 2nd and 3rd harmonic, so small speakers carry the note.
+			value = (sin(phase) + 0.45 * sin(2.0 * phase) + 0.2 * sin(3.0 * phase)) / 1.65
 		samples.append(value * volume * envelope)
 
 
