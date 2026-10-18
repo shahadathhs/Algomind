@@ -35,6 +35,17 @@ services:
       PORT: "8000"
       DATABASE_URL: postgresql://${POSTGRES_USER:-algomind}:${POSTGRES_PASSWORD:?Run make env}@db:5432/${POSTGRES_DB:-algomind}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      # Empty values count as unset: development falls back to a fixed local signing key.
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-}
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-}
+      SUPER_ADMIN_PASS: ${SUPER_ADMIN_PASS:-}
+      ACCESS_TOKEN_TTL_SECONDS: ${ACCESS_TOKEN_TTL_SECONDS:-900}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      # Empty counts as unset: on outside production, off in production.
+      SEED_STARTER_CAMPAIGN: ${SEED_STARTER_CAMPAIGN:-}
+      WEB_REVALIDATE_URL: ${WEB_REVALIDATE_URL:-}
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
 
   web:
     profiles: ["app"]
@@ -47,6 +58,7 @@ services:
       - api
     environment:
       API_BASE_URL: http://api:8000/v1
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
 
   godot:
     profiles: ["tools"]

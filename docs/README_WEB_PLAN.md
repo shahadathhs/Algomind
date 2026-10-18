@@ -2,7 +2,7 @@
 
 > **Purpose:** Plan the public, user-facing part of `apps/web` (the `(public)` route group). The admin dashboard is covered in the architecture and visual-design docs.  
 > **Reference renders:** [design/web/](design/web/) holds the landing and download pages in light and dark, at desktop and mobile widths. Values in them (version, size, hash, release notes, QR) are placeholders.  
-> **Status:** Plan. Nothing is built.
+> **Status:** The launch pages are built (landing, download, how to play, privacy, contact) and live at https://playalgomind.vercel.app. The level catalog, browser play, and the account page are not built. Deviations from this plan are noted where they apply.
 
 ## 1. Goal
 
@@ -27,11 +27,12 @@
 
 **After launch (not blockers):**
 
-| Route                       | Purpose                                                                                                             |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `/levels`, `/levels/[slug]` | Public catalog organized by world and chapter, and spoiler-free level pages, with a generated share image per level |
-| `/play`                     | Browser play through the game's web export, as a secondary "try it" link                                            |
-| `/account`                  | Sign in, sync status, delete account, only when sync ships                                                          |
+| Route            | Purpose                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/levels`        | **Built.** The catalog organised by world and chapter, with a board thumbnail, difficulty, and command limit for each level. It reads the published campaign from the API (`GET /v1/campaign`, then each level's board from `GET /v1/levels/:slug`, revalidated every minute) and says the levels could not be loaded when the API is unreachable; nothing is bundled. |
+| `/levels/[slug]` | Not built: spoiler-free level pages, with a generated share image per level                                                                                                                                                                                                                                                                                            |
+| `/play`          | Browser play through the game's web export, as a secondary "try it" link                                                                                                                                                                                                                                                                                               |
+| `/account`       | Sign in, sync status, delete account, only when sync ships                                                                                                                                                                                                                                                                                                             |
 
 ## 3. Landing page
 
@@ -46,6 +47,8 @@ One primary action on the whole page: the yellow **Download for Android** button
 7. **Closing download band:** "Free for Android." with the primary button repeated.
 8. **Footer:** Privacy, Contact, copyright.
 
+**As built:** the header's "Levels" link now points at `/levels`; on phones the nav links live in a side drawer (a `<details>` element, so it opens, closes, and navigates with no JavaScript; a small client component only closes it after navigation and on Escape, and the menu button turns into a close button while it is open). Interactive controls show a pointer cursor. The small "ANDROID" eyebrow label above the hero headline was dropped (the visual rules forbid eyebrow text, and the headline already says Android); the minimum Android version is left out of the meta line because none is defined yet (see open items). The landing page's download buttons always link to the internal `/download` page.
+
 Not on the page: taglines, testimonials, stock imagery, store badges for stores we are not on, fake review counts, a newsletter, or a cookie banner.
 
 ## 4. Download page
@@ -59,7 +62,10 @@ The page must make sideloading feel safe and easy.
 - **What is new:** release notes for the latest version.
 - **Other builds:** latest development build and all releases, as text links.
 - **Good to know:** every build is signed with the same key so updates install over older versions; not available for iPhone; the app is not on Google Play.
-- **Data source:** the GitHub Releases API, revalidated hourly. If the fetch fails, the page still renders with a plain link to the releases page. No client JavaScript is needed to download.
+- **Data source:** the GitHub Releases API (`GITHUB_REPOSITORY`, default `shahadathhs/Algomind`), revalidated hourly, with strict parsing of the response and of the `.sha256` checksum file. The optional server-side `GITHUB_TOKEN` is used only for the API calls, never for asset URLs.
+- **APK info (when a release is available):** an "About this APK" section with the file name, version, release date, size, the architecture it runs on (64-bit ARM, `arm64-v8a`, kept in step with the Android export preset), the build type (a debug build signed with one fixed key), the full SHA-256, commands to check the file (macOS or Linux and Windows PowerShell), and direct links to the APK and the release page. The hero shows the direct **Download APK** button, version, and size.
+- **Testing:** `GITHUB_API_URL` (default `https://api.github.com`) points the page at another GitHub API, such as a local stand-in; the available state was checked this way. Leave it unset in production.
+- **Fallback:** if there is no release, the repository is private, or GitHub is down or answers unexpectedly, the page shows "No release available yet" with a plain link to the releases page and **no download button**, so a button never points at an unverified URL. **A private repository's release assets cannot be downloaded by anonymous visitors**, so until the repository (or its releases) is public, this fallback is what visitors see. No client JavaScript is needed to download.
 - **Device detection:** none. Show everything; the layout, not user-agent sniffing, decides what matters.
 
 ## 5. Trust and safety
@@ -74,7 +80,7 @@ The page must make sideloading feel safe and easy.
 
 - **Same Next.js app** as the dashboard, in the `(public)` route group, with its own components (`components/public`) sharing `components/ui` and the generated design tokens.
 - **Static first:** the landing and static pages are pre-rendered; the download page revalidates hourly; level pages (later) revalidate on publish.
-- **No JavaScript required** for any content or for downloading. The theme follows `prefers-color-scheme`; the toggle is a progressive enhancement.
+- **No JavaScript required** for any content or for downloading. The theme follows `prefers-color-scheme`; the toggle is a progressive enhancement (it appears only after hydration, and an explicit choice is kept in `localStorage` on the device only, never sent anywhere).
 - **Responsive by container:** the landing and download pages collapse to one column on narrow screens; nothing is clipped horizontally.
 - **Boards and tape are rendered from real data** by the shared tile renderer (also used by the dashboard preview), as inline SVG, never as screenshots.
 - **SEO:** one title and description per page, a generated Open Graph image (the tile wordmark and a board), sitemap and robots; admin routes are `noindex`.

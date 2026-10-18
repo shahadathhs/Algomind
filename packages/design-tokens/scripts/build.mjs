@@ -4,12 +4,20 @@
 //   node scripts/build.mjs --check   fail if they differ from what is committed
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { generateCss, generateGdscript, loadTokens, outputs, repoRoot } from "./lib.mjs";
+import {
+  generateCss,
+  generateGdscript,
+  generateTypescript,
+  loadTokens,
+  outputs,
+  repoRoot,
+} from "./lib.mjs";
 
 const tokens = loadTokens();
 const files = [
   { path: outputs.gd, content: generateGdscript(tokens) },
   { path: outputs.css, content: generateCss(tokens) },
+  { path: outputs.ts, content: generateTypescript(tokens) },
 ];
 
 const checkOnly = process.argv.includes("--check");

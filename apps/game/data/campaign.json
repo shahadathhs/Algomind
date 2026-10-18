@@ -1,0 +1,33 @@
+{
+  "worlds": [
+    {
+      "id": "sequences",
+      "title": "Sequences",
+      "summary": "Instructions run in order, one after another.",
+      "chapters": [
+        {
+          "id": "first-steps",
+          "title": "First steps",
+          "levels": ["straight-ahead", "all-the-way", "mind-the-gap"]
+        }
+      ]
+    },
+    {
+      "id": "turns",
+      "title": "Turns",
+      "summary": "Turn before you move to change where you are going.",
+      "chapters": [
+        {
+          "id": "corners",
+          "title": "Corners",
+          "levels": ["one-turn", "turn-left", "turn-around"]
+        },
+        {
+          "id": "around-walls",
+          "title": "Around walls",
+          "levels": ["the-wall", "two-walls", "the-detour"]
+        }
+      ]
+    }
+  ]
+}

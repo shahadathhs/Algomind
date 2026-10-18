@@ -39,6 +39,7 @@ const ALLOWED = new Map([
   ],
   ["packages/design-tokens/test/tokens.test.mjs", "asserts the generator's Color(...) output"],
   ["apps/web/src/app/tokens.css", "generated from the tokens"],
+  ["apps/web/src/lib/token-colors.generated.ts", "generated from the tokens"],
   ["apps/game/scripts/generated/palette.gd", "generated from the tokens"],
   ["apps/game/tests/test_palette.gd", "asserts the generated palette's expected values"],
 ]);

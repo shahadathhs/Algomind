@@ -82,6 +82,7 @@ Tokens are defined once, in `packages/design-tokens` (a data file). A script gen
 
 - **Direction:** a bold, condensed, geometric sans for UI and display, set mostly in capitals with generous letter-spacing for labels; numerals tabular so counters never change width.
 - **Renders** use macOS system fonts as placeholders (Avenir Next Condensed). They are not shippable.
+- **Chosen for the game:** Barlow Condensed Bold (SIL OFL, `apps/game/assets/fonts/`, licence beside it), bundled, with letter spacing and tabular numerals set in code. The web app has not adopted it yet; the choice is open until both use the same font. The original brief for the choice follows.
 - **To decide:** one open-licensed (SIL OFL) condensed sans, bundled in both Godot and the web app (not loaded from a third-party host at runtime). Evaluate a few candidates on the tile wordmark and on 12–16 px labels before choosing, and record the license beside the font files. Do not use monospaced or pixel faces as the primary identity.
 - Keep body copy short. Long text uses sentence case; capitals are for labels, titles, and button text.
 
@@ -153,6 +154,7 @@ Short labels in capitals for controls; plain sentences for explanations. Explain
 Use:
 
 - “THE AUTOMATON TRIED TO MOVE INTO A WALL”
+- “THE AUTOMATON TRIED TO MOVE OFF THE BOARD”
 - “THE PROGRAM ENDED BEFORE THE GOAL”
 - “THE PROGRAM RAN TOO LONG AND WAS STOPPED”
 - “LEVEL SOLVED”
@@ -206,7 +208,7 @@ The dashboard uses the same tokens and rules but is denser and utilitarian. It m
 
 - Desktop first for the full editor, with usable tablet behavior.
 - On narrow screens, stack metadata and validation panels rather than squeezing columns.
-- Full keyboard navigation with visible focus states (a 3 px signal outline plus an ink offset).
+- Full keyboard navigation with visible focus states. Focus rings use **ink**, not signal (signal fails contrast on the light ground), and on chamfered tiles they are drawn inside the shape because `clip-path` clips an outer outline.
 - Visible save status: Unsaved, Saving, Saved, Save failed. Warn before discarding edits.
 - Keep primary actions obvious and destructive actions separated.
 

@@ -178,7 +178,7 @@ The API must return **data**, not code. Keep the schema explicit and versioned. 
   },
   "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"],
   "constraints": {
-    "maxCommands": 8,
+    "maxCommands": 10,
     "maxSteps": 30
   },
   "goal": {
@@ -190,6 +190,8 @@ The API must return **data**, not code. Keep the schema explicit and versioned. 
 ```
 
 Do not treat this example as permission to ship without schema validation. Validate coordinate ranges, board-size limits, supported command names, required fields, goal references, string length limits, and any object/mechanic-specific rules. The server must reject unknown or unsupported schema versions rather than silently guessing.
+
+The package `packages/level-contract` implements this contract, and its README is the authority for the exact limits, validation rules, issue codes, simulator rules, and solver. In short: unknown fields are rejected (so a public level that carries `referenceSolution` is caught), the authoring form adds a required `referenceSolution` (a separate schema), there is no `sortOrder`, and a goal equal to the start is invalid. A test checks that the example above validates and fits its own budget.
 
 If more board mechanics are added later (switches, doors, items), model them as a typed `entities` array rather than adding a new top-level key for each.
 
@@ -211,7 +213,9 @@ Visual tokens are separate from the contract: `packages/design-tokens` is the on
 
 The solver (shortest program for the initial command set) also lives in `packages/level-contract`; see [README_DASHBOARD_PLAN.md](README_DASHBOARD_PLAN.md).
 
-The reference simulator in `packages/level-contract` is used by the dashboard preview and by the API's publish-time check. The game's GDScript simulator implements the same rules. `fixtures/` contains levels, programs, and the expected result and step trace for each; the TypeScript tests and the GUT tests both run every fixture. A fixture failing in either implementation blocks merge.
+The reference simulator in `packages/level-contract` is used by the dashboard preview and by the API's publish-time check. The game's GDScript simulator implements the same rules. `fixtures/` contains levels, programs, and the expected result and step trace for each; the TypeScript tests and the GUT tests both run every fixture. A fixture failing in either implementation blocks merge. The GDScript implementation lives in `apps/game/scripts/contract/` (validator, simulator, messages) and is tested by `apps/game/tests/test_contract_fixtures.gd`, which runs every `levels` and `runs` fixture; `make game-fixtures` copies the fixtures into the Godot project (git-ignored), because Godot and the game container can only read inside `apps/game`. The solver fixtures are TypeScript-only: the game receives par from the server and has no solver.
+
+The game client keeps logic and drawing apart. `apps/game/scripts/logic/` holds the pure parts (campaign loader, progress store, tape editing model, run session) and is covered by GUT tests; `scripts/ui/` and `scripts/screens/` draw and handle touch, with colors only from the generated `Palette` and the bundled Barlow Condensed font (SIL OFL, licence beside it in `assets/fonts/`). The play screen asks `LevelSimulator` for the whole event list in one call and then animates it, so animation cannot change a result. Bundled levels are one JSON file each in `apps/game/data/levels/`, placed by `apps/game/data/campaign.json` (world, chapter, order), and every one passes `LevelValidator` before it is shown. `make game-shots` writes debug-only screenshots (arguments after `--` in `scripts/main.gd`, ignored in release builds).
 
 ### Schema evolution
 
@@ -229,6 +233,7 @@ The reference simulator in `packages/level-contract` is used by the dashboard pr
 - `email` (unique)
 - `passwordHash`
 - `role` (`ADMIN` or `PLAYER`; introduce editor roles only when needed)
+- `mustChangePassword` (true for the seeded admin until the first password change)
 - `createdAt`, `updatedAt`
 
 One identity model and one auth system serve admins and (in the accounts phase) players. Use a reputable authentication approach. Store only a strong password hash, never plaintext or reversible passwords. Do not build custom cryptography. On API startup, if no `ADMIN` user exists, one is created from environment variables (idempotent, password hashed and never logged; in production the API refuses to start with missing or weak values while no admin exists; first sign-in forces a password change). Admins are never created through public sign-up; public sign-up creates only `PLAYER` users and is enabled only in the accounts phase.
@@ -239,7 +244,7 @@ One identity model and one auth system serve admins and (in the accounts phase) 
 - `expiresAt`, `revokedAt` (nullable), `replacedById` (nullable)
 - `createdAt`
 
-Supports rotation, reuse detection (revoke the whole family), and logout.
+Only the SHA-256 hash of the opaque token is stored. All tokens descending from one sign-in share a `familyId`. Supports rotation (the old row gets `revokedAt` and `replacedById`), reuse detection (revoke the whole family), and logout.
 
 ### `Level`
 
@@ -295,7 +300,18 @@ Completion is keyed by stable level ID, so a new published version does not eras
 ### Dashboard tables
 
 - `PlaytestRecord`: `levelVersionId` (a draft), `contentHash`, `testerName`, `solved`, `commandsUsed`, `perceivedDifficulty`, `notes`, `createdAt`. A record is current only while its `contentHash` equals the draft's.
-- `ClientVersion`: app `version`, `supportedMechanics`, `releasedAt`, and a flag for the minimum supported version (the capabilities registry).
+- `ClientVersion`: app `version`, `supportedMechanics`, `releasedAt`, and a flag for the minimum supported version (the capabilities registry). At most one row is the minimum (partial unique index).
+
+Implementation notes (Prisma models in `apps/api/prisma/schema/`, one migration `levels_campaign_publishing`):
+
+- Ids are `uuid` strings like `User`. The stable level id is `Level.id`; the server writes it into `content.levelId`, and the version number into `content.levelVersion`, on every save.
+- `Level.title` and `Level.difficulty` mirror the newest content for lists and search. `createdBy`, `updatedBy` (and `AuditEvent.userId`) are plain user ids, not foreign keys, so attribution outlives an account.
+- `LevelVersion` has an `updatedAt` (the draft's optimistic-concurrency token). `par` is JSON `{ commands, steps }`. `validationSummary` holds the last validate result (errors, warnings, par, required mechanics, hash).
+- `contentHash` is SHA-256 of the key-sorted JSON of `content` with `levelVersion` left out, so restoring or re-drafting identical content keeps its playtests. A playtest counts toward the gate when any `PlaytestRecord` of the level has `solved` and the draft's current hash.
+- Database enforcement (SQL in the migration, beyond what Prisma can express): partial unique indexes for one `DRAFT` and one `PUBLISHED` version per level and one minimum client version; and a trigger that rejects any update of a non-draft `LevelVersion` except `PUBLISHED` to `SUPERSEDED` with every content column unchanged, and any delete of a non-draft version.
+- `Level.status` is `DRAFT` (never published or unpublished), `PUBLISHED`, or `ARCHIVED` (unpublished with `archive: true`). Unpublishing marks the live version `SUPERSEDED` and clears `currentPublishedVersionId`; to republish, start a draft from a version (restore) and publish it.
+- A level reaches players only when `status = PUBLISHED`, it has a live version, and it has a chapter. Unassigning a published level therefore hides it.
+- Mechanic names are lowercase (`move`, `turn`). A level requires the mechanics of its available commands (`MOVE_FORWARD` needs `move`, `TURN_LEFT` and `TURN_RIGHT` need `turn`) plus `requires.mechanics`.
 - `AuditEvent`: `userId`, `action`, `entityType`, `entityId`, `detail`, `createdAt`.
 
 ### Other optional later tables
@@ -336,7 +352,9 @@ The merge follows the policy in [README_GAME_RULES.md](README_GAME_RULES.md): un
 | ----------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------- |
 | `POST`                        | `/v1/auth/login`                          | Admin sign-in; returns a short-lived access token and a refresh token              |
 | `POST`                        | `/v1/auth/refresh`                        | Exchange a refresh token for a new access token and a new refresh token (rotation) |
-| `POST`                        | `/v1/auth/logout`                         | Revoke the current refresh token                                                   |
+| `POST`                        | `/v1/auth/logout`                         | Revoke the current refresh token's family (204, idempotent)                        |
+| `POST`                        | `/v1/auth/change-password`                | Bearer. Change the password; returns a fresh session and revokes the other tokens  |
+| `GET`                         | `/v1/auth/me`                             | Bearer. The signed-in user: `id`, `email`, `role`, `mustChangePassword`            |
 | `POST`                        | `/v1/admin/levels`                        | Create a draft level                                                               |
 | `GET`                         | `/v1/admin/levels`                        | List drafts and published levels                                                   |
 | `GET`                         | `/v1/admin/levels/:id`                    | Read metadata and authoring content                                                |
@@ -356,6 +374,65 @@ The merge follows the policy in [README_GAME_RULES.md](README_GAME_RULES.md): un
 | `GET`                         | `/v1/admin/audit`                         | Audit log                                                                          |
 
 Route names are suggestions; choose a consistent convention. Every admin route must check identity and role on the server.
+
+### 7.1 Implemented routes (levels, campaign, publishing)
+
+The OpenAPI document at `/docs` (JSON at `/docs-json`) is generated from the same zod schemas that validate requests, so it is the exact reference for request and response shapes. Admin routes are all behind `JwtAuthGuard` and `AdminGuard` (401 without a valid token, 403 for a non-admin) and answer `Cache-Control: no-store`. Lists are `{ items, total, page, pageSize }`; errors use the section 11 body.
+
+Public (no auth; published and placed levels only; never the reference solution):
+
+| Route                  | Response                                                                                                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /v1/campaign`     | `{ worlds: [{ id, title, description, order, chapters: [{ id, title, order, levels: [CatalogLevel] }] }] }`, empty worlds and chapters omitted                                                               |
+| `GET /v1/levels`       | `{ items: [CatalogLevel] }` in campaign order. `CatalogLevel`: `id, slug, title, difficulty, number, worldId, chapterId, levelVersion, schemaVersion, par {commands, steps}, maxCommands, requiredMechanics` |
+| `GET /v1/levels/:slug` | `{ id, slug, schemaVersion, levelVersion, par, requiredMechanics, publishedAt, content }` where `content` is the contract level; 404 when not live or not in a chapter                                       |
+
+Caching: `Cache-Control: public, max-age=60, stale-while-revalidate=300` and a strong `ETag` (`If-None-Match` answers 304). The level ETag is the live version id, so it changes only on publish; the catalog ETags are digests of the body.
+
+Admin:
+
+| Route                                                          | Purpose and notable behavior                                                                                                                                                                                                                                |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/admin/levels`                                         | Filters `q`, `status`, `difficulty`, `worldId`, `chapterId`, `unassigned`, `hasDraft`; `sort` (`updatedAt`, `createdAt`, `title`, `slug`), `order`, `page`, `pageSize`. Items are level summaries (placement, versions, `draftAhead`, par, `playtestState`) |
+| `POST /v1/admin/levels`                                        | `{ slug, title, difficulty?, content?, referenceSolution? }` creates a level and its first draft (starter board when no content)                                                                                                                            |
+| `GET /v1/admin/levels/:id`                                     | Summary plus `draft` and `published` versions with content and reference solution, and playtest counts                                                                                                                                                      |
+| `PATCH /v1/admin/levels/:id`                                   | `{ expectedUpdatedAt, content?, referenceSolution? }` saves the draft; the draft's `updatedAt` is the precondition (409 `DRAFT_CONFLICT`, nothing written). A draft may be incomplete. 409 `NO_DRAFT`; 422 `SLUG_LOCKED` once published                     |
+| `DELETE /v1/admin/levels/:id`                                  | Only for a never-published level (409 `HAS_HISTORY` otherwise)                                                                                                                                                                                              |
+| `POST /v1/admin/levels/:id/draft`, `DELETE .../draft`          | Start a draft from the live (else newest) version; discard the draft of a level that has an earlier version                                                                                                                                                 |
+| `POST /v1/admin/levels/:id/validate`                           | Always 200: `errors`, `warnings`, `par`, `referenceSolved`, `requiredMechanics`, `contentHash`, `publish { ready, failedGates }`, `playtests`, `compatibility`                                                                                              |
+| `POST /v1/admin/levels/:id/publish`                            | Transactional (row lock). 422 `PUBLISH_BLOCKED` with one issue per failed gate, see below                                                                                                                                                                   |
+| `POST /v1/admin/levels/:id/unpublish`                          | `{ archive? }`; 409 `NOT_PUBLISHED`                                                                                                                                                                                                                         |
+| `GET /v1/admin/levels/:id/versions`, `.../versions/:versionId` | History without content; one version with content                                                                                                                                                                                                           |
+| `POST /v1/admin/levels/:id/restore/:versionId`                 | Earlier version becomes the new draft (409 `DRAFT_EXISTS` while a draft exists)                                                                                                                                                                             |
+| `POST /v1/admin/levels/:id/duplicate`                          | `{ slug?, title? }` a new unplaced draft level                                                                                                                                                                                                              |
+| `GET`, `POST /v1/admin/levels/:id/playtests`                   | `{ testerName, solved, commandsUsed?, perceivedDifficulty?, notes? }` tied to the draft's `contentHash`; list marks `current` records                                                                                                                       |
+| `GET /v1/admin/levels/:id/export?version=`                     | Validated envelope (see the dashboard plan, section 9); 422 for an invalid level                                                                                                                                                                            |
+| `POST /v1/admin/levels/import?slug=`                           | Envelope body; full validation including the reference solution and par; creates a new draft level, never overwrites; 409 `SLUG_TAKEN`, 422 `UNSUPPORTED_SCHEMA_VERSION` or `LEVEL_VALIDATION_FAILED`                                                       |
+| `GET`, `POST /v1/admin/worlds`; `PATCH`, `DELETE .../:id`      | `{ title, description? }`; new worlds go last; delete only when empty (409 `NOT_EMPTY`)                                                                                                                                                                     |
+| `GET`, `POST /v1/admin/chapters`; `PATCH`, `DELETE .../:id`    | `{ worldId, title }`; `GET ?worldId=`; delete only when empty                                                                                                                                                                                               |
+| `GET /v1/admin/campaign`                                       | The whole tree with level summaries, plus `unassigned` (added for the dashboard)                                                                                                                                                                            |
+| `PUT /v1/admin/campaign/order`                                 | `{ worlds: [{ id, chapters: [{ id, levels: [levelId] }] }] }`: the complete tree; every world and chapter exactly once, levels left out become unassigned; transactional; 422 `INVALID_ORDER`                                                               |
+| `GET`, `POST /v1/admin/client-versions`; `PATCH .../:id`       | `{ version, supportedMechanics, isMinimum?, releasedAt? }`; `PATCH` can set `isMinimum: true` (moves the flag), never unset it                                                                                                                              |
+| `GET /v1/admin/audit`                                          | `action`, `entityType`, `entityId`, `page`, `pageSize` filters; actions `LEVEL_PUBLISHED`, `LEVEL_UNPUBLISHED`, `LEVEL_ARCHIVED`, `LEVEL_IMPORTED`, `LEVEL_RESTORED`, `CAMPAIGN_REORDERED`                                                                  |
+
+Deviations from the section 7 table: added `POST/DELETE .../draft`, `DELETE /admin/levels/:id`, `GET .../versions/:versionId`, `GET /admin/campaign`; the import file is the envelope itself with an optional `?slug=`.
+
+Publish gates. A failed publish is 422 `PUBLISH_BLOCKED` and `issues` lists every failed gate as `{ gate, path, code, message }`; `validate` returns the same list as `publish.failedGates`. Gates and codes:
+
+| Gate                 | Codes (path)                                                                                                                                                     |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `validation`         | the contract issue codes (their own paths), e.g. `OUT_OF_RANGE` at `board.width`; the solver, simulator and compatibility checks below run only when this passes |
+| `reference_solution` | `REFERENCE_SOLUTION_FAILS` (`referenceSolution`)                                                                                                                 |
+| `par`                | `GOAL_UNREACHABLE` (`goal.position`), `BUDGET_BELOW_PAR` (`constraints.maxCommands`), `STEPS_BELOW_PAR` (`constraints.maxSteps`)                                 |
+| `playtest`           | `PLAYTEST_REQUIRED` (`playtests`): no solved record for the current `contentHash`                                                                                |
+| `compatibility`      | `UNSUPPORTED_MECHANIC`, `NO_MINIMUM_CLIENT_VERSION` (`requires.mechanics`): the minimum supported client version must support every required mechanic            |
+| `placement`          | `PLACEMENT_REQUIRED` (`chapterId`)                                                                                                                               |
+
+Warnings (never block): `BUDGET_FAR_ABOVE_PAR` (limit above par plus the larger of 4 and par), `REFERENCE_LONGER_THAN_PAR`. Because a valid reference solution cannot exceed the command limit, `BUDGET_BELOW_PAR` normally appears together with `REFERENCE_SOLUTION_FAILS` (or as the validator's `TOO_MANY_COMMANDS` at `referenceSolution` when the reference is longer than the limit).
+
+Publishing, under a row lock on the level: re-validates the draft, checks every gate, marks the previous published version `SUPERSEDED`, freezes the draft as `PUBLISHED` (`publishedAt`, `par`, `validationSummary`), moves `currentPublishedVersionId`, sets `status = PUBLISHED`, and writes the `AuditEvent`, all in one transaction. After a successful audited change the API asks the web app to revalidate its public pages (`WEB_REVALIDATE_URL` and `REVALIDATE_SECRET`; best effort, merged and delayed a moment so it lands after the commit).
+
+Seeds: on startup, after the admin seed, `SEED_STARTER_CAMPAIGN` (default true outside production, false in production) creates four worlds (Sequences, Turns, Planning, Limits), five chapters and nineteen published starter levels (converted to the contract, validated and solved with the solver at seed time, each with a "seed" playtest) plus a client-registry row for the API's package version supporting `move` and `turn`. It skips anything that exists by slug and fails startup if the starter content does not validate.
 
 ## 8. Publication lifecycle
 
@@ -395,6 +472,9 @@ A draft save is not a publish. Client-side validation improves the editing exper
 - **Auto logout.** The web app signs the admin out automatically when a refresh fails or is rejected, when the refresh token expires, after a period of inactivity, and when the admin signs out in another tab. It clears all session state and redirects to sign-in. A 401 on an API call triggers one refresh attempt and one retry, then logout.
 - **Token storage in the web app.** Keep the access token in memory only. Keep the refresh token out of JavaScript-readable storage (an httpOnly, secure, same-site cookie set by the web app's server). Never put tokens in `localStorage`. A page reload restores the session through the refresh token.
 - Logout and password change revoke refresh tokens server-side.
+- **Implementation.** Access token: JWT (HS256, `jose`), 900 s by default (`ACCESS_TOKEN_TTL_SECONDS`). Refresh token: 32 random bytes, 7 days by default (`REFRESH_TOKEN_TTL_DAYS`). Passwords: argon2id (`@node-rs/argon2`, 19 MiB, 2 passes); an unknown email is checked against a dummy hash so timing and the 401 body match a wrong password. A new password needs at least 12 characters, and must differ from the current one. A wrong current password on `change-password` is 422, so clients that treat 401 as "refresh, then log out" do not fire.
+- **Guards** (`apps/api/src/modules/auth`): `JwtAuthGuard` reads the user from the database on every request, `RolesGuard` with `@Roles(...)`, and `AdminGuard`, which also answers 403 `PASSWORD_CHANGE_REQUIRED` while `mustChangePassword` is set (`@AllowPasswordChange()` opts a route out). Admin routes use `@UseGuards(JwtAuthGuard, AdminGuard)`; none is registered globally, so health and `/docs` stay public.
+- **Rate limits** are fixed 15-minute windows in process memory (login: 10 per IP and email plus 60 per IP; refresh: 60 per IP; change-password: 10 per user and IP), answered with 429 and `Retry-After`. They are per instance, so run one instance. `TRUST_PROXY` (1 on Render) makes `req.ip` the real client. JSON bodies are capped at 64 kB (a level is a few kB; a full campaign order a few tens). Nothing logs passwords, tokens, or the `Authorization` header.
 - Protect all admin routes with authentication and server-side authorization in the API; the web app's route protection is only for user experience.
 - Start with a single admin role; do not implement a complex role model prematurely.
 - Rate-limit login attempts and sensitive endpoints.
@@ -437,7 +517,7 @@ Use consistent HTTP status codes and an error response with a stable machine-rea
 }
 ```
 
-Do not return stack traces or secrets. The dashboard should map the issue path to a field and show a useful correction. The game should translate network and content errors into player-friendly states.
+Level validation issues use the stable codes defined in `packages/level-contract/README.md` (the issue-code table). Do not return stack traces or secrets. The dashboard should map the issue path to a field and show a useful correction. The game should translate network and content errors into player-friendly states.
 
 ## 12. Testing strategy
 
@@ -455,9 +535,12 @@ Do not return stack traces or secrets. The dashboard should map the issue path t
 
 ### API
 
+The API has no automated tests for now (removed on purpose; add them when a feature's risk justifies it, publish gates and authorization first). The list below is what to cover when they return, against real PostgreSQL where behavior depends on it.
+
 - Test public routes do not expose drafts, reference solutions, or unassigned levels.
 - Test publish is blocked when validation fails, the budget is below par, there is no current solved playtest, or a required mechanic is unsupported.
-- Test the admin seed is idempotent and never logs the password.
+- Test the admin seed is idempotent, never logs the password, and that production refuses to start without a valid seed while no admin exists.
+- Test login (and that an unknown email looks like a wrong password), refresh rotation, reuse detection, logout, change-password (including the 422), the guards (401 without or with an expired token, 403 for the wrong role, 403 while a password change is required), rate limiting, and environment validation.
 - Test import rejects invalid or unsupported files and never overwrites existing levels.
 - Test anonymous users cannot access admin routes.
 - Test invalid or unsolvable level content cannot be published.

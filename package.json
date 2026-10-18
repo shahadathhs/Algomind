@@ -9,7 +9,8 @@
   "scripts": {
     "prepare": "husky",
     "commit": "cz",
-    "lint": "oxlint --type-aware . && prettier --check .",
+    "generated": "pnpm --filter @algomind/level-contract build && pnpm --filter @algomind/api generate",
+    "lint": "pnpm generated && oxlint --type-aware . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",

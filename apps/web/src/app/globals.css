@@ -37,7 +37,78 @@ body {
   clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
 }
 
+/* Tailwind's preflight resets buttons to the default cursor; interactive controls show a pointer. */
+button:not(:disabled),
+summary,
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+/* The mobile menu drawer (components/public/mobile-nav.tsx). It is a <details> element, so it works
+   without JavaScript: tapping the menu button or anywhere outside the panel toggles it. The
+   backdrop is a pseudo-element of the <summary>, which is why the summary itself has no clip-path
+   (a clip-path would clip the backdrop). */
+.mobile-nav[open] > summary::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  cursor: default;
+  background: color-mix(in srgb, var(--ground) 82%, transparent);
+}
+
 :focus-visible {
-  outline: 3px solid var(--signal);
-  outline-offset: 2px;
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* A clip-path also clips outlines, so a focused tile draws its ring inside the shape. */
+.tile:focus-visible {
+  outline-offset: -7px;
+}
+
+/* The QR code is always dark modules on a light ground so phones can scan it. The ground and ink
+   tokens swap roles in the dark theme, so the pair swaps with them. */
+.qr-tile {
+  background: var(--floor);
+  color: var(--ink);
+}
+.qr-light {
+  fill: var(--floor);
+}
+.qr-dark {
+  fill: var(--ink);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .qr-tile {
+    background: var(--ink);
+    color: var(--ground);
+  }
+  :root:not([data-theme="light"]) .qr-light {
+    fill: var(--ink);
+  }
+  :root:not([data-theme="light"]) .qr-dark {
+    fill: var(--ground);
+  }
+}
+:root[data-theme="dark"] .qr-tile {
+  background: var(--ink);
+  color: var(--ground);
+}
+:root[data-theme="dark"] .qr-light {
+  fill: var(--ink);
+}
+:root[data-theme="dark"] .qr-dark {
+  fill: var(--ground);
+}
+
+/* Nothing animates in this site; this keeps it that way if something is added later. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

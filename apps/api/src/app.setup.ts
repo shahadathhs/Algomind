@@ -1,4 +1,5 @@
 import type { INestApplication } from "@nestjs/common";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppConfig } from "./core/config/app-config.js";
 import { HttpExceptionFilter } from "./core/errors/http-exception.filter.js";
@@ -6,6 +7,19 @@ import { HttpExceptionFilter } from "./core/errors/http-exception.filter.js";
 /** Application-wide setup, kept separate from main.ts so it can be reused. */
 export function setupApp(app: INestApplication): void {
   const config = app.get(AppConfig);
+  // Behind a reverse proxy (Render), req.ip is the real client only when the proxy count is set.
+  (app as NestExpressApplication).set("trust proxy", config.trustProxy);
+  // Every JSON body is small (a level is a few kB, a full campaign order a few tens); reject
+  // anything larger before it is parsed.
+  (app as NestExpressApplication).useBodyParser("json", { limit: "64kb" });
+  // Admin and auth responses are per user and never cached.
+  (app as NestExpressApplication).use(
+    ["/v1/admin", "/v1/auth"],
+    (_req: unknown, res: { setHeader(name: string, value: string): void }, next: () => void) => {
+      res.setHeader("Cache-Control", "no-store");
+      next();
+    },
+  );
   app.setGlobalPrefix("v1");
   app.useGlobalFilters(new HttpExceptionFilter());
   app.enableCors({ origin: config.corsOrigins });

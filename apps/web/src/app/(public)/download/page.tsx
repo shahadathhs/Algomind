@@ -1,16 +1,43 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/public/json-ld";
+import { ApkInfo } from "@/components/public/apk-info";
+import { DownloadHero } from "@/components/public/download-hero";
+import { InstallSteps } from "@/components/public/install-steps";
+import { ReleaseAside } from "@/components/public/release-aside";
+import { Container } from "@/components/ui/container";
+import { Rule } from "@/components/ui/rule";
+import { getLatestRelease } from "@/lib/releases";
+import { mobileApplicationJsonLd, pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Download" };
+// The page is static; the release it shows is re-read at most once an hour.
+export const revalidate = 3600;
 
-// Placeholder. The release data, QR code, and install steps are specified in docs/README_WEB_PLAN.md.
-export default function DownloadPage() {
+const DESCRIPTION =
+  "Download the Algomind APK for Android and install it in four steps. Not on Google Play; every build is signed with the same key and published with a SHA-256.";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Download",
+  shareTitle: "Download Algomind",
+  description: DESCRIPTION,
+  path: "/download",
+});
+
+export default async function DownloadPage() {
+  const state = await getLatestRelease();
   return (
-    <section className="mx-auto max-w-[1120px] px-5 py-16 sm:px-8">
-      <div className="mb-4 text-xs tracking-[2px] text-mute">ANDROID</div>
-      <h1 className="text-[44px] leading-none tracking-[1px] sm:text-[56px]">DOWNLOAD ALGOMIND.</h1>
-      <p className="mt-6 max-w-[520px] text-lg leading-normal font-semibold text-mute">
-        There is no release yet. Builds will be published on this page.
-      </p>
-    </section>
+    <>
+      <JsonLd
+        data={mobileApplicationJsonLd(state.status === "available" ? state.release : undefined)}
+      />
+      <DownloadHero state={state} />
+      {state.status === "available" && <ApkInfo release={state.release} />}
+      <Container>
+        <Rule />
+        <div className="grid gap-12 py-12 sm:py-[72px] lg:grid-cols-2 lg:gap-16">
+          <InstallSteps />
+          <ReleaseAside state={state} />
+        </div>
+      </Container>
+    </>
   );
 }

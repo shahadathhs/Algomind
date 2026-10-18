@@ -5,8 +5,18 @@ import { SiteHeader } from "@/components/public/site-header";
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
     <>
+      {/* First focusable element: keyboard users skip the header. Visible only while focused. */}
+      <a
+        href="#main"
+        className="tile fixed top-3 left-3 z-50 -translate-y-[200%] bg-ink px-4 py-3 text-sm tracking-[2px] text-on-ink uppercase focus:translate-y-0"
+        style={{ ["--chamfer" as string]: "8px" }}
+      >
+        Skip to content
+      </a>
       <SiteHeader />
-      <main>{children}</main>
+      <main id="main" tabIndex={-1} className="outline-none">
+        {children}
+      </main>
       <SiteFooter />
     </>
   );

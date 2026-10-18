@@ -4,6 +4,7 @@
 set -e
 swc_build="swc src -d dist --strip-leading-paths --config-file .swcrc"
 
+pnpm contract
 pnpm generate
 $swc_build
 $swc_build --watch &

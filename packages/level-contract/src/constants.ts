@@ -1,0 +1,41 @@
+/** Schema version this package reads and writes. Anything else is rejected. */
+export const SCHEMA_VERSION = 1;
+
+/** Every command the first command set knows, in the canonical order used by the solver. */
+export const COMMAND_NAMES = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"] as const;
+
+/** Directions in clockwise order starting at north. */
+export const DIRECTIONS = ["north", "east", "south", "west"] as const;
+
+export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
+
+export const GOAL_TYPES = ["reach_tile"] as const;
+
+/** Unit step for each direction. x grows right, y grows down (0,0 is the top-left cell). */
+export const DIRECTION_DELTAS = {
+  north: [0, -1],
+  east: [1, 0],
+  south: [0, 1],
+  west: [-1, 0],
+} as const;
+
+/** Inclusive limits enforced by the validator. The JSON Schema repeats them; a test keeps both in sync. */
+export const LIMITS = {
+  boardSide: { min: 3, max: 12 },
+  maxWalls: 100,
+  maxCommands: { min: 1, max: 64 },
+  maxSteps: { min: 1, max: 1000 },
+  levelVersion: { min: 1, max: 1_000_000 },
+  /** Lengths are counted in Unicode code points. */
+  levelId: { min: 1, max: 64 },
+  slug: { min: 1, max: 64 },
+  title: { min: 1, max: 60 },
+  description: { min: 0, max: 280 },
+  hints: { maxCount: 5, itemLength: { min: 1, max: 140 } },
+  mechanics: { maxCount: 8, itemLength: { min: 1, max: 32 } },
+} as const;
+
+/** Lowercase letters and digits in groups separated by single hyphens. Used by levelId and slug. */
+export const ID_PATTERN = "^[a-z0-9]+(-[a-z0-9]+)*$";
+/** Lowercase letter first, then lowercase letters, digits, and underscores. Used by mechanic names. */
+export const MECHANIC_PATTERN = "^[a-z][a-z0-9_]*$";

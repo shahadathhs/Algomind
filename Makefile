@@ -19,7 +19,7 @@ GDPATHS   := $(GAME)/scripts $(GAME)/tests
         db-up db-down db-reset db-psql \
         api-generate api-dev api-build api-start api-migrate api-migration \
         web-dev web-build web-start \
-        game-import game-check game-test game-lint game-format game-run \
+        game-fixtures game-import game-check game-test game-lint game-format game-run game-shots \
         game-docker-image game-docker-check game-docker-test game-apk android-key \
         up down build logs ps clean version release
 
@@ -36,13 +36,18 @@ setup: env install db-up api-generate api-migrate game-import ## One-time local 
 	@echo "  make game-run  the game on this machine"
 	@echo "  make up        everything in containers instead"
 
-env: ## Create .env with a generated local database password (never overwrites)
+env: ## Create .env with generated local secrets: database password, JWT key, admin password (never overwrites)
 	@if [ -f .env ]; then echo ".env already exists, keeping it" >&2; else \
 		pw=$$(openssl rand -hex 16); \
+		jwt=$$(openssl rand -hex 32); \
+		admin=$$(openssl rand -hex 12)Aq; \
 		sed -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$$pw|" \
 		    -e "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://algomind:$$pw@localhost:5432/algomind|" \
+		    -e "s|^JWT_ACCESS_SECRET=.*|JWT_ACCESS_SECRET=$$jwt|" \
+		    -e "s|^SUPER_ADMIN_PASS=.*|SUPER_ADMIN_PASS=$$admin|" \
 		    .env.example > .env; \
-		echo "Created .env with a generated database password" >&2; \
+		echo "Created .env with generated secrets (nothing is printed)." >&2; \
+		echo "Dashboard sign-in: the SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASS values in .env; the first sign-in asks for a new password." >&2; \
 	fi
 
 install: ## Install dependencies and git hooks (pnpm)
@@ -123,13 +128,17 @@ web-start: ## Run the built web app
 
 # ── Game (host Godot) ─────────────────────────────────────────────────
 
+game-fixtures: ## Copy the level-contract fixtures into the Godot project (git-ignored; Godot reads only inside it)
+	@mkdir -p $(GAME)/tests/contract_fixtures
+	rsync -a --delete packages/level-contract/fixtures/ $(GAME)/tests/contract_fixtures/
+
 game-import: ## Import assets and build the Godot cache
 	$(GODOT) --headless --path $(GAME) --import
 
-game-check: game-import ## Load the project headless; fails on parse or script errors
+game-check: game-fixtures game-import ## Load the project headless; fails on parse or script errors
 	$(GODOT) --headless --path $(GAME) --quit-after 1
 
-game-test: game-import ## Run the game tests (GUT)
+game-test: game-fixtures game-import ## Run the game tests (GUT)
 	$(GODOT) --headless --path $(GAME) -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit
 
 game-lint: ## GDScript style gate: gdlint + gdformat --check (config: gdlintrc)
@@ -142,15 +151,18 @@ game-format: ## Fix GDScript style in place (gdformat)
 game-run: ## Play the game on this machine
 	$(GODOT) --path $(GAME)
 
+game-shots: game-import ## Debug screenshots of every screen, 3 phone sizes x 2 themes, into apps/game/build/shots
+	GODOT=$(GODOT) sh $(GAME)/tools/screenshots.sh
+
 # ── Game (headless Godot in Docker, same result as the host targets) ──
 
 game-docker-image: env ## Build the headless Godot image
 	$(COMPOSE) --profile tools build godot
 
-game-docker-check: env ## Import and load the project inside the Godot container
+game-docker-check: env game-fixtures ## Import and load the project inside the Godot container
 	$(COMPOSE) --profile tools run --rm godot sh -c 'godot --headless --path . --import && godot --headless --path . --quit-after 1'
 
-game-docker-test: env ## Run the game tests inside the Godot container
+game-docker-test: env game-fixtures ## Run the game tests inside the Godot container
 	$(COMPOSE) --profile tools run --rm godot sh -c 'godot --headless --path . --import && godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit'
 
 game-apk: env ## Export a debug APK to apps/game/build/ (inside the Godot container)

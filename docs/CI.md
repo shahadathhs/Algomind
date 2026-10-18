@@ -6,20 +6,20 @@
 
 `.github/workflows/ci.yml` is one pipeline. Pull requests run the gates; pushes to `main` continue through deploy, build, and release.
 
-| Job          | Runs for             | What it does                                                                                                                          |
-| ------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `quality`    | every push and PR    | Design-token drift check, oxlint (type-aware) and prettier, `tsc` type checks, and all TypeScript tests                               |
-| `api`        | every push and PR    | Applies migrations to an empty PostgreSQL 17 service container, then builds the API                                                   |
-| `web`        | every push and PR    | Production `next build`                                                                                                               |
-| `game`       | every push and PR    | `gdlint` and `gdformat --check`, then headless Godot (in Docker) loads the project and runs the GUT tests                             |
-| `docker`     | every push and PR    | Builds the API and web images, starts the database, API, and web with Compose, checks `/v1/health/ready` and the landing page         |
-| `deploy-api` | `main`               | Calls the Render deploy hook, then polls the Render API until the deploy is live (fails the run if it fails or times out)             |
-| `apk`        | `main` and `v*` tags | Resolves the version, injects the version code and API URL, builds a debug APK in the Godot container, writes a SHA-256, uploads      |
-| `release`    | `main` and `v*` tags | Refreshes the rolling **Latest build** release, calls the Vercel deploy hook, and publishes **Algomind vX.Y.Z** when `VERSION` is new |
+| Job          | Runs for             | What it does                                                                                                                                                                                         |
+| ------------ | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quality`    | every push and PR    | Design-token drift check, generating the Prisma client and building `level-contract` (the type-aware lint needs both), oxlint (type-aware) and prettier, `tsc` type checks, and all TypeScript tests |
+| `api`        | every push and PR    | Applies migrations to an empty PostgreSQL 17 service container, then builds the API                                                                                                                  |
+| `web`        | every push and PR    | Production `next build`                                                                                                                                                                              |
+| `game`       | every push and PR    | `gdlint` and `gdformat --check`, then headless Godot (in Docker) loads the project and runs the GUT tests, which include every level-contract fixture (copied in by `make game-fixtures`)            |
+| `docker`     | every push and PR    | Builds the API and web images, starts the database, API, and web with Compose, checks `/v1/health/ready` and the landing page                                                                        |
+| `deploy-api` | `main`               | Calls the Render deploy hook, then polls the Render API until the deploy is live (fails the run if it fails or times out)                                                                            |
+| `apk`        | `main` and `v*` tags | Resolves the version, injects the version code and API URL, builds a debug APK in the Godot container, writes a SHA-256, uploads                                                                     |
+| `release`    | `main` and `v*` tags | Refreshes the rolling **Latest build** release, calls the Vercel deploy hook, and publishes **Algomind vX.Y.Z** when `VERSION` is new                                                                |
 
 **Status:** the pipeline has run end to end on GitHub. On the first merge to `main` all eight jobs passed, including the APK build and the release. At that time the Render, Vercel, signing-key, and API-URL settings were not configured, so the deploy job took its documented "skip" path and the first APK used a one-off signing key and had no API URL. They are configured now (see the table below), but the automated deploy through the Render and Vercel hooks has not run yet. The v0.0.1 release was deleted afterwards, so the next merge to `main` publishes it again: `VERSION` names a version with no release. The workflow passes `actionlint`.
 
-**No credentials in the repository.** The local database password is generated into the git-ignored `.env` by `make env` (Compose refuses to start without it, and the database port is bound to `127.0.0.1`). The CI `api` job uses a throwaway Postgres service container with trust authentication and a passwordless URL; the `docker` job runs `make env` to generate a password. The API requires `DATABASE_URL` and has no default. Android's public debug-keystore password (`android`) remains in the Godot container setup because the Android tooling expects it.
+**No credentials in the repository.** The local database password is generated into the git-ignored `.env` by `make env` (Compose refuses to start without it, and the database port is bound to `127.0.0.1`). The CI `api` job uses a throwaway Postgres service container with trust authentication and a passwordless URL; the `docker` job runs `make env` to generate a password. The API requires `DATABASE_URL` and has no default; `make env` also generates the JWT signing key and the seeded admin password into `.env` without printing them, and the CI `docker` job gets them that way. Android's public debug-keystore password (`android`) remains in the Godot container setup because the Android tooling expects it.
 
 ## Versions and releases
 
@@ -50,7 +50,7 @@ Both refuse the same version or a lower one. `release` also refuses to run with 
 | prettier                              | Formatting for TypeScript, JSON, Markdown, YAML                                                                                                         |
 | oxlint (type-aware)                   | TypeScript linting for every TypeScript app and package. There is no ESLint: TypeScript 7 has no JS compiler API, so typescript-eslint cannot parse it. |
 | tsc                                   | Type checking in each TypeScript app and package                                                                                                        |
-| Vitest / Playwright                   | Web unit tests today (Vitest), smoke tests later (Playwright). The API has no test framework yet.                                                       |
+| Vitest / Playwright                   | Not used in the API or web for now; add smoke tests (Playwright) when a flow needs them.                                                                |
 | gdlint + gdformat (gdtoolkit, pinned) | GDScript style gate                                                                                                                                     |
 | GUT                                   | Game unit tests, run headless in Docker                                                                                                                 |
 | Prisma                                | Schema validation and migrations                                                                                                                        |

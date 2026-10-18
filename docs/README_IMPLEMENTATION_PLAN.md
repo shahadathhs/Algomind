@@ -58,10 +58,12 @@ The architecture is complete after step 6 with only a handful of test levels. Th
 - Create valid and invalid level fixtures, and programs with expected outcomes and step traces.
 - Define the `requires.mechanics` capability model and the reference-solution format.
 - Implement the equivalent validator and simulator in GDScript inside a minimal Godot project, and run every fixture there with GUT.
+- The TypeScript package is consumed from its built `dist/`, so CI and Docker builds must build it before any dependent type check, test, or build.
 
 ### Deliverables
 
 - Documented schema and fixtures.
+- **Status:** the TypeScript contract (126 tests) and the GDScript validator and simulator (every `levels` and `runs` fixture) are done and pass the same fixtures. Solver fixtures are TypeScript-only. Remaining: wiring the contract into the API, the dashboard, and the game's level loading.
 - The same fixture suite passing in TypeScript and in GDScript.
 
 ### Exit criteria
@@ -93,6 +95,7 @@ The architecture is complete after step 6 with only a handful of test levels. Th
 - API can store drafts, publish a level version, list published levels, and retrieve a selected published version.
 - Migrations apply from a clean database.
 - Automated tests (against a real PostgreSQL) cover public/private access and publishing behavior. No API test framework is set up yet; choose one when writing the first of these.
+- **Status:** implemented except automated tests and the web revalidation call after publish. Auth, worlds and chapters, ordering, drafts and versions, validate, the publish gates, unpublish, restore, duplicate, import and export, playtests, the client registry, the audit log, and the public catalog exist (route list in [README_ARCHITECTURE.md](README_ARCHITECTURE.md), section 7.1). Behavior was checked by hand against a real PostgreSQL (clean migration, every gate failing alone, the public catalog, round trips, DB constraints), not by an automated suite.
 
 ### Exit criteria
 
@@ -132,6 +135,8 @@ Build a modest editor that helps create valid content. Do not build a general-pu
 - Preview results match the fixture expectations.
 
 ## Phase 4 — Game client
+
+**Status: built, verified on a desktop only.** Done: the gameplay screen (ready, running, paused, failed, solved) with the board renderer, automaton, and tape editor; Home, level select, and settings (theme, reduce motion); a bundled 9-level campaign loaded from data through the validator; local progress in a versioned, atomically written save with backup recovery; the debug screenshot path (`make game-shots`); the networked half: the API base URL from the `algomind/network/api_base_url` project setting (CI fills it; `ALGOMIND_API_BASE_URL` overrides it in debug builds), the public catalog and each level fetched from `/v1/campaign` and `/v1/levels/:slug` (public routes only), every level checked by the validator before it is stored, a cache on the device keyed by slug and level version that a bad response can never replace, offline and unreadable-response states with a Retry control on level select, levels needing a newer game skipped and counted, and the served par shown on the result. The game plays downloaded levels when it has any and the bundled ones otherwise; it was checked end to end against a running API (9 bundled, then 19 downloaded, a second sync downloads nothing, and an unreachable API keeps the bundled levels). 123 GUT tests. Not done: hints and the pause menu, sound, haptics, run speed, any run on a device or as an APK, and the unsupported-schema screen (a level with another schema version is skipped and counted like any other unreadable level).
 
 ### Tasks
 

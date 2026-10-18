@@ -30,7 +30,7 @@ make lint           # oxlint + prettier --check
 make format         # prettier --write
 make typecheck      # tsc in every TypeScript package
 make test           # TypeScript tests (no database needed)
-make game-test      # GDScript tests (GUT); make game-docker-test runs them in a container
+make game-test      # GDScript tests (GUT, includes the contract fixtures); make game-docker-test runs them in a container
 make tokens         # regenerate the Godot palette and web CSS from design tokens
 make tokens-check   # fail if generated token files are out of date
 make api-dev        # API at :8000 (starts the database)
@@ -76,7 +76,7 @@ You cannot judge a design you have not seen. For UI work, capture screenshots at
 ## Quality
 
 - Lint is **oxlint** plus prettier. There is no ESLint (TypeScript 7 has no JS compiler API for typescript-eslint).
-- The API is an ES module project built with **SWC**; the Nest CLI is not used (it needs the TypeScript compiler API). The API has no test framework yet (add one when the first API feature needs tests). Prisma's generated client is not committed; `make api-generate` creates it.
+- The API is an ES module project built with **SWC**; the Nest CLI is not used (it needs the TypeScript compiler API). The API and the web app have no automated tests for now; the contract (`packages/level-contract`), the design tokens, and the game's GDScript tests remain. Prisma's generated client is not committed; `make api-generate` creates it.
 - Type checking uses the native `tsc` (TypeScript 7).
 - Tests for logic you add; the simulator, validator, solver, and publish gates are the highest-risk areas.
 - A feature is done when it meets the "definition of done" in `docs/README_IMPLEMENTATION_PLAN.md`.

@@ -4,14 +4,14 @@
 
 [![CI/CD](https://github.com/shahadathhs/Algomind/actions/workflows/ci.yml/badge.svg)](https://github.com/shahadathhs/Algomind/actions/workflows/ci.yml)
 
-> **Status: early development.** The specification, design system, tooling, and runnable app skeletons exist. The gameplay, the level pipeline, and the public site are not built yet. [What is built, and what is not](#status) is spelled out below, and nothing here has been released.
+> **Status: first playable build, not released.** The game, the level pipeline (API and dashboard), and the public site are built. It has not been run on a device, accounts and cloud sync are not built, and no app release has been published. [What is built, and what is not](#status) is spelled out below.
 
 ## Live
 
-|         |                                                                         |
-| ------- | ----------------------------------------------------------------------- |
-| Website | https://playalgomind.vercel.app (placeholder pages for now)             |
-| API     | https://algomind-api.onrender.com (health: `/v1/health`, docs: `/docs`) |
+|         |                                                                                                       |
+| ------- | ----------------------------------------------------------------------------------------------------- |
+| Website | https://playalgomind.vercel.app (the live site runs the code from `main`; this branch is ahead of it) |
+| API     | https://algomind-api.onrender.com (health: `/v1/health`, docs: `/docs`)                               |
 
 The API runs on Render's free tier, so the first request after a quiet period can be slow. There is no published app release at the moment; the first one is created by the next merge to `main`.
 
@@ -94,14 +94,14 @@ Levels are grouped into **worlds** (one concept each) and **chapters** within th
 
 ## Status
 
-| Area                         | Built                                                                                                                                                                     | Not built yet                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Specification and design** | Product, rules, architecture, visual design system ("Instruction Tape"), plans for the web and the dashboard, 15 app screens in both themes, web and dashboard renders    |                                                                                                     |
-| **Engineering foundation**   | Monorepo, hooks, lint and format gates, a color-literal gate, design-token generator with contrast tests, version and release scripts, Docker and Compose, CI/CD workflow | The Render and Vercel deploy hooks are configured but have not been exercised by a pipeline run yet |
-| **API**                      | Runnable skeleton, deployed on Render with Neon: health and readiness routes, OpenAPI docs, error format, validated config, `User` table and migration                    | Authentication, levels, campaign, publishing, solver                                                |
-| **Web**                      | Runnable skeleton, deployed on Vercel: placeholder landing and download pages, a noindex admin page showing API status, sitemap and robots                                | The real public site and the dashboard                                                              |
-| **Game**                     | Runnable skeleton: placeholder scene using the generated palette, tests, a signed debug APK build                                                                         | Gameplay, the tape editor, the screens, offline caching, sync                                       |
-| **Level contract**           |                                                                                                                                                                           | Schema, validator, simulator, solver, fixtures                                                      |
+| Area                         | Built                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Not built yet                                                                                       |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Specification and design** | Product, rules, architecture, visual design system ("Instruction Tape"), plans for the web and the dashboard, 15 app screens in both themes, web and dashboard renders                                                                                                                                                                                                                                                                                                                                                                                      |                                                                                                     |
+| **Engineering foundation**   | Monorepo, hooks, lint and format gates, a color-literal gate, design-token generator with contrast tests, version and release scripts, Docker and Compose, CI/CD workflow                                                                                                                                                                                                                                                                                                                                                                                   | The Render and Vercel deploy hooks are configured but have not been exercised by a pipeline run yet |
+| **API**                      | Runs on Render with Neon, and the routes below reach it with the next merge to main: health routes, OpenAPI docs, error format, validated config, authentication with rotating refresh tokens and a seeded admin, levels with draft and immutable published versions, worlds and chapters with campaign ordering, the public catalog (`/v1/campaign`, `/v1/levels`), gated publishing (validator, reference solution, solver par, playtest, client compatibility, placement), import and export, client registry, audit log, optional starter campaign seed | Automated tests, cache revalidation of the web app on publish, accounts and progress sync           |
+| **Web**                      | Public site (landing, how to play, levels, download with the latest release, privacy, contact, icons, share images, sitemap), and the admin dashboard: sign-in and session handling, the level list and editor (board, solution tape, preview, playtests, checks, publish), history with export and restore, campaign ordering, import, capabilities, and the audit log                                                                                                                                                                                     | Publish review with diff, unpublish and archive controls, level thumbnails, home counts             |
+| **Game**                     | A playable game: Home, level select, play (board, tape editor, Run, Step, Pause, Reset, result messages with par), settings (theme, reduce motion), a bundled 9-level campaign, levels downloaded from the API and cached on the device with offline fallback, local progress with safe saves, a debug screenshot path; the GDScript validator and simulator reproduce every contract fixture; 123 GUT tests; a signed debug APK build                                                                                                                      | Hints, pause menu, sound, run speed, accounts and sync; no device or APK run of the game yet        |
+| **Level contract**           | Schema, validator, deterministic simulator, shortest-solution solver, and a language-neutral fixture suite (126 tests)                                                                                                                                                                                                                                                                                                                                                                                                                                      | Wiring into the dashboard and the game's level loading (the API uses it)                            |
 
 The order of work is in the [implementation plan](docs/README_IMPLEMENTATION_PLAN.md).
 
@@ -114,6 +114,7 @@ make setup      # .env (with a generated local database password), dependencies 
 make api-dev    # API at http://localhost:8000 (docs at /docs)
 make web-dev    # web at http://localhost:3000
 make game-run   # the game on this machine
+make game-shots # debug screenshots of every screen (3 phone sizes, both themes) into apps/game/build/shots
 ```
 
 Or run everything in containers:
@@ -132,7 +133,7 @@ make check              # everything CI runs
 make lint               # oxlint (type-aware) + prettier --check
 make typecheck          # tsc in every TypeScript package
 make test               # TypeScript tests
-make game-test          # GDScript tests (GUT); make game-docker-test runs them in a container
+make game-test          # GDScript tests (GUT, includes the contract fixtures); make game-docker-test runs them in a container
 make tokens-check       # fail if generated design-token files are out of date
 make colors-check       # fail if a color is hand-written outside the design tokens
 make db-reset           # throw away the local database and start fresh
@@ -161,7 +162,7 @@ apps/
   web/             Next.js: public site + admin dashboard
 packages/
   design-tokens/   Theme tokens and generators (Godot palette, web CSS)
-  level-contract/  Schema, validator, simulator, solver, fixtures  [planned]
+  level-contract/  Schema, validator, simulator, solver, fixtures
 docs/              Specification, design renders, CI and deploy notes
 docker/            Godot container and Android setup
 scripts/           Version bump and repository checks

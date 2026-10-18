@@ -1,6 +1,6 @@
 # Render Blueprint for the Algomind API. Create it with: Render dashboard > New > Blueprint,
-# pick this repo. Secrets are NOT stored here: DATABASE_URL and CORS_ORIGINS are asked for on
-# first deploy. See docs/DEPLOY.md.
+# pick this repo. Secrets are NOT stored here: DATABASE_URL, CORS_ORIGINS and the SUPER_ADMIN_*
+# values are asked for on first deploy; JWT_ACCESS_SECRET is generated. See docs/DEPLOY.md.
 #
 # Live at https://algomind-api.onrender.com (see docs/DEPLOY.md). If Render rejects a key, check
 # the current spec at render.com/docs/blueprint-spec.
@@ -30,5 +30,25 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
-      # Added when authentication lands: JWT_SECRET (generateValue: true),
-      # SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASS (sync: false).
+      # Render generates the signing key once; rotating it signs everyone out.
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      # The first admin (first run only; the first sign-in forces a new password).
+      - key: SUPER_ADMIN_EMAIL
+        sync: false
+      - key: SUPER_ADMIN_PASS
+        sync: false
+      # Off in production unless set: "true" creates the starter campaign (4 worlds, 5 chapters, 19
+      # published levels) if missing; existing levels are never touched. Safe to flip on and off.
+      - key: SEED_STARTER_CAMPAIGN
+        value: "false"
+      # After a publish the API calls the web app so the public pages refresh at once. Set both
+      # (the secret equals the web app's REVALIDATE_SECRET); with either unset the web app simply
+      # refreshes on its own schedule.
+      - key: WEB_REVALIDATE_URL
+        sync: false
+      - key: REVALIDATE_SECRET
+        sync: false
+      # Render puts one reverse proxy in front of the service.
+      - key: TRUST_PROXY
+        value: "1"
