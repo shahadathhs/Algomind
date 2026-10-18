@@ -1,0 +1,66 @@
+# Local services. `docker compose up -d db` starts only PostgreSQL (the usual dev setup:
+# the API and web run on the host with hot reload). Profiles add the rest:
+#   docker compose --profile app up --build     API + web + db, all in containers
+#   docker compose --profile tools run --rm godot ...   headless Godot (check, test, export)
+services:
+  db:
+    image: postgres:17-alpine
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-algomind}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-algomind}
+      POSTGRES_DB: ${POSTGRES_DB:-algomind}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  api:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: "8000"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-algomind}:${POSTGRES_PASSWORD:-algomind}@db:5432/${POSTGRES_DB:-algomind}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+
+  web:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      - api
+    environment:
+      API_BASE_URL: http://api:8000/v1
+
+  godot:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: docker/godot.Dockerfile
+      args:
+        GODOT_VERSION: ${GODOT_VERSION:-4.7.2}
+    image: algomind-godot:${GODOT_VERSION:-4.7.2}
+    platform: linux/amd64
+    working_dir: /project
+    volumes:
+      - ./apps/game:/project
+      - godot-config:/root/.config/godot
+
+volumes:
+  pgdata:
+  godot-config:
