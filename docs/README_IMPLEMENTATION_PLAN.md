@@ -54,7 +54,7 @@ The architecture is complete after step 6 with only a handful of test levels. Th
 ### Tasks
 
 - Define `schemaVersion` and the first JSON Schema.
-- Implement the TypeScript validator and the reference simulator in `packages/level-contract`.
+- Implement the TypeScript validator, the reference simulator, and the solver (shortest program for the initial command set) in `packages/level-contract`.
 - Create valid and invalid level fixtures, and programs with expected outcomes and step traces.
 - Define the `requires.mechanics` capability model and the reference-solution format.
 - Implement the equivalent validator and simulator in GDScript inside a minimal Godot project, and run every fixture there with GUT.
@@ -81,7 +81,8 @@ The architecture is complete after step 6 with only a handful of test levels. Th
 - Implement `AdminUser`, `Level`, and `LevelVersion`, and a seed for the first admin.
 - Implement health/readiness checks.
 - Implement admin authentication with hashed passwords, token rotation, rate limiting, and server-side authorization.
-- Implement draft CRUD, validate (including solvability from the reference solution), publish, unpublish, and version-history routes.
+- Implement worlds, chapters, and campaign ordering; the public `/v1/campaign` tree; and the admin seed on startup.
+- Implement draft CRUD, validate (including solvability, solver par, and compatibility), playtest records with content hashes, publish with all gates, unpublish, version history, restore, duplicate, import and export, the capabilities registry, and the audit log.
 - Implement public `GET /v1/levels` and `GET /v1/levels/:slug`, never exposing drafts or reference solutions.
 - Ensure publication is transactional and published versions are immutable.
 - Add structured error responses, request validation, and structured logs.
@@ -108,7 +109,8 @@ Build a modest editor that helps create valid content. Do not build a general-pu
 
 - Set up `apps/web` with the `(public)` and `(admin)` route groups and shared UI tokens.
 - Create sign-in and protected `/admin` routes; mark admin routes `noindex`.
-- Create the level list with status, title, difficulty, sort order, and updated timestamp.
+- Build the screens listed in [README_DASHBOARD_PLAN.md](README_DASHBOARD_PLAN.md): level list, editor tabs, publish review with diff, version history, campaign structure, capabilities, import, audit log, and settings.
+- Create the level list with thumbnail, placement, status, difficulty, playtest state, and updated timestamp.
 - Build create/edit forms for level metadata.
 - Build a board editor for placing start, goal, walls, and any mechanic already supported by the contract.
 - Add command availability, constraints, goal, hint, and reference-solution controls.

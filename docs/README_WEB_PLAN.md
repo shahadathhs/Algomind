@@ -29,7 +29,7 @@
 
 | Route | Purpose |
 |---|---|
-| `/levels`, `/levels/[slug]` | Public level catalog and spoiler-free level pages, with a generated share image per level |
+| `/levels`, `/levels/[slug]` | Public catalog organized by world and chapter, and spoiler-free level pages, with a generated share image per level |
 | `/play` | Browser play through the game's web export, as a secondary "try it" link |
 | `/account` | Sign in, sync status, delete account, only when sync ships |
 

@@ -77,9 +77,10 @@ For a failure, give a concise explanation and offer **Try Again**. Never expose 
 
 ### 3.5 Level selection and progression
 
-- Show level number/name, completion status, and optional difficulty label.
+- Navigation is worlds, then a world screen showing its chapters with their level tiles. Show level number, completion status, and an optional difficulty label.
 - Start with a small, curated campaign rather than a huge catalog.
-- Unlock levels sequentially by default; the progression rule should be simple and consistent.
+- Unlock levels sequentially along the flattened campaign order (world, chapter, level); the progression rule is simple and consistent.
+- Distinguish solved, current, locked, and not-downloaded levels and worlds.
 - Allow completed levels to be replayed.
 - Store completion and best result locally first (offline-first). Progress syncs to the cloud when the player signs in and is online; see [README_GAME_RULES.md](README_GAME_RULES.md).
 - When a newer published version changes a level, preserve progress safely; do not silently reinterpret a stored score against a different level version.
@@ -129,7 +130,7 @@ Minimum fields:
 - `title` and `description`.
 - `schemaVersion`: version of the level-data contract.
 - `levelVersion`: version of the published content.
-- `difficulty` and `sortOrder`.
+- `difficulty`. (Campaign placement is separate data: world, chapter, and order.)
 - `board`: width, height, and cell/entity data.
 - `initialState`: starting position and orientation.
 - `availableCommands`: commands the player may use.

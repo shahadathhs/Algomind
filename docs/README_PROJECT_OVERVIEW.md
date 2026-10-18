@@ -102,7 +102,7 @@ The MVP is complete when it includes:
 
 - A polished core gameplay loop with a small campaign of handcrafted levels, all authored through the dashboard.
 - An explicit, versioned JSON level format, shared validator, and reference simulator with common fixtures.
-- A functional admin dashboard: sign-in, create, edit, validate, preview, publish, unpublish, and version history.
+- A functional admin dashboard (see [README_DASHBOARD_PLAN.md](README_DASHBOARD_PLAN.md)): sign-in, create, edit, validate, preview, solver, playtest gate, publish, unpublish, version history, campaign structure (worlds and chapters), import and export, capabilities registry, and audit log.
 - An API that exposes published levels publicly and protects draft and admin operations.
 - PostgreSQL persistence for levels and versions.
 - A game client that fetches published remote levels, caches them, and keeps a small bundled starter set for offline first launch.
@@ -121,7 +121,7 @@ The game is local-first and offline-first: progress saves on the device and noth
 - Fixed set of client-supported game mechanics.
 - Versioned data-driven levels managed through the dashboard.
 - Public website in the same Next.js app as the dashboard.
-- Basic content ordering and difficulty metadata.
+- A campaign of worlds, chapters, and levels with sequential unlocking, and difficulty metadata.
 - Local-first, offline-first progress. Optional accounts that sync progress to the cloud when the player signs in and is online, built after the core release.
 - Level caching so previously downloaded content can remain playable during temporary network failure.
 
@@ -167,6 +167,7 @@ Remote level publishing does not mean every future gameplay idea can be added re
  │   ├── README_GAMEPLAY_FEATURES.md
  │   ├── README_VISUAL_DESIGN.md
  │   ├── README_WEB_PLAN.md
+ │   ├── README_DASHBOARD_PLAN.md
  │   ├── README_ARCHITECTURE.md
  │   ├── README_IMPLEMENTATION_PLAN.md
  │   ├── CI.md
@@ -188,8 +189,7 @@ The Godot project lives in the same repository but remains a distinct applicatio
 ## 12. Open decisions to settle before implementation
 
 - Final font (one open-licensed condensed sans) and the app icon. The visual direction (Instruction Tape, with light and dark themes) and the wordmark concept are settled; see [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md).
-- Whether level selection begins as a numbered campaign or themed worlds.
 
-**Settled** (see [README_GAME_RULES.md](README_GAME_RULES.md) and [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md)): the initial command set and rules, portrait-first orientation, local-first progress with optional cloud sync, and the visual direction with light and dark themes. Production URLs are the default Vercel and Render URLs and become known after the first deployment; a custom domain is optional and can come later.
+**Settled** (see [README_GAME_RULES.md](README_GAME_RULES.md) and [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md)): the initial command set and rules, portrait-first orientation, local-first progress with optional cloud sync, the visual direction with light and dark themes, and a campaign of worlds and chapters. Production URLs are the default Vercel and Render URLs and become known after the first deployment; a custom domain is optional and can come later.
 
 Do not block the foundation on branding or optional online features.

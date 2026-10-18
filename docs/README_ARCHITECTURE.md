@@ -160,7 +160,6 @@ The API must return **data**, not code. Keep the schema explicit and versioned. 
   "title": "First Steps",
   "description": "Reach the goal using the available commands.",
   "difficulty": "easy",
-  "sortOrder": 1,
   "requires": { "mechanics": [] },
   "board": {
     "width": 5,
@@ -207,6 +206,8 @@ Authoring content includes a reference solution (a command sequence). It is stor
 
 Visual tokens are separate from the contract: `packages/design-tokens` is the only place colors are defined (see [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md)).
 
+The solver (shortest program for the initial command set) also lives in `packages/level-contract`; see [README_DASHBOARD_PLAN.md](README_DASHBOARD_PLAN.md).
+
 The reference simulator in `packages/level-contract` is used by the dashboard preview and by the API's publish-time check. The game's GDScript simulator implements the same rules. `fixtures/` contains levels, programs, and the expected result and step trace for each; the TypeScript tests and the GUT tests both run every fixture. A fixture failing in either implementation blocks merge.
 
 ### Schema evolution
@@ -227,7 +228,7 @@ The reference simulator in `packages/level-contract` is used by the dashboard pr
 - `role` (`ADMIN` or `PLAYER`; introduce editor roles only when needed)
 - `createdAt`, `updatedAt`
 
-One identity model and one auth system serve admins and (in the accounts phase) players. Use a reputable authentication approach. Store only a strong password hash, never plaintext or reversible passwords. Do not build custom cryptography. The first admin is created by a seed script driven by environment variables. Admins are never created through public sign-up; public sign-up creates only `PLAYER` users and is enabled only in the accounts phase.
+One identity model and one auth system serve admins and (in the accounts phase) players. Use a reputable authentication approach. Store only a strong password hash, never plaintext or reversible passwords. Do not build custom cryptography. On API startup, if no `ADMIN` user exists, one is created from environment variables (idempotent, password hashed and never logged; in production the API refuses to start with missing or weak values while no admin exists; first sign-in forces a password change). Admins are never created through public sign-up; public sign-up creates only `PLAYER` users and is enabled only in the accounts phase.
 
 ### `RefreshToken`
 
@@ -244,12 +245,20 @@ Supports rotation, reuse detection (revoke the whole family), and logout.
 - `title`
 - `status` (`DRAFT`, `PUBLISHED`, `ARCHIVED`)
 - `difficulty`
-- `sortOrder`
+- `chapterId` (nullable; a level with no chapter never reaches players)
+- `orderInChapter`
 - `currentPublishedVersionId` (nullable)
 - `createdBy`, `updatedBy`
 - `createdAt`, `updatedAt`
 
-`Level.status` describes the level's public state. Working drafts are not stored on the level; they are `LevelVersion` rows (below).
+`Level.status` describes the level's public state. Working drafts are not stored on the level; they are `LevelVersion` rows (below). Placement (chapter and order) lives on the level, outside versions, so reordering the campaign never requires a republish.
+
+### `World` and `Chapter`
+
+- `World`: `id`, `title`, `description`, `order`, timestamps.
+- `Chapter`: `id`, `worldId`, `title`, `order`, timestamps.
+- The campaign order is the flattened order: world, then chapter, then level. Unlocking is sequential along it.
+- Deleting a world or chapter is only allowed when empty; otherwise its levels must be moved first.
 
 ### `LevelVersion`
 
@@ -259,6 +268,8 @@ Supports rotation, reuse detection (revoke the whole family), and logout.
 - `schemaVersion`
 - `content` (validated JSON/JSONB)
 - `referenceSolution` (validated; never served publicly)
+- `par` (shortest-program result from the solver: commands and steps; served to clients)
+- `contentHash` (hash of the validated content; ties playtest records to exact content)
 - `validationSummary` (optional non-sensitive diagnostics)
 - `createdBy`
 - `createdAt`
@@ -278,10 +289,15 @@ Progress is local-first (see [README_GAME_RULES.md](README_GAME_RULES.md), secti
 
 Completion is keyed by stable level ID, so a new published version does not erase a completion. Best metrics record the level version they came from.
 
+### Dashboard tables
+
+- `PlaytestRecord`: `levelVersionId` (a draft), `contentHash`, `testerName`, `solved`, `commandsUsed`, `perceivedDifficulty`, `notes`, `createdAt`. A record is current only while its `contentHash` equals the draft's.
+- `ClientVersion`: app `version`, `supportedMechanics`, `releasedAt`, and a flag for the minimum supported version (the capabilities registry).
+- `AuditEvent`: `userId`, `action`, `entityType`, `entityId`, `detail`, `createdAt`.
+
 ### Other optional later tables
 
 - `ScoreSubmission` if a leaderboard is added (requires server-side verification).
-- `AuditEvent` for tracing admin publication/unpublication actions.
 
 Do not create tables merely because they might be useful later.
 
@@ -293,6 +309,7 @@ Prefix routes with `/v1` consistently. JSON responses should have documented typ
 
 | Method | Route | Purpose |
 |---|---|---|
+| `GET` | `/v1/campaign` | The published campaign as a tree: worlds, chapters, and level summaries in order |
 | `GET` | `/v1/levels` | List published levels and lightweight metadata |
 | `GET` | `/v1/levels/:slug` | Retrieve the current published level version |
 | `GET` | `/v1/health` | Liveness/readiness endpoint for hosting and diagnostics |
@@ -325,6 +342,15 @@ The merge follows the policy in [README_GAME_RULES.md](README_GAME_RULES.md): un
 | `POST` | `/v1/admin/levels/:id/publish` | Publish a validated immutable version |
 | `POST` | `/v1/admin/levels/:id/unpublish` | Remove the level from future public catalog responses |
 | `GET` | `/v1/admin/levels/:id/versions` | List content versions |
+| `POST` | `/v1/admin/levels/:id/duplicate` | Clone as a new draft level |
+| `POST` | `/v1/admin/levels/:id/playtests` | Record a playtest for the current draft content |
+| `POST` | `/v1/admin/levels/:id/restore/:versionId` | Restore an earlier version as the new draft |
+| `GET` | `/v1/admin/levels/:id/export` | Export a level as validated JSON |
+| `POST` | `/v1/admin/levels/import` | Import a level JSON file into a new draft |
+| `GET` `POST` `PATCH` `DELETE` | `/v1/admin/worlds`, `/v1/admin/chapters` | Manage worlds and chapters |
+| `PUT` | `/v1/admin/campaign/order` | Reorder worlds, chapters, and levels, and assign levels to chapters |
+| `GET` `POST` `PATCH` | `/v1/admin/client-versions` | The capabilities registry |
+| `GET` | `/v1/admin/audit` | Audit log |
 
 Route names are suggestions; choose a consistent convention. Every admin route must check identity and role on the server.
 
@@ -334,8 +360,9 @@ Recommended lifecycle:
 
 1. Create/edit a draft.
 2. Save draft to the server.
-3. Validate the entire definition against the current schema and gameplay rules.
+3. Validate the entire definition against the current schema and gameplay rules, run the solver (par, and budget versus par), and check client compatibility.
 4. Preview using the shared reference simulator and run the reference solution.
+4a. Record a playtest for the current content; a solved record for the current content hash is required to publish.
 5. Publish transactionally: create an immutable `LevelVersion`, update the level's published-version pointer/status, record author and timestamp.
 6. Public endpoints return only the published version.
 7. Ask the web app to revalidate affected public pages.
@@ -425,7 +452,10 @@ Do not return stack traces or secrets. The dashboard should map the issue path t
 
 ### API
 
-- Test public routes do not expose drafts or reference solutions.
+- Test public routes do not expose drafts, reference solutions, or unassigned levels.
+- Test publish is blocked when validation fails, the budget is below par, there is no current solved playtest, or a required mechanic is unsupported.
+- Test the admin seed is idempotent and never logs the password.
+- Test import rejects invalid or unsupported files and never overwrites existing levels.
 - Test anonymous users cannot access admin routes.
 - Test invalid or unsolvable level content cannot be published.
 - Test publication creates a new immutable version.

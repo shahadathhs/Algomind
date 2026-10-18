@@ -163,7 +163,7 @@ Avoid “Wrong!”, “You failed!”, taglines, error codes, long tutorial para
 
 ## 8. Screens and states
 
-The 14 game screens are listed in [design/SCREENS.md](design/SCREENS.md). Every one must exist in both themes before UI is considered done. Level tiles distinguish four states, each with a shape or icon as well as a visual treatment: **solved** (solid ink), **current** (yellow), **locked** (faint outline), **not downloaded** (dashed with a download icon). Never conflate “not downloaded” with “locked by progression.”
+The 15 game screens are listed in [design/SCREENS.md](design/SCREENS.md). Every one must exist in both themes before UI is considered done. Level tiles distinguish four states, each with a shape or icon as well as a visual treatment: **solved** (solid ink), **current** (yellow), **locked** (faint outline), **not downloaded** (dashed with a download icon). Worlds use the same four states. The world picker is a list of world tiles; the world screen shows each chapter's level tiles. Never conflate “not downloaded” with “locked by progression.”
 
 ## 9. Public website
 
@@ -178,6 +178,8 @@ The public site uses the same tokens, shapes, tile wordmark, and rules as the ga
 - Respect reduced-motion; nothing loops.
 
 ## 10. Admin dashboard
+
+Features, screens, and flows are in [README_DASHBOARD_PLAN.md](README_DASHBOARD_PLAN.md); renders are in [design/dashboard/](design/dashboard/).
 
 The dashboard uses the same tokens and rules but is denser and utilitarian. It must not look like a stock component library.
 

@@ -135,7 +135,9 @@ Never show a bare “Level failed,” a raw error code, or a stack trace. Level 
 
 The simulation engine is separate from visual animation. Animations display simulation events; they never define game logic. The rules are testable without Godot's UI.
 
-## 5. Difficulty progression
+## 5. Difficulty progression and campaign structure
+
+The campaign is a tree: **worlds** (one concept each), **chapters** (small groups within a world), and **levels**. Levels unlock sequentially along the flattened order (world, then chapter, then level). The stages below map onto worlds. Placement is campaign data managed in the dashboard, not part of a level's definition.
 
 Teach concepts progressively rather than making early levels arbitrarily difficult.
 
@@ -180,7 +182,7 @@ Keep the UI responsive enough that landscape remains possible, but do not requir
 Save on the device:
 
 - Completed level IDs.
-- Highest unlocked level.
+- Highest unlocked level (recomputed from completions and the current campaign order, so reordering never strands a player).
 - Best solution metrics per level (fewest commands, fewest steps), when applicable.
 - Last played level.
 - Settings: sound, music, vibration, reduce motion, run speed, and theme (system, light, dark).
@@ -245,10 +247,12 @@ The Next.js dashboard lets an authorized administrator create, edit, preview, an
 1. Create a level in the dashboard.
 2. Define the board, starting state, goal, available commands, and command budget.
 3. Preview and test it with the reference simulator, and record a reference solution.
-4. Validate. The level must pass schema rules and be solved by its reference solution.
-5. Publish.
-6. The game fetches the updated catalog.
-7. Players download and play the new level without an app rebuild.
+4. Validate. The level must pass schema rules and be solved by its reference solution. The solver computes par (the shortest program) and flags a command budget below par.
+5. Record a playtest. Publishing requires a solved playtest record for the current content.
+6. Publish. Publishing is blocked if the level needs a mechanic the deployed app does not support.
+7. Place the level in a chapter of a world; placement controls what players see and the unlock order.
+8. The game fetches the updated campaign.
+9. Players download and play the new level without an app rebuild.
 
 ### Versioning and compatibility
 
