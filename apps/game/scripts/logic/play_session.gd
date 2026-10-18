@@ -1,0 +1,129 @@
+class_name PlaySession
+extends RefCounted
+## One attempt at a level: the run state machine over a precomputed simulation.
+##
+## `start` asks LevelSimulator for the full event list in one call. The session then hands
+## the events out one at a time with `advance`; the screen animates each one. Nothing here
+## reads a clock or a frame, so the outcome cannot depend on animation.
+## States: READY, RUNNING, PAUSED, SUCCEEDED, FAILED (docs/README_GAME_RULES.md section 4).
+
+enum State { READY, RUNNING, PAUSED, SUCCEEDED, FAILED }
+
+var level: Dictionary
+var state := State.READY
+## The simulator result for the program that was started; empty while READY.
+var result: Dictionary = {}
+## How many trace entries have been shown so far.
+var cursor := 0
+
+
+func _init(level_data: Dictionary) -> void:
+	level = level_data
+
+
+## Simulates `program` (Array of instruction nodes) and enters `next_state` (RUNNING or PAUSED).
+## Returns false, and stays READY, when the program is not valid for this level.
+func start(program: Array, next_state: State = State.RUNNING) -> bool:
+	if not LevelValidator.validate_program(level, program)["ok"]:
+		return false
+	result = LevelSimulator.simulate(level, program)
+	cursor = 0
+	state = next_state
+	_finish_if_done()
+	return true
+
+
+func is_active() -> bool:
+	return state == State.RUNNING or state == State.PAUSED
+
+
+func is_finished() -> bool:
+	return state == State.SUCCEEDED or state == State.FAILED
+
+
+func pause() -> void:
+	if state == State.RUNNING:
+		state = State.PAUSED
+
+
+func resume() -> void:
+	if state == State.PAUSED:
+		state = State.RUNNING
+
+
+## Shows the next event. Returns it, or an empty Dictionary when there is none left.
+func advance() -> Dictionary:
+	if not is_active() or cursor >= trace().size():
+		return {}
+	var entry: Dictionary = trace()[cursor]
+	cursor += 1
+	_finish_if_done()
+	return entry
+
+
+func reset() -> void:
+	state = State.READY
+	result = {}
+	cursor = 0
+
+
+func trace() -> Array:
+	return result.get("trace", [])
+
+
+## The event shown last, or an empty Dictionary before the first step.
+func current_entry() -> Dictionary:
+	if cursor == 0:
+		return {}
+	return trace()[cursor - 1]
+
+
+## Automaton position and direction after `cursor` events.
+func automaton_state() -> Dictionary:
+	var entry := current_entry()
+	if entry.is_empty():
+		var initial: Dictionary = level["initialState"]
+		var start_cell: Array = initial["position"]
+		return {
+			"position": [int(start_cell[0]), int(start_cell[1])], "direction": initial["direction"]
+		}
+	return {"position": entry["position"], "direction": entry["direction"]}
+
+
+## Cells the automaton has stood on so far, start included, as Vector2i.
+func trail() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	var start_cell: Array = level["initialState"]["position"]
+	cells.append(Vector2i(int(start_cell[0]), int(start_cell[1])))
+	for i in cursor:
+		var cell: Array = trace()[i]["position"]
+		var point := Vector2i(int(cell[0]), int(cell[1]))
+		if not cells.has(point):
+			cells.append(point)
+	return cells
+
+
+## The wall or edge cell that stopped a failed run (shown once the run has ended), else null.
+func blocked_cell() -> Variant:
+	if state != State.FAILED:
+		return null
+	var cell: Variant = result.get("blockedCell")
+	if cell == null:
+		return null
+	return Vector2i(int(cell[0]), int(cell[1]))
+
+
+## Index of the tape tile that caused a failure, or -1 (program ended, step limit).
+func failing_index() -> int:
+	if state != State.FAILED:
+		return -1
+	var reason: String = result.get("reason", "")
+	if reason == "BLOCKED_BY_WALL" or reason == "BLOCKED_BY_BOUNDARY":
+		return trace().size() - 1
+	return -1
+
+
+func _finish_if_done() -> void:
+	if cursor < trace().size():
+		return
+	state = State.SUCCEEDED if result.get("status") == "SUCCEEDED" else State.FAILED

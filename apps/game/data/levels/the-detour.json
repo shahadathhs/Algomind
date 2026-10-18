@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "levelId": "the-detour",
+  "levelVersion": 1,
+  "slug": "the-detour",
+  "title": "The detour",
+  "description": "Go around the long wall.",
+  "difficulty": "medium",
+  "requires": {
+    "mechanics": []
+  },
+  "board": {
+    "width": 5,
+    "height": 5,
+    "walls": [
+      [2, 0],
+      [2, 1],
+      [2, 2],
+      [2, 3]
+    ]
+  },
+  "initialState": {
+    "position": [0, 4],
+    "direction": "north"
+  },
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"],
+  "constraints": {
+    "maxCommands": 11,
+    "maxSteps": 60
+  },
+  "goal": {
+    "type": "reach_tile",
+    "position": [3, 1]
+  },
+  "hints": ["Go to the open end of the wall first."]
+}
