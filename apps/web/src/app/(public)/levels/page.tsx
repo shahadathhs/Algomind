@@ -26,7 +26,7 @@ export default async function LevelsPage() {
   return (
     <>
       <Container className="pt-6 pb-12 sm:pb-16">
-        <h1 className="text-[44px] leading-none tracking-[1px] uppercase sm:text-[56px]">
+        <h1 className="text-[clamp(30px,11.4vw,44px)] leading-none tracking-[1px] uppercase sm:text-[56px]">
           Levels.
         </h1>
         <p className="mt-5 max-w-[620px] text-lg leading-normal font-semibold tracking-[0.5px] text-mute">
