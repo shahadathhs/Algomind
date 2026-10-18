@@ -1,0 +1,73 @@
+# AGENTS.md
+
+Instructions for AI coding agents working in this repository.
+
+## Project
+
+Algomind: a programming puzzle game. The player builds a program from instruction tiles, runs it, and guides an automaton to the target. Monorepo:
+
+- `apps/game`: Godot 4 (GDScript), Android first.
+- `apps/api`: NestJS + Prisma + PostgreSQL.
+- `apps/web`: Next.js. `(public)` route group is the public site (download first); `(admin)` is the level dashboard.
+- `packages/level-contract`: JSON Schema, TypeScript types, validator, reference simulator, solver, shared fixtures.
+- `packages/design-tokens`: the only source of colors; generates the Godot palette and web CSS.
+- `docs/`: the specification. It is the source of truth; read the relevant file before changing behavior.
+
+Read `docs/README_PROJECT_OVERVIEW.md` for scope. Do not add features from its "not included" list. Never claim you ran Godot, exported a build, or tested on a device unless you actually did.
+
+## Branching and commits
+
+Work on `dev`; changes reach `main` through a pull request. Commits follow **Conventional Commits** (enforced by commitlint in the `commit-msg` hook). The `pre-commit` hook runs lint-staged (oxlint and prettier). Never skip hooks (`--no-verify`) and never commit secrets.
+
+## Commands
+
+`make` is the command surface (run `make help`). CI runs the same commands.
+
+```sh
+make lint           # oxlint + prettier --check
+make format         # prettier --write
+make typecheck      # tsc in every TypeScript package
+make test           # every package's tests
+make tokens         # regenerate the Godot palette and web CSS from design tokens
+make tokens-check   # fail if generated token files are out of date
+```
+
+After any change run the targets that cover it. Docs in `docs/` must match the code; update them in the same change.
+
+## Architecture rules (do not break)
+
+- **One rule set, several implementations.** The reference simulator (TypeScript) and the GDScript simulator implement the same rules. Every fixture in `packages/level-contract/fixtures` must pass in both. Never fix a disagreement in only one.
+- **Simulation is separate from animation and UI.** It never depends on frame rate, network, or time. Animations display simulation events.
+- **Content is data.** No `if level_id == ...` branches. Placement (world, chapter, order) is campaign data, separate from level versions.
+- **Published versions are immutable.** Edits create a new draft version. Draft is a `LevelVersion` row.
+- **Server is the authority.** Validate on the API even when the client validates. Hiding UI is not authorization.
+- **Auth:** short-lived bearer access token plus rotating refresh token, automatic logout. Tokens never go in `localStorage`.
+- **Colors come only from `packages/design-tokens`.** A grep for hex colors or `Color(` outside the generated files and the token source must find nothing.
+- **Local-first progress.** Signed-out play uploads nothing. Sync is the only code allowed to upload progress, and a failed sync never touches local data.
+- **No tracking, third-party scripts, cookies, or runtime third-party fonts** on the public site.
+
+## Visual rules (the house style)
+
+The design system is **Instruction Tape**; the full rules are in `docs/README_VISUAL_DESIGN.md`. When touching UI:
+
+- The unit is the tile: square with the top-right corner chamfered. Board cells are square.
+- One accent: signal yellow, used as a fill with ink on top; never as text or a line on the light ground.
+- Exactly one primary (yellow) button per screen. Secondary actions are outlined tiles; tertiary are underlined text.
+- No gradients, glow, drop shadows, glass, blur, particles, bevels, or 3D. No cards; group with spacing and a small caption. No card inside a card.
+- No taglines, two-tone headlines, motivational copy, questions to the player, exclamation marks, or emoji.
+- Color is never the only signal; every state also has a shape, icon, number, or label.
+- Both themes (light and dark) are first-class; check every screen in both.
+- No animation over 250 ms (except the result screen); nothing loops while idle; support reduce motion.
+- Do not borrow another project's fonts, palette, wordmark, or corner style.
+- Prefer deleting to adding. If unsure between two options, build both small and compare them.
+
+## Verify before you claim
+
+You cannot judge a design you have not seen. For UI work, capture screenshots at 390×844, 360×640, and 412×915 in both themes, look at each, and list what is wrong before reporting a screen done. For web work, also check the page with JavaScript disabled.
+
+## Quality
+
+- Lint is **oxlint** plus prettier. There is no ESLint (TypeScript 7 has no JS compiler API for typescript-eslint).
+- Type checking uses the native `tsc` (TypeScript 7).
+- Tests for logic you add; the simulator, validator, solver, and publish gates are the highest-risk areas.
+- A feature is done when it meets the "definition of done" in `docs/README_IMPLEMENTATION_PLAN.md`.

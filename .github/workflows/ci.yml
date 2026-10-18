@@ -1,0 +1,39 @@
+# One pipeline. Pull requests and pushes run the quality gates. Later phases add
+# the API, web, game, deploy, and release jobs described in docs/CI.md.
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # version comes from the root package.json packageManager
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Design tokens are up to date
+        run: pnpm tokens:check
+      - name: Lint and format check
+        run: pnpm lint
+      - name: Type-check
+        run: pnpm typecheck
+      - name: Test
+        run: pnpm test

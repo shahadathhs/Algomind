@@ -1,6 +1,31 @@
+# OS
 .DS_Store
+
+# Node
 node_modules/
+.husky/_/
+*.tsbuildinfo
+.next/
+dist/
+coverage/
+next-env.d.ts
+
+# Env and secrets (never commit)
 .env
 .env.*
 !.env.example
+
+# Godot
+.godot/
+android/
+*.translation
+export_credentials.cfg
+
+# Build output
+build/
+*.apk
+*.apk.idsig
+*.aab
+
+# Logs
 *.log
