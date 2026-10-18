@@ -37,12 +37,12 @@ setup: env install db-up api-generate api-migrate game-import ## One-time local 
 	@echo "  make up        everything in containers instead"
 
 env: ## Create .env with a generated local database password (never overwrites)
-	@if [ -f .env ]; then echo ".env already exists, keeping it"; else \
+	@if [ -f .env ]; then echo ".env already exists, keeping it" >&2; else \
 		pw=$$(openssl rand -hex 16); \
 		sed -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$$pw|" \
 		    -e "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://algomind:$$pw@localhost:5432/algomind|" \
 		    .env.example > .env; \
-		echo "Created .env with a generated database password"; \
+		echo "Created .env with a generated database password" >&2; \
 	fi
 
 install: ## Install dependencies and git hooks (pnpm)
@@ -158,8 +158,8 @@ game-apk: env ## Export a debug APK to apps/game/build/ (inside the Godot contai
 	$(COMPOSE) --profile tools run --rm godot bash -c 'android-setup && godot --headless --path . --import && godot --headless --path . --export-debug "Android" build/algomind-debug.apk'
 	@echo "Built $(GAME)/build/algomind-debug.apk"
 
-android-key: env ## Print a new debug signing key as base64 (the CI secret; see docs/CI.md)
-	@$(COMPOSE) --profile tools run --rm godot bash -c 'keytool -genkeypair -keyalg RSA -alias androiddebugkey -keypass android -keystore /tmp/k.ks -storepass android -dname "CN=Algomind Debug" -validity 9999 -deststoretype pkcs12 >/dev/null 2>&1 && base64 -w0 /tmp/k.ks' 2>/dev/null | tail -1
+android-key: env ## Print a new debug signing key as base64 (the CI secret): make -s android-key | gh secret set ANDROID_DEBUG_KEYSTORE_BASE64
+	@$(COMPOSE) --profile tools run --rm -T godot bash -c 'keytool -genkeypair -keyalg RSA -alias androiddebugkey -keypass android -keystore /tmp/k.ks -storepass android -dname "CN=Algomind Debug" -validity 9999 -deststoretype pkcs12 >/dev/null 2>&1 && base64 -w0 /tmp/k.ks' 2>/dev/null | tr -d '\r\n'
 
 # ── Everything in containers ──────────────────────────────────────────
 

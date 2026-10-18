@@ -227,6 +227,21 @@ jobs:
             echo "::warning::ANDROID_DEBUG_KEYSTORE_BASE64 is not set: this APK is signed with a one-off key and cannot be installed over a previous build."
           fi
 
+      # Fail fast with a clear message instead of deep inside the Docker build.
+      - name: Check the signing key
+        if: env.ANDROID_DEBUG_KEYSTORE_BASE64 != ''
+        run: |
+          printf '%s\n' "$ANDROID_DEBUG_KEYSTORE_BASE64" | grep -v '^[[:space:]]*$' | tail -n 1 \
+            | tr -d '\r ' | base64 -d > "$RUNNER_TEMP/check.ks" 2>/dev/null || {
+            echo "::error::ANDROID_DEBUG_KEYSTORE_BASE64 is not valid base64. Re-create it: make -s android-key | gh secret set ANDROID_DEBUG_KEYSTORE_BASE64"
+            exit 1
+          }
+          keytool -list -keystore "$RUNNER_TEMP/check.ks" -storepass android >/dev/null 2>&1 || {
+            echo "::error::ANDROID_DEBUG_KEYSTORE_BASE64 decodes but is not a valid keystore. Re-create it: make -s android-key | gh secret set ANDROID_DEBUG_KEYSTORE_BASE64"
+            exit 1
+          }
+          rm -f "$RUNNER_TEMP/check.ks"
+
       - name: Build the APK
         run: make game-apk
 

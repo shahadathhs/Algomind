@@ -32,3 +32,6 @@ build/
 
 # Prisma client (generated on build)
 apps/api/src/generated/
+
+# Local agent worktrees (never commit)
+.claude/

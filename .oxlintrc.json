@@ -32,7 +32,8 @@
     "next-env.d.ts",
     "pnpm-lock.yaml",
     "apps/api/src/generated",
-    "apps/api/dist"
+    "apps/api/dist",
+    ".claude"
   ],
   "overrides": [
     {
