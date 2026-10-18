@@ -16,8 +16,3 @@ updates:
     groups:
       dev-tooling:
         dependency-type: development
-    ignore:
-      # Types must match the Node runtime (Node 22 in the Dockerfiles, CI, and engines).
-      # Bump this by hand together with the runtime, not through Dependabot.
-      - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
