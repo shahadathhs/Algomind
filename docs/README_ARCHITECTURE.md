@@ -98,24 +98,24 @@ Stores relational metadata and immutable level versions. JSONB is suitable for t
 
 ## 3. Recommended stack
 
-| Layer           | Choice                                                                                                                                                        |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Game            | Godot 4.x, GDScript, GUT tests, gdtoolkit (gdlint, gdformat); headless Godot in Docker                                                                        |
-| Web             | Next.js App Router, TypeScript, Tailwind CSS                                                                                                                  |
-| API             | NestJS 12, TypeScript, REST/JSON, Swagger (OpenAPI) at `/docs`                                                                                                |
-| Persistence     | PostgreSQL                                                                                                                                                    |
-| ORM/migrations  | Prisma 7 (latest stable; 8 is still a release candidate). Split schema files, migrations committed, generated client not committed)                           |
-| Level contract  | JSON Schema plus shared TypeScript types, validator, and reference simulator                                                                                  |
-| Design tokens   | A single token data file in `packages/design-tokens`; generated Godot palette script and web CSS variables; CI fails on drift                                 |
-| Monorepo        | pnpm workspace for `apps/api`, `apps/web`, and `packages/*` only                                                                                              |
-| Lint and format | oxlint (type-aware) plus prettier for all TypeScript (no ESLint: TypeScript 7 has no JS compiler API for typescript-eslint); gdlint and gdformat for GDScript |
-| Git tooling     | Husky, lint-staged, commitlint (Conventional Commits), commitizen with cz-git                                                                                 |
-| API tests       | Vitest (with SWC for decorators) unit and e2e tests; a real PostgreSQL service in CI                                                                          |
-| Web tests       | Component and unit tests for the editor and validators; Playwright smoke tests for sign-in and the publish flow                                               |
-| CI/CD           | One GitHub Actions workflow; see [CI.md](CI.md)                                                                                                               |
-| Hosting         | Render (API, Docker), Neon (PostgreSQL), Vercel (web); see [DEPLOY.md](DEPLOY.md)                                                                             |
+| Layer           | Choice                                                                                                                                                                |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Game            | Godot 4.x, GDScript, GUT tests, gdtoolkit (gdlint, gdformat); headless Godot in Docker                                                                                |
+| Web             | Next.js App Router, TypeScript, Tailwind CSS                                                                                                                          |
+| API             | NestJS 12, TypeScript, REST/JSON, Swagger (OpenAPI) at `/docs`                                                                                                        |
+| Persistence     | PostgreSQL                                                                                                                                                            |
+| ORM/migrations  | Prisma 7 (latest stable; 8 is still a release candidate). Split schema files, migrations committed, generated client not committed)                                   |
+| Level contract  | JSON Schema plus shared TypeScript types, validator, and reference simulator                                                                                          |
+| Design tokens   | A single token data file in `packages/design-tokens`; generated Godot palette script and web CSS variables; CI fails on drift                                         |
+| Monorepo        | pnpm workspace for `apps/api`, `apps/web`, and `packages/*` only                                                                                                      |
+| Lint and format | oxlint (type-aware) plus prettier for all TypeScript (no ESLint: TypeScript 7 has no JS compiler API for typescript-eslint); gdlint and gdformat for GDScript         |
+| Git tooling     | Husky, lint-staged, commitlint (Conventional Commits), commitizen with cz-git                                                                                         |
+| API tests       | None set up yet. A framework is chosen when the first API feature needs tests (publish gates and authorization first); CI already provides a real PostgreSQL service. |
+| Web tests       | Component and unit tests for the editor and validators; Playwright smoke tests for sign-in and the publish flow                                                       |
+| CI/CD           | One GitHub Actions workflow; see [CI.md](CI.md)                                                                                                                       |
+| Hosting         | Render (API, Docker), Neon (PostgreSQL), Vercel (web); see [DEPLOY.md](DEPLOY.md)                                                                                     |
 
-**API toolchain (TypeScript 7 and NestJS 12).** NestJS 12 packages are ES modules only, and TypeScript 7 has no JavaScript compiler API. So the API is an ES module project (`"type": "module"`, imports with `.js` extensions), is built with SWC (which emits decorator metadata), is type-checked with the native `tsc --noEmit`, and is tested with Vitest plus the SWC plugin. The Nest CLI (`nest start`, `nest build`) is not used because it requires the compiler API; the dev server is SWC in watch mode plus `node --watch`.
+**API toolchain (TypeScript 7 and NestJS 12).** NestJS 12 packages are ES modules only, and TypeScript 7 has no JavaScript compiler API. So the API is an ES module project (`"type": "module"`, imports with `.js` extensions), is built with SWC (which emits decorator metadata), and is type-checked with the native `tsc --noEmit`. The Nest CLI (`nest start`, `nest build`) is not used because it requires the compiler API; the dev server is SWC in watch mode plus `node --watch`.
 
 Select exact versions during implementation and pin them. Keep the first deployment simple; do not add Kubernetes, microservices, a queue, Redis, WebSockets, or a separate cache server without a demonstrated need.
 

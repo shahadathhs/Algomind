@@ -17,7 +17,7 @@ Read `docs/README_PROJECT_OVERVIEW.md` for scope. Do not add features from its "
 
 ## Branching and commits
 
-Work on `dev`; changes reach `main` through a pull request. Commits follow **Conventional Commits** (enforced by commitlint in the `commit-msg` hook). The `pre-commit` hook runs lint-staged (oxlint and prettier). Never skip hooks (`--no-verify`) and never commit secrets.
+Work on `dev`; changes reach `main` through a pull request. Commits follow **Conventional Commits** (enforced by commitlint in the `commit-msg` hook). The `pre-commit` hook runs lint-staged (oxlint and prettier). Never skip hooks (`--no-verify`) and never commit secrets. Do not commit or push unless the user asks, and never run `make release` (it commits and pushes).
 
 ## Commands
 
@@ -36,6 +36,8 @@ make tokens-check   # fail if generated token files are out of date
 make api-dev        # API at :8000 (starts the database)
 make web-dev        # web at :3000
 make up / make down # everything in containers
+make game-apk       # debug APK via the Godot container
+make version v=X.Y.Z  # write a new version into every file that carries it (no git)
 ```
 
 After any change run the targets that cover it. Docs in `docs/` must match the code; update them in the same change.
@@ -74,7 +76,7 @@ You cannot judge a design you have not seen. For UI work, capture screenshots at
 ## Quality
 
 - Lint is **oxlint** plus prettier. There is no ESLint (TypeScript 7 has no JS compiler API for typescript-eslint).
-- The API is an ES module project built with **SWC** and tested with **Vitest**; the Nest CLI is not used (it needs the TypeScript compiler API). Prisma's generated client is not committed; `make api-generate` creates it.
+- The API is an ES module project built with **SWC**; the Nest CLI is not used (it needs the TypeScript compiler API). The API has no test framework yet (add one when the first API feature needs tests). Prisma's generated client is not committed; `make api-generate` creates it.
 - Type checking uses the native `tsc` (TypeScript 7).
 - Tests for logic you add; the simulator, validator, solver, and publish gates are the highest-risk areas.
 - A feature is done when it meets the "definition of done" in `docs/README_IMPLEMENTATION_PLAN.md`.

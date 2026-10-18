@@ -4,17 +4,31 @@
 
 ## What runs today
 
-`.github/workflows/ci.yml` runs on pushes to `main` and `dev`, and on pull requests into `main`:
+`.github/workflows/ci.yml` is one pipeline. Pull requests run the gates; pushes to `main` continue through deploy, build, and release.
 
-| Job       | What it does                                                                                                                      |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `quality` | Design-token drift check, oxlint and prettier, `tsc` type checks, and all TypeScript tests                                        |
-| `api`     | Applies migrations to an empty PostgreSQL 17 service container, then builds the API                                               |
-| `web`     | Production `next build`                                                                                                           |
-| `game`    | `gdlint` and `gdformat --check`, then headless Godot (in Docker) loads the project and runs the GUT tests                         |
-| `docker`  | Builds the API and web images, starts the database, API, and web with Compose, and checks `/v1/health/ready` and the landing page |
+| Job          | Runs for             | What it does                                                                                                                          |
+| ------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `quality`    | every push and PR    | Design-token drift check, oxlint (type-aware) and prettier, `tsc` type checks, and all TypeScript tests                               |
+| `api`        | every push and PR    | Applies migrations to an empty PostgreSQL 17 service container, then builds the API                                                   |
+| `web`        | every push and PR    | Production `next build`                                                                                                               |
+| `game`       | every push and PR    | `gdlint` and `gdformat --check`, then headless Godot (in Docker) loads the project and runs the GUT tests                             |
+| `docker`     | every push and PR    | Builds the API and web images, starts the database, API, and web with Compose, checks `/v1/health/ready` and the landing page         |
+| `deploy-api` | `main`               | Calls the Render deploy hook, then polls the Render API until the deploy is live (fails the run if it fails or times out)             |
+| `apk`        | `main` and `v*` tags | Resolves the version, injects the version code and API URL, builds a debug APK in the Godot container, writes a SHA-256, uploads      |
+| `release`    | `main` and `v*` tags | Refreshes the rolling **Latest build** release, calls the Vercel deploy hook, and publishes **Algomind vX.Y.Z** when `VERSION` is new |
 
-Deploy, release, and Android jobs below are planned; they are not in the workflow yet. The workflow itself has not run on GitHub yet, so treat the action versions as unverified until its first run.
+**Status:** the Makefile targets behind these jobs were run locally (`make check`, `make up`, and `make game-apk`, which produced a signed 28 MB debug APK). The workflow passes `actionlint`. The workflow itself has **not run on GitHub yet**, and `render.yaml` and the Render and Vercel hooks have not been applied, so treat the action versions and the deploy steps as unverified until the first real run.
+
+## Versions and releases
+
+`VERSION` is the source of truth. Two make targets use `scripts/bump-version.sh`:
+
+```sh
+make version v=0.2.0    # write the version into VERSION, the API and web package.json, and the Android preset (no git)
+make release v=0.2.0    # the same, then commit and push (you run this; nothing runs it automatically)
+```
+
+Both refuse the same version or a lower one. `release` also refuses to run with uncommitted changes, so the release commit contains only the bump. When that commit reaches `main`, the pipeline sees a `VERSION` with no matching release and publishes `v0.2.0` with the APK and its checksum. Rolling builds keep flowing and never take the "latest" flag.
 
 ## Principles
 
@@ -34,7 +48,7 @@ Deploy, release, and Android jobs below are planned; they are not in the workflo
 | prettier                              | Formatting for TypeScript, JSON, Markdown, YAML                                                                                                         |
 | oxlint (type-aware)                   | TypeScript linting for every TypeScript app and package. There is no ESLint: TypeScript 7 has no JS compiler API, so typescript-eslint cannot parse it. |
 | tsc                                   | Type checking in each TypeScript app and package                                                                                                        |
-| Vitest / Playwright                   | API unit and e2e tests; web smoke tests                                                                                                                 |
+| Vitest / Playwright                   | Web unit tests today (Vitest), smoke tests later (Playwright). The API has no test framework yet.                                                       |
 | gdlint + gdformat (gdtoolkit, pinned) | GDScript style gate                                                                                                                                     |
 | GUT                                   | Game unit tests, run headless in Docker                                                                                                                 |
 | Prisma                                | Schema validation and migrations                                                                                                                        |
@@ -64,7 +78,7 @@ One workflow, `.github/workflows/ci.yml`, with `concurrency` per ref, least-priv
 | ------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tokens`     | every push and PR                        | Regenerate the Godot palette and web CSS from `packages/design-tokens`; fail if the generated files differ from the committed ones; fail if a hand-defined color appears outside them |
 | `contract`   | every push and PR                        | Lint, typecheck, and test `packages/level-contract` (all fixtures)                                                                                                                    |
-| `api`        | every push and PR                        | Lint, typecheck, Prisma validate, migrate a PostgreSQL service container, unit and e2e tests, build                                                                                   |
+| `api`        | every push and PR                        | Lint, typecheck, Prisma validate, migrate a PostgreSQL service container, build                                                                                                       |
 | `web`        | every push and PR                        | Lint, typecheck, tests, `next build`                                                                                                                                                  |
 | `game`       | every push and PR                        | `gdlint`, `gdformat --check`, headless project load, GUT tests (including every contract fixture)                                                                                     |
 | `deploy-api` | `main`                                   | Triggers the Render deploy hook, then polls the Render API until live; fails the run on a failed or timed-out deploy                                                                  |

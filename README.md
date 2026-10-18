@@ -48,6 +48,8 @@ make game-test      # GDScript tests (GUT)
 make game-docker-test   # the same, inside the Godot container
 make tokens-check   # fail if generated design-token files are out of date
 make db-reset       # throw away the local database and start fresh
+make game-apk       # build a debug APK (in the Godot container)
+make version v=0.2.0  # bump the version everywhere (no git); make release also commits and pushes
 ```
 
 Commits follow Conventional Commits (enforced by a hook; `pnpm commit` gives a guided prompt). Work happens on `dev` and reaches `main` through a pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md).
