@@ -102,9 +102,9 @@ Stores relational metadata and immutable level versions. JSONB is suitable for t
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Game            | Godot 4.x, GDScript, GUT tests, gdtoolkit (gdlint, gdformat); headless Godot in Docker                                                                        |
 | Web             | Next.js App Router, TypeScript, Tailwind CSS                                                                                                                  |
-| API             | NestJS 11, TypeScript, REST/JSON, Swagger (OpenAPI) at `/docs`                                                                                                |
+| API             | NestJS 12, TypeScript, REST/JSON, Swagger (OpenAPI) at `/docs`                                                                                                |
 | Persistence     | PostgreSQL                                                                                                                                                    |
-| ORM/migrations  | Prisma (split schema files, migrations committed, generated client not committed)                                                                             |
+| ORM/migrations  | Prisma 7 (latest stable; 8 is still a release candidate). Split schema files, migrations committed, generated client not committed)                           |
 | Level contract  | JSON Schema plus shared TypeScript types, validator, and reference simulator                                                                                  |
 | Design tokens   | A single token data file in `packages/design-tokens`; generated Godot palette script and web CSS variables; CI fails on drift                                 |
 | Monorepo        | pnpm workspace for `apps/api`, `apps/web`, and `packages/*` only                                                                                              |
