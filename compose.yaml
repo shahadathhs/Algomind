@@ -42,6 +42,8 @@ services:
       ACCESS_TOKEN_TTL_SECONDS: ${ACCESS_TOKEN_TTL_SECONDS:-900}
       REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
       TRUST_PROXY: ${TRUST_PROXY:-0}
+      # Empty counts as unset: on outside production, off in production.
+      SEED_STARTER_CAMPAIGN: ${SEED_STARTER_CAMPAIGN:-}
 
   web:
     profiles: ["app"]

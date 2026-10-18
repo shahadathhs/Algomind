@@ -17,6 +17,9 @@ const schema = z
     SUPER_ADMIN_EMAIL: z.string().trim().min(1).optional(),
     SUPER_ADMIN_PASS: z.string().min(1).optional(),
     // Number of reverse proxies in front of the API (1 on Render); 0 means clients connect directly.
+    // Create the starter campaign (1 world, 1 chapter, 3 published levels) on startup. Defaults to
+    // on outside production and off in production.
+    SEED_STARTER_CAMPAIGN: z.enum(["true", "false", "1", "0"]).optional(),
     TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
   })
   .refine((e) => e.NODE_ENV !== "production" || e.JWT_ACCESS_SECRET !== undefined, {
@@ -35,6 +38,7 @@ export type Env = {
   superAdminEmail?: string;
   superAdminPass?: string;
   trustProxy: number;
+  seedStarterCampaign: boolean;
 };
 
 /** Parses and validates the environment. Throws a readable error on bad configuration. */
@@ -60,5 +64,9 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     superAdminEmail: d.SUPER_ADMIN_EMAIL,
     superAdminPass: d.SUPER_ADMIN_PASS,
     trustProxy: d.TRUST_PROXY,
+    seedStarterCampaign:
+      d.SEED_STARTER_CAMPAIGN === undefined
+        ? d.NODE_ENV !== "production"
+        : d.SEED_STARTER_CAMPAIGN === "true" || d.SEED_STARTER_CAMPAIGN === "1",
   };
 }

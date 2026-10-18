@@ -19,7 +19,7 @@ GDPATHS   := $(GAME)/scripts $(GAME)/tests
         db-up db-down db-reset db-psql \
         api-generate api-dev api-build api-start api-migrate api-migration \
         web-dev web-build web-start \
-        game-fixtures game-import game-check game-test game-lint game-format game-run \
+        game-fixtures game-import game-check game-test game-lint game-format game-run game-shots \
         game-docker-image game-docker-check game-docker-test game-apk android-key \
         up down build logs ps clean version release
 
@@ -150,6 +150,9 @@ game-format: ## Fix GDScript style in place (gdformat)
 
 game-run: ## Play the game on this machine
 	$(GODOT) --path $(GAME)
+
+game-shots: game-import ## Debug screenshots of every screen, 3 phone sizes x 2 themes, into apps/game/build/shots
+	GODOT=$(GODOT) sh $(GAME)/tools/screenshots.sh
 
 # ── Game (headless Godot in Docker, same result as the host targets) ──
 

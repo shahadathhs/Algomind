@@ -38,6 +38,10 @@ services:
         sync: false
       - key: SUPER_ADMIN_PASS
         sync: false
+      # Off in production unless set: "true" creates the starter campaign (1 world, 1 chapter, 3
+      # published levels) if missing; existing levels are never touched. Safe to flip on and off.
+      - key: SEED_STARTER_CAMPAIGN
+        value: "false"
       # Render puts one reverse proxy in front of the service.
       - key: TRUST_PROXY
         value: "1"

@@ -12,6 +12,7 @@ export class AppConfig {
   readonly superAdminEmail?: string;
   readonly superAdminPass?: string;
   readonly trustProxy: number;
+  readonly seedStarterCampaign: boolean;
 
   constructor(env: Env) {
     this.nodeEnv = env.nodeEnv;
@@ -24,6 +25,7 @@ export class AppConfig {
     this.superAdminEmail = env.superAdminEmail;
     this.superAdminPass = env.superAdminPass;
     this.trustProxy = env.trustProxy;
+    this.seedStarterCampaign = env.seedStarterCampaign;
   }
 
   static fromEnvironment(): AppConfig {
