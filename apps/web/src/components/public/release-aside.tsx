@@ -6,11 +6,11 @@ import { developmentBuildUrl, releasesPageUrl, type ReleaseState } from "@/lib/r
 export function ReleaseAside({ state }: { state: ReleaseState }) {
   const release = state.status === "available" ? state.release : null;
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex min-w-0 flex-col gap-8">
       {release && release.notes.length > 0 && (
         <div>
           <Caption as="h2">{`What is new in ${release.version}`}</Caption>
-          <ul className="mt-3 space-y-1.5 text-base leading-normal font-semibold text-mute">
+          <ul className="mt-3 space-y-1.5 text-base leading-normal font-semibold text-mute [overflow-wrap:anywhere]">
             {release.notes.map((line, i) => (
               <li key={i}>{`– ${line}`}</li>
             ))}

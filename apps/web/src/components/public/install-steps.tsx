@@ -22,7 +22,7 @@ const STEPS = [
 /** Four numbered steps. Step 1 is the signal tile (the action you take on this page). */
 export function InstallSteps() {
   return (
-    <div>
+    <div className="min-w-0">
       <Caption>Install</Caption>
       <h2 className="mt-2 mb-6 text-[32px] leading-none tracking-[1px] uppercase">Four steps.</h2>
       <ol>
@@ -37,7 +37,7 @@ export function InstallSteps() {
             >
               {i + 1}
             </span>
-            <div>
+            <div className="min-w-0">
               <h3 className="text-xl tracking-[1px] uppercase">
                 <span className="sr-only">{`Step ${i + 1}: `}</span>
                 {step.title}

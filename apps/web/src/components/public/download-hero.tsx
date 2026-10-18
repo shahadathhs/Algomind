@@ -16,7 +16,7 @@ export function DownloadHero({ state }: { state: ReleaseState }) {
     <section>
       <Container className="grid items-start gap-10 pt-6 pb-14 lg:grid-cols-[1fr_300px] lg:gap-16 lg:pb-16">
         <div className="lg:pt-8">
-          <h1 className="text-[44px] leading-none tracking-[1px] uppercase sm:text-[56px]">
+          <h1 className="text-[clamp(30px,11.4vw,44px)] leading-none tracking-[1px] uppercase sm:text-[56px]">
             Download Algomind.
           </h1>
           <p className="mt-5 mb-8 max-w-[520px] text-lg leading-normal font-semibold tracking-[0.5px] text-mute">
