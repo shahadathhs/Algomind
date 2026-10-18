@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
+import { siteUrl } from "@/lib/site";
 
-// /admin is intentionally absent.
+// Sitemap entries must be absolute URLs. /admin is intentionally absent.
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [{ url: "/" }, { url: "/download" }];
+  const base = siteUrl();
+  return [{ url: `${base}/` }, { url: `${base}/download` }];
 }

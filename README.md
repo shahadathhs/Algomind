@@ -6,6 +6,15 @@
 
 > **Status: early development.** The specification, design system, tooling, and runnable app skeletons exist. The gameplay, the level pipeline, and the public site are not built yet. [What is built, and what is not](#status) is spelled out below, and nothing here has been released.
 
+## Live
+
+|         |                                                                         |
+| ------- | ----------------------------------------------------------------------- |
+| Website | https://playalgomind.vercel.app (placeholder pages for now)             |
+| API     | https://algomind-api.onrender.com (health: `/v1/health`, docs: `/docs`) |
+
+The API runs on Render's free tier, so the first request after a quiet period can be slow. There is no published app release at the moment; the first one is created by the next merge to `main`.
+
 ![The app screens, light theme](docs/design/overview-light.png)
 
 _Design renders of the planned app screens (light theme). They are design targets, not screenshots of the running app._
@@ -85,14 +94,14 @@ Levels are grouped into **worlds** (one concept each) and **chapters** within th
 
 ## Status
 
-| Area                         | Built                                                                                                                                                                     | Not built yet                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **Specification and design** | Product, rules, architecture, visual design system ("Instruction Tape"), plans for the web and the dashboard, 15 app screens in both themes, web and dashboard renders    |                                                               |
-| **Engineering foundation**   | Monorepo, hooks, lint and format gates, a color-literal gate, design-token generator with contrast tests, version and release scripts, Docker and Compose, CI/CD workflow | The deploy, APK, and release jobs have not run on GitHub yet  |
-| **API**                      | Runnable skeleton: health and readiness routes, OpenAPI docs, error format, validated config, `User` table and migration                                                  | Authentication, levels, campaign, publishing, solver          |
-| **Web**                      | Runnable skeleton: placeholder landing and download pages, a noindex admin page showing API status                                                                        | The real public site and the dashboard                        |
-| **Game**                     | Runnable skeleton: placeholder scene using the generated palette, tests, a signed debug APK build                                                                         | Gameplay, the tape editor, the screens, offline caching, sync |
-| **Level contract**           |                                                                                                                                                                           | Schema, validator, simulator, solver, fixtures                |
+| Area                         | Built                                                                                                                                                                     | Not built yet                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Specification and design** | Product, rules, architecture, visual design system ("Instruction Tape"), plans for the web and the dashboard, 15 app screens in both themes, web and dashboard renders    |                                                                                                     |
+| **Engineering foundation**   | Monorepo, hooks, lint and format gates, a color-literal gate, design-token generator with contrast tests, version and release scripts, Docker and Compose, CI/CD workflow | The Render and Vercel deploy hooks are configured but have not been exercised by a pipeline run yet |
+| **API**                      | Runnable skeleton, deployed on Render with Neon: health and readiness routes, OpenAPI docs, error format, validated config, `User` table and migration                    | Authentication, levels, campaign, publishing, solver                                                |
+| **Web**                      | Runnable skeleton, deployed on Vercel: placeholder landing and download pages, a noindex admin page showing API status, sitemap and robots                                | The real public site and the dashboard                                                              |
+| **Game**                     | Runnable skeleton: placeholder scene using the generated palette, tests, a signed debug APK build                                                                         | Gameplay, the tape editor, the screens, offline caching, sync                                       |
+| **Level contract**           |                                                                                                                                                                           | Schema, validator, simulator, solver, fixtures                                                      |
 
 The order of work is in the [implementation plan](docs/README_IMPLEMENTATION_PLAN.md).
 

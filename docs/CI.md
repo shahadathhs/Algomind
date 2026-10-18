@@ -1,6 +1,6 @@
 # CI/CD, tooling, and releases
 
-> **Status: planned.** Nothing here has been implemented or run yet. It follows the conventions of the DropGrid project. Update this file in the same change as any workflow or tooling change so it always matches the code.
+> **Status: running.** The pipeline has run end to end on GitHub (see the status paragraph below). It follows the conventions of the DropGrid project. Update this file in the same change as any workflow or tooling change so it always matches the code.
 
 ## What runs today
 
@@ -17,7 +17,7 @@
 | `apk`        | `main` and `v*` tags | Resolves the version, injects the version code and API URL, builds a debug APK in the Godot container, writes a SHA-256, uploads      |
 | `release`    | `main` and `v*` tags | Refreshes the rolling **Latest build** release, calls the Vercel deploy hook, and publishes **Algomind vX.Y.Z** when `VERSION` is new |
 
-**Status:** the Makefile targets behind these jobs were run locally (`make check`, `make up`, and `make game-apk`, which produced a signed 28 MB debug APK). The workflow passes `actionlint`. The workflow itself has **not run on GitHub yet**, and `render.yaml` and the Render and Vercel hooks have not been applied, so treat the action versions and the deploy steps as unverified until the first real run.
+**Status:** the pipeline has run end to end on GitHub. On the first merge to `main` all eight jobs passed, including the APK build and the release. At that time the Render, Vercel, signing-key, and API-URL settings were not configured, so the deploy job took its documented "skip" path and the first APK used a one-off signing key and had no API URL. They are configured now (see the table below), but the automated deploy through the Render and Vercel hooks has not run yet. The v0.0.1 release was deleted afterwards, so the next merge to `main` publishes it again: `VERSION` names a version with no release. The workflow passes `actionlint`.
 
 **No credentials in the repository.** The local database password is generated into the git-ignored `.env` by `make env` (Compose refuses to start without it, and the database port is bound to `127.0.0.1`). The CI `api` job uses a throwaway Postgres service container with trust authentication and a passwordless URL; the `docker` job runs `make env` to generate a password. The API requires `DATABASE_URL` and has no default. Android's public debug-keystore password (`android`) remains in the Godot container setup because the Android tooling expects it.
 

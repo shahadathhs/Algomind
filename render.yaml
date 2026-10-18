@@ -2,8 +2,8 @@
 # pick this repo. Secrets are NOT stored here: DATABASE_URL and CORS_ORIGINS are asked for on
 # first deploy. See docs/DEPLOY.md.
 #
-# Not run yet: the file was written from Render's Blueprint spec and has not been applied.
-# Check the current spec at render.com/docs/blueprint-spec if Render rejects a key.
+# Live at https://algomind-api.onrender.com (see docs/DEPLOY.md). If Render rejects a key, check
+# the current spec at render.com/docs/blueprint-spec.
 services:
   - type: web
     name: algomind-api

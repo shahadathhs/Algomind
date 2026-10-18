@@ -1,6 +1,17 @@
 # Deploying Algomind (Render + Neon + Vercel)
 
-> **Status: planned.** Nothing here has been run yet. Provider UIs and blueprint syntax change; check each provider's current documentation when you perform these steps, and correct this file afterwards.
+> **Status: live.** The API (Render and Neon) and the web app (Vercel) were deployed and checked on 2026-10-18 (details below). The Render deploy hook and the Vercel rebuild hook are configured as GitHub secrets, but the automated deploy path through them has not run yet. Provider UIs change; check each provider's current documentation, and correct this file afterwards.
+
+## Live deployment
+
+| Piece              | Where                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| Website            | https://playalgomind.vercel.app (placeholder pages: landing, download, a noindex `/admin`) |
+| API                | https://algomind-api.onrender.com                                                          |
+| API docs (Swagger) | https://algomind-api.onrender.com/docs                                                     |
+| API health         | `/v1/health` (liveness) and `/v1/health/ready` (database)                                  |
+
+Checked on 2026-10-18: the API answers liveness and readiness with the database up; the website serves every page; the website's `/admin` page reads `READY` from the live API; `robots.txt` disallows `/admin`.
 
 ## Overview
 
@@ -19,39 +30,45 @@
 
 1. Create a project in a region near the Render region.
 2. Copy the connection string (`postgresql://…?sslmode=require`).
-3. Keep it out of git. It becomes `DATABASE_URL` on Render.
+3. Use the **direct** connection (a host without `-pooler`): migrations run when the container starts, and a connection pooler can interfere with them. If the string ends with `&channel_binding=require`, remove that part and keep `?sslmode=require`; the Node driver may not accept it.
+4. Keep it out of git. It becomes `DATABASE_URL` on Render.
 
 ## 2. API (Render)
 
 1. Connect the repository and create the service from the blueprint (`render.yaml`) or manually: Docker runtime, Dockerfile in `apps/api`, health check at `/v1/health`.
-2. Restrict rebuilds to changes under `apps/api/**` and `packages/level-contract/**`.
-3. Set environment variables:
+2. Restrict rebuilds to changes under `apps/api/**` and `packages/**` (the blueprint does this).
+3. Set environment variables. Today the API reads:
    - `NODE_ENV=production`
-   - `DATABASE_URL` (from Neon)
-   - `JWT_SECRET` (generated; the app refuses to start in production with a weak or default value)
-   - `CORS_ORIGINS` (the exact web origin)
-   - `WEB_REVALIDATE_URL` and `WEB_REVALIDATE_SECRET` (so publish can revalidate public pages)
-   - Seed admin credentials (`SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASS`) for the first run only; remove or rotate afterwards
+   - `DATABASE_URL` (from Neon; required, there is no default)
+   - `CORS_ORIGINS` (the exact web origin, comma-separated for several, no trailing slash: `https://playalgomind.vercel.app`)
+
+   Added when the features land: `JWT_SECRET` (generated; the app refuses to start in production with a weak or default value), `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASS` (first run only; remove or rotate afterwards), and `WEB_REVALIDATE_URL` with `WEB_REVALIDATE_SECRET` so publish can revalidate public pages.
+
 4. The start command applies migrations (`prisma migrate deploy`) and then starts the server. Do not use `prisma db push` or `migrate dev` in production.
 5. Create a deploy hook and an API key for CI (see [CI.md](CI.md)). Consider disabling auto-deploy so the hook is the only path and CD verifies the deploy that runs.
 
 ## 3. Web app (Vercel)
 
 1. Import the repository; set the root directory to `apps/web` with the workspace install.
-2. Set environment variables: the API base URL (server-side), the revalidation secret, and any public site URL.
+2. Set environment variables: `API_BASE_URL` (server-side, `https://algomind-api.onrender.com/v1`; the only one the site needs today) and, optionally, `SITE_URL` (the public origin used in the sitemap and metadata; it defaults to `https://playalgomind.vercel.app`, so set it only for a custom domain). Later: the revalidation secret.
 3. Add a Deploy Hook for `main` and store it as the `VERCEL_DEPLOY_HOOK` secret in GitHub so the site rebuilds after a new release is published (and, later, after a new web export).
 4. Confirm `/admin` routes are not indexed and public pages render without JavaScript.
 
 ## 4. Smoke test
 
 ```sh
-BASE=https://<api-host>
+BASE=https://algomind-api.onrender.com
 curl $BASE/v1/health                      # first call after a sleep can be slow
+curl $BASE/v1/health/ready                # {"status":"ok","database":"up"}
+# Once those routes exist:
 curl $BASE/v1/levels                      # public catalog (published only)
 curl -i $BASE/v1/admin/levels             # expect 401 without a token
+
+# The website reads the API server-side; its admin page reports the result:
+curl -s https://playalgomind.vercel.app/admin | grep -o 'READY\|UNREACHABLE'
 ```
 
-Then sign in to `/admin`, create a level, validate it, publish it, and confirm it appears in `GET /v1/levels`, on the public catalog page, and in the game.
+Once the dashboard exists: sign in to `/admin`, create a level, validate it, publish it, and confirm it appears in `GET /v1/levels`, on the public catalog page, and in the game.
 
 ## 5. Point the game at it
 
