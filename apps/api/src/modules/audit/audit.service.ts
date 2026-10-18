@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../generated/prisma/client.js";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
 import type { AuditEventView, AuditListQuery, AuditPage } from "./audit.schemas.js";
+import { WebRevalidator } from "./web-revalidator.js";
 
 export const AUDIT_ACTIONS = [
   "LEVEL_PUBLISHED",
@@ -17,7 +18,10 @@ type Db = Prisma.TransactionClient | PrismaService;
 
 @Injectable()
 export class AuditService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly web: WebRevalidator,
+  ) {}
 
   /** Writes an event with the caller's client, so inside a transaction it commits with the change. */
   async record(
@@ -31,6 +35,8 @@ export class AuditService {
     },
   ): Promise<void> {
     await db.auditEvent.create({ data: event });
+    // Every audited action changes what the public site shows (publish, unpublish, reorder, ...).
+    this.web.notify();
   }
 
   async list(query: AuditListQuery): Promise<AuditPage> {

@@ -38,10 +38,17 @@ services:
         sync: false
       - key: SUPER_ADMIN_PASS
         sync: false
-      # Off in production unless set: "true" creates the starter campaign (1 world, 1 chapter, 3
+      # Off in production unless set: "true" creates the starter campaign (4 worlds, 5 chapters, 19
       # published levels) if missing; existing levels are never touched. Safe to flip on and off.
       - key: SEED_STARTER_CAMPAIGN
         value: "false"
+      # After a publish the API calls the web app so the public pages refresh at once. Set both
+      # (the secret equals the web app's REVALIDATE_SECRET); with either unset the web app simply
+      # refreshes on its own schedule.
+      - key: WEB_REVALIDATE_URL
+        sync: false
+      - key: REVALIDATE_SECRET
+        sync: false
       # Render puts one reverse proxy in front of the service.
       - key: TRUST_PROXY
         value: "1"

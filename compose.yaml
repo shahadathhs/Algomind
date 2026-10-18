@@ -44,6 +44,8 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-0}
       # Empty counts as unset: on outside production, off in production.
       SEED_STARTER_CAMPAIGN: ${SEED_STARTER_CAMPAIGN:-}
+      WEB_REVALIDATE_URL: ${WEB_REVALIDATE_URL:-}
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
 
   web:
     profiles: ["app"]
@@ -56,6 +58,7 @@ services:
       - api
     environment:
       API_BASE_URL: http://api:8000/v1
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
 
   godot:
     profiles: ["tools"]

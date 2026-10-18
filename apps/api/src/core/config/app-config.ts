@@ -13,6 +13,8 @@ export class AppConfig {
   readonly superAdminPass?: string;
   readonly trustProxy: number;
   readonly seedStarterCampaign: boolean;
+  readonly webRevalidateUrl?: string;
+  readonly revalidateSecret?: string;
 
   constructor(env: Env) {
     this.nodeEnv = env.nodeEnv;
@@ -26,6 +28,8 @@ export class AppConfig {
     this.superAdminPass = env.superAdminPass;
     this.trustProxy = env.trustProxy;
     this.seedStarterCampaign = env.seedStarterCampaign;
+    this.webRevalidateUrl = env.webRevalidateUrl;
+    this.revalidateSecret = env.revalidateSecret;
   }
 
   static fromEnvironment(): AppConfig {
