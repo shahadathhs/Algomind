@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://algomind.local/schema/level.v1.schema.json",
+  "title": "Algomind level (public), schema version 1",
+  "description": "Structural rules only. Rules that need several fields at once (coordinates inside the board, duplicate walls, start or goal on a wall, goal equals start, duplicate commands and mechanics) are enforced by the validator, not by this schema. See README.md.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/levelBody"
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "levelBody": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "levelId",
+        "levelVersion",
+        "slug",
+        "title",
+        "description",
+        "difficulty",
+        "requires",
+        "board",
+        "initialState",
+        "availableCommands",
+        "constraints",
+        "goal",
+        "hints"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "levelId": {
+          "$ref": "#/$defs/id"
+        },
+        "levelVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "slug": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "description": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 280
+        },
+        "difficulty": {
+          "enum": ["easy", "medium", "hard"]
+        },
+        "requires": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mechanics"],
+          "properties": {
+            "mechanics": {
+              "type": "array",
+              "maxItems": 8,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32,
+                "pattern": "^[a-z][a-z0-9_]*$"
+              }
+            }
+          }
+        },
+        "board": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height", "walls"],
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 12
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 3,
+              "maximum": 12
+            },
+            "walls": {
+              "type": "array",
+              "maxItems": 100,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/position"
+              }
+            }
+          }
+        },
+        "initialState": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["position", "direction"],
+          "properties": {
+            "position": {
+              "$ref": "#/$defs/position"
+            },
+            "direction": {
+              "$ref": "#/$defs/direction"
+            }
+          }
+        },
+        "availableCommands": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/commandName"
+          }
+        },
+        "constraints": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maxCommands", "maxSteps"],
+          "properties": {
+            "maxCommands": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            "maxSteps": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          }
+        },
+        "goal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "position"],
+          "properties": {
+            "type": {
+              "const": "reach_tile"
+            },
+            "position": {
+              "$ref": "#/$defs/position"
+            }
+          }
+        },
+        "hints": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140
+          }
+        }
+      }
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "position": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "integer"
+      }
+    },
+    "direction": {
+      "enum": ["north", "east", "south", "west"]
+    },
+    "commandName": {
+      "enum": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+    },
+    "instruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op"],
+      "properties": {
+        "op": {
+          "$ref": "#/$defs/commandName"
+        }
+      }
+    },
+    "program": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/instruction"
+      }
+    }
+  }
+}
