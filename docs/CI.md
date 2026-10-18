@@ -108,6 +108,8 @@ When that reaches `main`, the pipeline publishes **Algomind v0.2.0** with the An
 | `ANDROID_DEBUG_KEYSTORE_BASE64` | secret   | `apk` (fixed signing key so builds install over each other)                                               |
 | `API_BASE_URL`                  | variable | `apk` (must be `https://…/v1`; the build fails otherwise)                                                 |
 
+Create the signing key with `make -s android-key | gh secret set ANDROID_DEBUG_KEYSTORE_BASE64`: the target prints only the key on stdout (status messages go to stderr), so the pipe is clean. The `apk` job checks the secret before the long build and fails with a clear message if it is not a valid keystore; the decoder tolerates a status line or line endings in front of the key. Changing the secret changes the signing key.
+
 Secrets are never committed. A Google Play release needs a separate upload keystore and an `.aab`; that is outside the initial MVP.
 
 ## Dependency updates

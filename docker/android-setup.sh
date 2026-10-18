@@ -13,7 +13,16 @@ mkdir -p /root/.android /root/.config/godot
 # CI passes a fixed key (base64) so every build is signed the same way and a newer
 # APK installs over an older one. Without it, a throwaway key is made below.
 if [ -n "${ANDROID_DEBUG_KEYSTORE_BASE64:-}" ] && [ ! -f "$KEYSTORE" ]; then
-  printf '%s' "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 -d > "$KEYSTORE"
+  # Use the last non-empty line and drop CR and spaces: a secret set from a pipe can carry
+  # status text or line endings in front of the key.
+  if ! printf '%s\n' "$ANDROID_DEBUG_KEYSTORE_BASE64" | grep -v '^[[:space:]]*$' | tail -n 1 \
+      | tr -d '\r ' | base64 -d > "$KEYSTORE" 2>/dev/null \
+    || ! keytool -list -keystore "$KEYSTORE" -storepass android >/dev/null 2>&1; then
+    rm -f "$KEYSTORE"
+    echo "ANDROID_DEBUG_KEYSTORE_BASE64 is not a valid base64 keystore. Re-create it with:" >&2
+    echo "  make -s android-key | gh secret set ANDROID_DEBUG_KEYSTORE_BASE64" >&2
+    exit 1
+  fi
 fi
 if [ ! -f "$KEYSTORE" ]; then
   keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android \
