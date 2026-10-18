@@ -1,0 +1,31 @@
+{
+  "goal": {
+    "type": "reach_tile",
+    "position": [4, 4]
+  },
+  "slug": "along-the-floor",
+  "board": {
+    "walls": [],
+    "width": 5,
+    "height": 5
+  },
+  "hints": [],
+  "title": "Along the floor",
+  "levelId": "effab83f-9a91-4373-bf83-9fca83926cb9",
+  "requires": {
+    "mechanics": []
+  },
+  "difficulty": "easy",
+  "constraints": {
+    "maxSteps": 100,
+    "maxCommands": 6
+  },
+  "description": "",
+  "initialState": {
+    "position": [0, 4],
+    "direction": "east"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+}

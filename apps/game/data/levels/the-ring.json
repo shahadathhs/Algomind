@@ -1,0 +1,36 @@
+{
+  "goal": {
+    "type": "reach_tile",
+    "position": [2, 2]
+  },
+  "slug": "the-ring",
+  "board": {
+    "walls": [
+      [1, 1],
+      [3, 1],
+      [1, 3],
+      [3, 3]
+    ],
+    "width": 5,
+    "height": 5
+  },
+  "hints": [],
+  "title": "The ring",
+  "levelId": "9191e683-6add-4dd1-abe8-48e3d356c0f0",
+  "requires": {
+    "mechanics": []
+  },
+  "difficulty": "medium",
+  "constraints": {
+    "maxSteps": 100,
+    "maxCommands": 7
+  },
+  "description": "",
+  "initialState": {
+    "position": [0, 4],
+    "direction": "north"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+}

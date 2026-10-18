@@ -30,6 +30,8 @@ func _ready() -> void:
 	_music = AudioStreamPlayer.new()
 	_music.stream = Tones.music()
 	_music.volume_db = -9.0
+	# The stream does not loop on its own; start it again each time it finishes.
+	_music.finished.connect(apply_music)
 	add_child(_music)
 	# A sound started in the very first frame can be dropped because the audio device is not
 	# running yet, so music starts shortly after and is checked every couple of seconds. This

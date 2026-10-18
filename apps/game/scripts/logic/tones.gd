@@ -13,18 +13,20 @@ static func sequence(notes: Array, volume: float) -> AudioStreamWAV:
 	var samples := PackedFloat32Array()
 	for note: Array in notes:
 		_append_note(samples, float(note[0]), float(note[1]), volume)
-	return _to_stream(samples, false)
+	return _to_stream(samples)
 
 
-## A soft looping pattern of a minor pentatonic scale, about eight seconds long. It sits in the
-## octave phone speakers can reproduce and uses a few harmonics so it is audible on them.
+## A soft pattern of a minor pentatonic scale, about eight seconds long, played once; Feedback
+## plays it again when it finishes. It is not a looping stream: on Android a looping generated
+## stream made the app quit a few seconds in. It sits in the octave phone speakers can reproduce
+## and uses a few harmonics so it is audible on them.
 static func music() -> AudioStreamWAV:
 	var scale := [440.0, 523.25, 587.33, 659.25, 783.99, 880.0]
 	var pattern := [0, 2, 4, 2, 5, 4, 2, 1, 0, 2, 3, 2, 4, 3, 1, 0]
 	var samples := PackedFloat32Array()
 	for step: int in pattern:
 		_append_note(samples, scale[step], 0.5, 0.45)
-	return _to_stream(samples, true)
+	return _to_stream(samples)
 
 
 static func tap() -> AudioStreamWAV:
@@ -70,7 +72,7 @@ static func _append_note(
 		samples.append(value * volume * envelope)
 
 
-static func _to_stream(samples: PackedFloat32Array, loops: bool) -> AudioStreamWAV:
+static func _to_stream(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var bytes := PackedByteArray()
 	bytes.resize(samples.size() * 2)
 	for i in samples.size():
@@ -80,8 +82,4 @@ static func _to_stream(samples: PackedFloat32Array, loops: bool) -> AudioStreamW
 	stream.mix_rate = RATE
 	stream.stereo = false
 	stream.data = bytes
-	if loops:
-		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		stream.loop_begin = 0
-		stream.loop_end = samples.size()
 	return stream

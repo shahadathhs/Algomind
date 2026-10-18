@@ -26,8 +26,9 @@ func test_samples_stay_within_the_requested_volume() -> void:
 	assert_gt(peak, 0)
 
 
-func test_music_loops_over_its_whole_length() -> void:
+func test_music_is_a_single_pass_not_a_looping_stream() -> void:
 	var stream := Tones.music()
-	assert_eq(stream.loop_mode, AudioStreamWAV.LOOP_FORWARD)
-	assert_eq(stream.loop_begin, 0)
-	assert_eq(stream.loop_end, stream.data.size() / 2)
+	assert_eq(
+		stream.loop_mode, AudioStreamWAV.LOOP_DISABLED, "looping generated audio quit Android"
+	)
+	assert_gt(stream.data.size() / 2, 7 * Tones.RATE)

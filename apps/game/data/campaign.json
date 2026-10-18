@@ -8,7 +8,7 @@
         {
           "id": "first-steps",
           "title": "First steps",
-          "levels": ["straight-ahead", "all-the-way", "mind-the-gap"]
+          "levels": ["straight-ahead", "all-the-way", "along-the-floor", "mind-the-gap"]
         }
       ]
     },
@@ -20,12 +20,36 @@
         {
           "id": "corners",
           "title": "Corners",
-          "levels": ["one-turn", "turn-left", "turn-around"]
+          "levels": ["one-turn", "turn-left", "up-and-across", "turn-around"]
         },
         {
           "id": "around-walls",
           "title": "Around walls",
-          "levels": ["the-wall", "two-walls", "the-detour"]
+          "levels": ["the-wall", "two-walls", "the-detour", "long-way-round"]
+        }
+      ]
+    },
+    {
+      "id": "planning",
+      "title": "Planning",
+      "summary": "Look at the whole board first, then choose a route.",
+      "chapters": [
+        {
+          "id": "routes",
+          "title": "Routes",
+          "levels": ["the-ring", "pick-a-side", "switchback", "the-maze"]
+        }
+      ]
+    },
+    {
+      "id": "limits",
+      "title": "Limits",
+      "summary": "Solve it with exactly as many commands as it takes, no more.",
+      "chapters": [
+        {
+          "id": "tight-budgets",
+          "title": "Tight budgets",
+          "levels": ["tight-corner", "exactly-enough", "no-wasted-moves"]
         }
       ]
     }
