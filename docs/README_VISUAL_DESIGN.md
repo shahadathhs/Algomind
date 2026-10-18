@@ -153,6 +153,7 @@ Short labels in capitals for controls; plain sentences for explanations. Explain
 Use:
 
 - “THE AUTOMATON TRIED TO MOVE INTO A WALL”
+- “THE AUTOMATON TRIED TO MOVE OFF THE BOARD”
 - “THE PROGRAM ENDED BEFORE THE GOAL”
 - “THE PROGRAM RAN TOO LONG AND WAS STOPPED”
 - “LEVEL SOLVED”
@@ -206,7 +207,7 @@ The dashboard uses the same tokens and rules but is denser and utilitarian. It m
 
 - Desktop first for the full editor, with usable tablet behavior.
 - On narrow screens, stack metadata and validation panels rather than squeezing columns.
-- Full keyboard navigation with visible focus states (a 3 px signal outline plus an ink offset).
+- Full keyboard navigation with visible focus states. Focus rings use **ink**, not signal (signal fails contrast on the light ground), and on chamfered tiles they are drawn inside the shape because `clip-path` clips an outer outline.
 - Visible save status: Unsaved, Saving, Saved, Save failed. Warn before discarding edits.
 - Keep primary actions obvious and destructive actions separated.
 

@@ -94,14 +94,14 @@ Levels are grouped into **worlds** (one concept each) and **chapters** within th
 
 ## Status
 
-| Area                         | Built                                                                                                                                                                     | Not built yet                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Specification and design** | Product, rules, architecture, visual design system ("Instruction Tape"), plans for the web and the dashboard, 15 app screens in both themes, web and dashboard renders    |                                                                                                     |
-| **Engineering foundation**   | Monorepo, hooks, lint and format gates, a color-literal gate, design-token generator with contrast tests, version and release scripts, Docker and Compose, CI/CD workflow | The Render and Vercel deploy hooks are configured but have not been exercised by a pipeline run yet |
-| **API**                      | Runnable skeleton, deployed on Render with Neon: health and readiness routes, OpenAPI docs, error format, validated config, `User` table and migration                    | Authentication, levels, campaign, publishing, solver                                                |
-| **Web**                      | Runnable skeleton, deployed on Vercel: placeholder landing and download pages, a noindex admin page showing API status, sitemap and robots                                | The real public site and the dashboard                                                              |
-| **Game**                     | Runnable skeleton: placeholder scene using the generated palette, tests, a signed debug APK build                                                                         | Gameplay, the tape editor, the screens, offline caching, sync                                       |
-| **Level contract**           |                                                                                                                                                                           | Schema, validator, simulator, solver, fixtures                                                      |
+| Area                         | Built                                                                                                                                                                                        | Not built yet                                                                                       |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Specification and design** | Product, rules, architecture, visual design system ("Instruction Tape"), plans for the web and the dashboard, 15 app screens in both themes, web and dashboard renders                       |                                                                                                     |
+| **Engineering foundation**   | Monorepo, hooks, lint and format gates, a color-literal gate, design-token generator with contrast tests, version and release scripts, Docker and Compose, CI/CD workflow                    | The Render and Vercel deploy hooks are configured but have not been exercised by a pipeline run yet |
+| **API**                      | Runnable skeleton, deployed on Render with Neon: health and readiness routes, OpenAPI docs, error format, validated config, `User` table and migration                                       | Authentication, levels, campaign, publishing, solver                                                |
+| **Web**                      | Runnable skeleton, deployed on Vercel: placeholder landing and download pages, a noindex admin page showing API status, sitemap and robots                                                   | The real public site and the dashboard                                                              |
+| **Game**                     | Runnable skeleton: placeholder scene using the generated palette, tests, a signed debug APK build; a GDScript level validator and simulator that reproduce every contract fixture (49 tests) | Gameplay, the tape editor, the screens, offline caching, sync                                       |
+| **Level contract**           | Schema, validator, deterministic simulator, shortest-solution solver, and a language-neutral fixture suite (126 tests)                                                                       | Wiring into the API, the dashboard, and the game's level loading                                    |
 
 The order of work is in the [implementation plan](docs/README_IMPLEMENTATION_PLAN.md).
 
@@ -132,7 +132,7 @@ make check              # everything CI runs
 make lint               # oxlint (type-aware) + prettier --check
 make typecheck          # tsc in every TypeScript package
 make test               # TypeScript tests
-make game-test          # GDScript tests (GUT); make game-docker-test runs them in a container
+make game-test          # GDScript tests (GUT, includes the contract fixtures); make game-docker-test runs them in a container
 make tokens-check       # fail if generated design-token files are out of date
 make colors-check       # fail if a color is hand-written outside the design tokens
 make db-reset           # throw away the local database and start fresh
@@ -161,7 +161,7 @@ apps/
   web/             Next.js: public site + admin dashboard
 packages/
   design-tokens/   Theme tokens and generators (Godot palette, web CSS)
-  level-contract/  Schema, validator, simulator, solver, fixtures  [planned]
+  level-contract/  Schema, validator, simulator, solver, fixtures
 docs/              Specification, design renders, CI and deploy notes
 docker/            Godot container and Android setup
 scripts/           Version bump and repository checks

@@ -68,6 +68,8 @@ The campaign is a tree: **World → Chapter → Level**.
 - **Output:** minimum commands (par) and the steps used by one shortest program; whether the goal is reachable at all.
 - **Where it runs:** in `packages/level-contract`, used by the dashboard (live feedback) and by the API at validate and publish time. The result is stored on the version as `par` and served to the app for the "best" display.
 - **Warnings it enables:** max commands below par (an error: unsolvable under the budget); max commands far above par (a warning); an author's reference solution longer than par (an informational note).
+- **Tie-breaking (so every implementation finds the same program, not only the same length):** a first-in-first-out breadth-first search that tries `MOVE_FORWARD`, then `TURN_LEFT`, then `TURN_RIGHT`, and stops at the first discovered state whose cell is the goal.
+- **Constraint check:** `fitsConstraints` is `commands <= maxCommands && steps <= maxSteps`; the search itself ignores both. “Max commands below par” is detected from it.
 - **Later:** when `REPEAT` or conditionals arrive, a program-space search replaces it; until then par is only defined for the initial command set.
 
 ## 6. Playtest gate

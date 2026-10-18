@@ -122,12 +122,21 @@ The program cannot be edited while `RUNNING`. Editing from `PAUSED`, `SUCCEEDED`
 
 ### Outcomes and messages
 
-| Outcome                             | Example message                             |
-| ----------------------------------- | ------------------------------------------- |
-| Succeeded                           | “Level solved.”                             |
-| Failed: blocked by wall or boundary | “The automaton tried to move into a wall.”  |
-| Failed: program ended               | “The program ended before the goal.”        |
-| Failed: step limit                  | “The program ran too long and was stopped.” |
+| Outcome                     | Example message                              |
+| --------------------------- | -------------------------------------------- |
+| Succeeded                   | “Level solved.”                              |
+| Failed: blocked by a wall   | “The automaton tried to move into a wall.”   |
+| Failed: blocked by the edge | “The automaton tried to move off the board.” |
+| Failed: program ended       | “The program ended before the goal.”         |
+| Failed: step limit          | “The program ran too long and was stopped.”  |
+
+Exact counting rules (implemented and tested in `packages/level-contract`, whose README is the authority):
+
+- Every executed instruction is one **step**, turns and blocked moves included. A blocked move stops the run as a failure.
+- The run **succeeds the moment the automaton enters the goal cell**; the remaining instructions are not run or counted.
+- The step limit is checked before each instruction: if the steps used have reached the limit and an instruction remains, the run fails with the step-limit outcome. A program that ends exactly at the limit without reaching the goal ends with “program ended”. Reaching the goal on the last allowed step succeeds.
+- An unknown or malformed instruction stops the run (a content error, never silently skipped).
+- A level whose **goal is the start cell** is invalid, because an empty program would solve it.
 
 Never show a bare “Level failed,” a raw error code, or a stack trace. Level data that fails validation is a content error shown with a friendly load message, not a player failure.
 

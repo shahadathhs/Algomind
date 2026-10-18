@@ -19,7 +19,7 @@ GDPATHS   := $(GAME)/scripts $(GAME)/tests
         db-up db-down db-reset db-psql \
         api-generate api-dev api-build api-start api-migrate api-migration \
         web-dev web-build web-start \
-        game-import game-check game-test game-lint game-format game-run \
+        game-fixtures game-import game-check game-test game-lint game-format game-run \
         game-docker-image game-docker-check game-docker-test game-apk android-key \
         up down build logs ps clean version release
 
@@ -123,13 +123,17 @@ web-start: ## Run the built web app
 
 # ── Game (host Godot) ─────────────────────────────────────────────────
 
+game-fixtures: ## Copy the level-contract fixtures into the Godot project (git-ignored; Godot reads only inside it)
+	@mkdir -p $(GAME)/tests/contract_fixtures
+	rsync -a --delete packages/level-contract/fixtures/ $(GAME)/tests/contract_fixtures/
+
 game-import: ## Import assets and build the Godot cache
 	$(GODOT) --headless --path $(GAME) --import
 
-game-check: game-import ## Load the project headless; fails on parse or script errors
+game-check: game-fixtures game-import ## Load the project headless; fails on parse or script errors
 	$(GODOT) --headless --path $(GAME) --quit-after 1
 
-game-test: game-import ## Run the game tests (GUT)
+game-test: game-fixtures game-import ## Run the game tests (GUT)
 	$(GODOT) --headless --path $(GAME) -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit
 
 game-lint: ## GDScript style gate: gdlint + gdformat --check (config: gdlintrc)
@@ -147,10 +151,10 @@ game-run: ## Play the game on this machine
 game-docker-image: env ## Build the headless Godot image
 	$(COMPOSE) --profile tools build godot
 
-game-docker-check: env ## Import and load the project inside the Godot container
+game-docker-check: env game-fixtures ## Import and load the project inside the Godot container
 	$(COMPOSE) --profile tools run --rm godot sh -c 'godot --headless --path . --import && godot --headless --path . --quit-after 1'
 
-game-docker-test: env ## Run the game tests inside the Godot container
+game-docker-test: env game-fixtures ## Run the game tests inside the Godot container
 	$(COMPOSE) --profile tools run --rm godot sh -c 'godot --headless --path . --import && godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit'
 
 game-apk: env ## Export a debug APK to apps/game/build/ (inside the Godot container)

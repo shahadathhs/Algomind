@@ -178,7 +178,7 @@ The API must return **data**, not code. Keep the schema explicit and versioned. 
   },
   "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"],
   "constraints": {
-    "maxCommands": 8,
+    "maxCommands": 10,
     "maxSteps": 30
   },
   "goal": {
@@ -190,6 +190,8 @@ The API must return **data**, not code. Keep the schema explicit and versioned. 
 ```
 
 Do not treat this example as permission to ship without schema validation. Validate coordinate ranges, board-size limits, supported command names, required fields, goal references, string length limits, and any object/mechanic-specific rules. The server must reject unknown or unsupported schema versions rather than silently guessing.
+
+The package `packages/level-contract` implements this contract, and its README is the authority for the exact limits, validation rules, issue codes, simulator rules, and solver. In short: unknown fields are rejected (so a public level that carries `referenceSolution` is caught), the authoring form adds a required `referenceSolution` (a separate schema), there is no `sortOrder`, and a goal equal to the start is invalid. A test checks that the example above validates and fits its own budget.
 
 If more board mechanics are added later (switches, doors, items), model them as a typed `entities` array rather than adding a new top-level key for each.
 
@@ -211,7 +213,7 @@ Visual tokens are separate from the contract: `packages/design-tokens` is the on
 
 The solver (shortest program for the initial command set) also lives in `packages/level-contract`; see [README_DASHBOARD_PLAN.md](README_DASHBOARD_PLAN.md).
 
-The reference simulator in `packages/level-contract` is used by the dashboard preview and by the API's publish-time check. The game's GDScript simulator implements the same rules. `fixtures/` contains levels, programs, and the expected result and step trace for each; the TypeScript tests and the GUT tests both run every fixture. A fixture failing in either implementation blocks merge.
+The reference simulator in `packages/level-contract` is used by the dashboard preview and by the API's publish-time check. The game's GDScript simulator implements the same rules. `fixtures/` contains levels, programs, and the expected result and step trace for each; the TypeScript tests and the GUT tests both run every fixture. A fixture failing in either implementation blocks merge. The GDScript implementation lives in `apps/game/scripts/contract/` (validator, simulator, messages) and is tested by `apps/game/tests/test_contract_fixtures.gd`, which runs every `levels` and `runs` fixture; `make game-fixtures` copies the fixtures into the Godot project (git-ignored), because Godot and the game container can only read inside `apps/game`. The solver fixtures are TypeScript-only: the game receives par from the server and has no solver.
 
 ### Schema evolution
 
@@ -437,7 +439,7 @@ Use consistent HTTP status codes and an error response with a stable machine-rea
 }
 ```
 
-Do not return stack traces or secrets. The dashboard should map the issue path to a field and show a useful correction. The game should translate network and content errors into player-friendly states.
+Level validation issues use the stable codes defined in `packages/level-contract/README.md` (the issue-code table). Do not return stack traces or secrets. The dashboard should map the issue path to a field and show a useful correction. The game should translate network and content errors into player-friendly states.
 
 ## 12. Testing strategy
 

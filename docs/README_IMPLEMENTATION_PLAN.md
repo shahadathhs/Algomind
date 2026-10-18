@@ -58,10 +58,12 @@ The architecture is complete after step 6 with only a handful of test levels. Th
 - Create valid and invalid level fixtures, and programs with expected outcomes and step traces.
 - Define the `requires.mechanics` capability model and the reference-solution format.
 - Implement the equivalent validator and simulator in GDScript inside a minimal Godot project, and run every fixture there with GUT.
+- The TypeScript package is consumed from its built `dist/`, so CI and Docker builds must build it before any dependent type check, test, or build.
 
 ### Deliverables
 
 - Documented schema and fixtures.
+- **Status:** the TypeScript contract (126 tests) and the GDScript validator and simulator (49 tests, every `levels` and `runs` fixture) are done and pass the same fixtures. Solver fixtures are TypeScript-only. Remaining: wiring the contract into the API, the dashboard, and the game's level loading.
 - The same fixture suite passing in TypeScript and in GDScript.
 
 ### Exit criteria

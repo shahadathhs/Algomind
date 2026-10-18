@@ -30,7 +30,7 @@ make lint           # oxlint + prettier --check
 make format         # prettier --write
 make typecheck      # tsc in every TypeScript package
 make test           # TypeScript tests (no database needed)
-make game-test      # GDScript tests (GUT); make game-docker-test runs them in a container
+make game-test      # GDScript tests (GUT, includes the contract fixtures); make game-docker-test runs them in a container
 make tokens         # regenerate the Godot palette and web CSS from design tokens
 make tokens-check   # fail if generated token files are out of date
 make api-dev        # API at :8000 (starts the database)

@@ -20,6 +20,8 @@ next-env.d.ts
 android/
 *.translation
 export_credentials.cfg
+# Copied from packages/level-contract/fixtures by `make game-fixtures`
+apps/game/tests/contract_fixtures/
 
 # Build output
 build/
