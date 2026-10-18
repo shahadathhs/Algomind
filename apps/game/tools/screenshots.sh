@@ -22,8 +22,15 @@ shot() {
 for size in 390x844 360x640 412x915; do
 	for theme in light dark; do
 		shot home home "$theme" "$size"
-		shot levels levels "$theme" "$size" --done=4
+		shot worlds worlds "$theme" "$size" --done=4
+		shot world world "$theme" "$size" --done=4 --world=1
 		shot settings settings "$theme" "$size"
+		shot how-to-play how_to_play "$theme" "$size"
+		shot load-error load_error "$theme" "$size" --title="Loops"
+		shot update-required update_required "$theme" "$size" --title="Level 14"
+		shot play-tutorial play "$theme" "$size" --level=straight-ahead
+		shot play-hint play "$theme" "$size" --level=straight-ahead --overlay=hint
+		shot play-pause play "$theme" "$size" --level=the-wall --program=MMMRM --overlay=pause
 		# the-wall: start (0,4) facing north; MMMRMMMRM is its shortest solution.
 		shot play-ready play "$theme" "$size" --level=the-wall --program=MMMRM
 		shot play-running play "$theme" "$size" --level=the-wall --program=MMMRMMMRM --steps=5

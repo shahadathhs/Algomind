@@ -4,8 +4,12 @@ extends Control
 
 const SCREENS := {
 	"home": "res://scenes/home.tscn",
-	"levels": "res://scenes/level_select.tscn",
+	"worlds": "res://scenes/worlds.tscn",
+	"world": "res://scenes/world.tscn",
 	"play": "res://scenes/play.tscn",
+	"how_to_play": "res://scenes/how_to_play.tscn",
+	"load_error": "res://scenes/load_error.tscn",
+	"update_required": "res://scenes/update_required.tscn",
 	"settings": "res://scenes/settings.tscn",
 }
 
@@ -27,6 +31,8 @@ func _ready() -> void:
 	var api := ApiClient.new()
 	add_child(api)
 	_state = AppState.new(Campaign.load_bundled(), store, ContentStore.new(), api)
+	_state.feedback = Feedback.new(store.settings)
+	add_child(_state.feedback)
 	for message in _state.campaign.errors:
 		push_warning(message)
 	_show("home", {})
@@ -77,8 +83,8 @@ func _debug_screenshot(options: Dictionary) -> void:
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(viewport)
 
-	_state.progress.set_theme(String(options.get("theme", "light")))
-	_state.progress.set_reduce_motion(true)
+	_state.progress.settings.set_theme(String(options.get("theme", "light")))
+	_state.progress.settings.set_reduce_motion(true)
 	for i in int(options.get("done", "0")):
 		var entry: Dictionary = _state.campaign.entries[i]
 		_state.progress.record_completion(entry["id"], int(entry["level"]["levelVersion"]), 5)
@@ -88,14 +94,22 @@ func _debug_screenshot(options: Dictionary) -> void:
 	var packed: PackedScene = load(SCREENS[target])
 	var screen: ScreenBase = packed.instantiate()
 	var level_id := String(options.get("level", _state.campaign.entries[0]["id"]))
-	screen.setup(_state, {"level_id": level_id})
+	var screen_args := {
+		"level_id": level_id,
+		"world": int(options.get("world", "0")),
+		"title": String(options.get("title", "Around the wall")),
+	}
+	screen.setup(_state, screen_args)
 	if target == "play":
 		screen.persist = false
 	viewport.add_child(screen)
 	await get_tree().process_frame
 	if target == "play" and options.has("program"):
 		screen.debug_show(String(options["program"]), int(options.get("steps", "0")))
-	for i in 3:
+	if target == "play" and options.has("overlay"):
+		screen.debug_overlay(String(options["overlay"]))
+	# Controls settle their size over a few frames; wait before capturing.
+	for i in 8:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	var image := viewport.get_texture().get_image()

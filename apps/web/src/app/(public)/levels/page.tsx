@@ -33,6 +33,11 @@ export default async function LevelsPage() {
           Levels are grouped into worlds, and each world teaches one idea. A world is split into
           chapters, and you unlock the levels in order.
         </p>
+        {campaign.status === "available" && worlds.length === 0 && (
+          <p className="mt-6 max-w-[680px] text-base leading-normal font-semibold text-mute">
+            No levels have been published yet.
+          </p>
+        )}
         {campaign.status === "unavailable" && (
           <p className="mt-6 max-w-[680px] text-base leading-normal font-semibold text-mute">
             The levels could not be loaded right now. Try again in a minute.

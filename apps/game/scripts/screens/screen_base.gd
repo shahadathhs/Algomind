@@ -4,7 +4,7 @@ extends Control
 ## Screens build their children in `_build` and place them in `_layout`; they are rebuilt from
 ## scratch when the theme changes, so nothing caches a color.
 
-## Ask the shell to show another screen: "home", "levels", "play", "settings".
+## Ask the shell to show another screen by name (the names are the keys in main.gd).
 signal navigate(target: String, args: Dictionary)
 
 var app: AppState
@@ -17,7 +17,7 @@ func setup(state: AppState, screen_args: Dictionary = {}) -> void:
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	resized.connect(_layout)
 	_build()
 	_layout()

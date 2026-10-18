@@ -30,7 +30,7 @@ if [[ "$newest" != "$v" ]]; then
   exit 1
 fi
 
-files=(VERSION apps/api/package.json apps/web/package.json apps/game/export_presets.cfg)
+files=(VERSION apps/api/package.json apps/web/package.json apps/game/export_presets.cfg apps/game/project.godot)
 
 if [[ "$mode" == "release" ]]; then
   # The release commit must contain only the version bump.
@@ -55,6 +55,8 @@ done
 # Android: the display version. (CI sets version/code from the run number for each build.)
 sed -i.bak "s|^version/name=.*|version/name=\"${v}\"|" apps/game/export_presets.cfg
 rm -f apps/game/export_presets.cfg.bak
+sed -i.bak "s|^config/version=.*|config/version=\"${v}\"|" apps/game/project.godot
+rm -f apps/game/project.godot.bak
 
 echo "Version ${current} -> ${v} in: ${files[*]}"
 

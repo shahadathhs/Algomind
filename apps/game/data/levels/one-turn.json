@@ -27,5 +27,5 @@
     "type": "reach_tile",
     "position": [3, 2]
   },
-  "hints": ["A turn changes the direction of the next move."]
+  "hints": ["Move up first, then turn toward the target."]
 }

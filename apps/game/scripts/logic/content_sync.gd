@@ -155,4 +155,17 @@ static func build_campaign(store: ContentStore) -> Campaign:
 		pars[item["slug"]] = item["par"]
 	for entry in campaign.entries:
 		entry["par"] = pars.get(entry["id"], {})
+	var built := {}
+	for world: Dictionary in campaign.worlds:
+		built[world["id"]] = true
+	for raw: Dictionary in catalog["placement"]["worlds"]:
+		if built.has(raw["id"]):
+			continue
+		var count := 0
+		for chapter: Dictionary in raw["chapters"]:
+			count += (chapter["levels"] as Array).size()
+		if count > 0:
+			campaign.pending_worlds.append(
+				{"id": raw["id"], "title": raw["title"], "summary": raw["summary"], "count": count}
+			)
 	return campaign

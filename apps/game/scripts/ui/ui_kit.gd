@@ -121,7 +121,8 @@ static func label(value: String, size: int, color: Color, spacing: int = 1) -> L
 
 
 ## Draws a command or control icon inside a square of side `s` centered on `c`.
-## Kinds: move, left, right, back, play, pause, step, reset, plus, x, check, lock, prev, next.
+## Kinds: move, left, right, back, play, pause, step, reset, plus, x, check, lock, prev, next,
+## menu, help, download, up, offline.
 static func icon(canvas: CanvasItem, kind: String, c: Vector2, s: float, color: Color) -> void:
 	var w := maxf(2.0, s * 0.12)
 	match kind:
@@ -204,6 +205,35 @@ static func icon(canvas: CanvasItem, kind: String, c: Vector2, s: float, color: 
 		"lock":
 			canvas.draw_rect(Rect2(c.x - s * 0.3, c.y - s * 0.05, s * 0.6, s * 0.42), color)
 			canvas.draw_arc(Vector2(c.x, c.y - s * 0.08), s * 0.2, PI, TAU, 12, color, w * 0.9)
+		"menu":
+			for i in 3:
+				var y := c.y + (float(i) - 1.0) * s * 0.26
+				canvas.draw_rect(Rect2(c.x - s * 0.32, y - w / 2.0, s * 0.64, w), color)
+		"help":
+			text(canvas, "?", Rect2(c.x - s * 0.5, c.y - s * 0.5, s, s), int(s * 1.1), color, 0)
+		"download":
+			canvas.draw_rect(Rect2(c.x - w / 2.0, c.y - s * 0.4, w, s * 0.46), color)
+			_triangle(canvas, c + Vector2(0, s * 0.3), Vector2(0, -1), s * 0.5, s * 0.36, color)
+			canvas.draw_rect(Rect2(c.x - s * 0.34, c.y + s * 0.36, s * 0.68, w), color)
+		"up":
+			canvas.draw_rect(Rect2(c.x - w / 2.0, c.y - s * 0.06, w, s * 0.46), color)
+			_triangle(canvas, c + Vector2(0, -s * 0.4), Vector2(0, 1), s * 0.56, s * 0.4, color)
+		"offline":
+			for i in 3:
+				var radius := s * (0.12 + 0.14 * float(i + 1))
+				canvas.draw_arc(
+					c + Vector2(0, s * 0.3),
+					radius,
+					deg_to_rad(-135.0),
+					deg_to_rad(-45.0),
+					10,
+					color,
+					w
+				)
+			canvas.draw_circle(c + Vector2(0, s * 0.3), w * 0.8, color)
+			canvas.draw_line(
+				c + Vector2(-s * 0.4, -s * 0.34), c + Vector2(s * 0.4, s * 0.4), color, w
+			)
 
 
 ## A filled triangle: tip point, unit direction pointing from tip toward the base, base width

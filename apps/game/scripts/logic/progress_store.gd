@@ -9,11 +9,13 @@ extends RefCounted
 ## Nothing here touches the network.
 
 const VERSION := 1
-const THEMES: Array[String] = ["system", "light", "dark"]
 
 var path: String
-## { version, completed: { levelId: { levelVersion, bestCommands } }, lastLevel, settings }
+## { version, completed: { levelId: { levelVersion, bestCommands, completedAt } }, lastLevel,
+## settings } where settings.updatedAt is when a synced setting last changed (Unix seconds).
 var data: Dictionary = default_data()
+## Typed access to data["settings"].
+var settings := Settings.new(self)
 ## True when the main file was unreadable and the backup was used.
 var recovered_from_backup := false
 ## True when neither file was usable (or none existed) and the data is the defaults.
@@ -29,7 +31,17 @@ static func default_data() -> Dictionary:
 		"version": VERSION,
 		"completed": {},
 		"lastLevel": "",
-		"settings": {"theme": "system", "reduceMotion": false},
+		"settings":
+		{
+			"theme": "system",
+			"reduceMotion": false,
+			"sound": true,
+			"music": true,
+			"vibration": true,
+			"runSpeed": "normal",
+			"tutorialDone": false,
+			"updatedAt": 0.0,
+		},
 	}
 
 
@@ -90,7 +102,13 @@ func record_completion(level_id: String, level_version: int, commands: int) -> v
 	var best := best_commands(level_id, level_version)
 	if best == 0 or commands < best:
 		best = commands
-	data["completed"][level_id] = {"levelVersion": level_version, "bestCommands": best}
+	var previous: Variant = data["completed"].get(level_id)
+	var first_at := float(previous.get("completedAt", 0.0)) if previous != null else 0.0
+	if first_at <= 0.0:
+		first_at = Time.get_unix_time_from_system()
+	data["completed"][level_id] = {
+		"levelVersion": level_version, "bestCommands": best, "completedAt": first_at
+	}
 
 
 func last_level() -> String:
@@ -101,21 +119,59 @@ func set_last_level(level_id: String) -> void:
 	data["lastLevel"] = level_id
 
 
-func theme() -> String:
-	return data["settings"]["theme"]
+## Solved levels as a list for syncing: [{ levelId, levelVersion, bestCommands, completedAt }].
+func completions() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for id: String in data["completed"]:
+		var e: Dictionary = data["completed"][id]
+		(
+			out
+			. append(
+				{
+					"levelId": id,
+					"levelVersion": int(e["levelVersion"]),
+					"bestCommands": int(e["bestCommands"]),
+					"completedAt": float(e.get("completedAt", 0.0)),
+				}
+			)
+		)
+	return out
 
 
-func set_theme(value: String) -> void:
-	if THEMES.has(value):
-		data["settings"]["theme"] = value
-
-
-func reduce_motion() -> bool:
-	return data["settings"]["reduceMotion"]
-
-
-func set_reduce_motion(value: bool) -> void:
-	data["settings"]["reduceMotion"] = value
+## Merges completions from another device. Nothing is ever removed; a level solved on either
+## side stays solved. For the same level the newer level version wins (a score is never read
+## against different content); for the same version the fewer commands win.
+func merge_completions(remote: Array) -> void:
+	for raw: Variant in remote:
+		if typeof(raw) != TYPE_DICTIONARY:
+			continue
+		var id: Variant = raw.get("levelId")
+		var version: int = int(raw.get("levelVersion", 0))
+		var best: int = int(raw.get("bestCommands", 0))
+		if typeof(id) != TYPE_STRING or version < 1 or best < 1:
+			continue
+		var at := float(raw.get("completedAt", 0.0))
+		var local: Variant = data["completed"].get(id)
+		if local == null:
+			data["completed"][id] = {
+				"levelVersion": version, "bestCommands": best, "completedAt": at
+			}
+			continue
+		var local_version := int(local["levelVersion"])
+		var local_at := float(local.get("completedAt", 0.0))
+		var earliest := minf(at, local_at) if at > 0.0 and local_at > 0.0 else maxf(at, local_at)
+		if version > local_version:
+			data["completed"][id] = {
+				"levelVersion": version, "bestCommands": best, "completedAt": earliest
+			}
+		elif version == local_version:
+			data["completed"][id] = {
+				"levelVersion": version,
+				"bestCommands": mini(best, int(local["bestCommands"])),
+				"completedAt": earliest,
+			}
+		else:
+			local["completedAt"] = earliest
 
 
 ## Level state in the flattened campaign order: "done", "current", or "locked".
@@ -188,13 +244,21 @@ static func _sanitize(parsed: Variant) -> Variant:
 				continue
 			if int(level_version) < 1 or int(best) < 1:
 				continue
-			clean["completed"][id] = {"levelVersion": int(level_version), "bestCommands": int(best)}
+			var at: Variant = entry.get("completedAt")
+			clean["completed"][id] = {
+				"levelVersion": int(level_version),
+				"bestCommands": int(best),
+				"completedAt": float(at) if typeof(at) == TYPE_FLOAT else 0.0,
+			}
 	if typeof(raw.get("lastLevel")) == TYPE_STRING:
 		clean["lastLevel"] = raw["lastLevel"]
-	var settings: Variant = raw.get("settings")
-	if typeof(settings) == TYPE_DICTIONARY:
-		if THEMES.has(settings.get("theme")):
-			clean["settings"]["theme"] = settings["theme"]
-		if typeof(settings.get("reduceMotion")) == TYPE_BOOL:
-			clean["settings"]["reduceMotion"] = settings["reduceMotion"]
+	var raw_settings: Variant = raw.get("settings")
+	if typeof(raw_settings) == TYPE_DICTIONARY:
+		var kept := Settings.clean_synced(raw_settings)
+		for key: String in kept:
+			clean["settings"][key] = kept[key]
+		if typeof(raw_settings.get("tutorialDone")) == TYPE_BOOL:
+			clean["settings"]["tutorialDone"] = raw_settings["tutorialDone"]
+		if typeof(raw_settings.get("updatedAt")) == TYPE_FLOAT:
+			clean["settings"]["updatedAt"] = float(raw_settings["updatedAt"])
 	return clean

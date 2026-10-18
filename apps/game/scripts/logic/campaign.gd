@@ -21,6 +21,9 @@ var worlds: Array[Dictionary] = []
 var entries: Array[Dictionary] = []
 ## Human-readable reasons something was skipped. Empty when everything loaded.
 var errors: Array[String] = []
+## Worlds the catalog lists but whose levels are not on this device yet (not downloaded):
+## [{ id, title, summary, count }]. Set when the campaign is built from downloaded content.
+var pending_worlds: Array[Dictionary] = []
 
 
 static func load_bundled() -> Campaign:
@@ -45,6 +48,27 @@ static func from_data(placement: Variant, loader: Callable) -> Campaign:
 	for raw_world: Variant in placement["worlds"]:
 		campaign._add_world(raw_world, loader, seen)
 	return campaign
+
+
+## Levels this version of the game cannot play yet, with where they sit:
+## [{ id, title, reason, world, chapter }] where reason is "mechanic" or "schema".
+func blocked_levels() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for world_index in worlds.size():
+		for chapter_index in worlds[world_index]["chapters"].size():
+			for item: Dictionary in worlds[world_index]["chapters"][chapter_index]["blocked"]:
+				var copy := item.duplicate()
+				copy["world"] = world_index
+				copy["chapter"] = chapter_index
+				out.append(copy)
+	return out
+
+
+func blocked_by_id(level_id: String) -> Dictionary:
+	for item in blocked_levels():
+		if item["id"] == level_id:
+			return item
+	return {}
 
 
 func entry_by_id(level_id: String) -> Dictionary:
@@ -99,10 +123,14 @@ func _add_world(raw_world: Variant, loader: Callable, seen: Dictionary) -> void:
 			"id": str(raw_chapter.get("id", "")),
 			"title": str(raw_chapter.get("title", "")),
 			"entries": [],
+			"blocked": [],
 		}
 		var chapter_index: int = world["chapters"].size()
 		for level_id: Variant in raw_chapter["levels"]:
 			var entry := _load_entry(level_id, loader, seen)
+			if entry.has("blocked"):
+				chapter["blocked"].append(entry["blocked"])
+				continue
 			if entry.is_empty():
 				continue
 			entry["world"] = world_index
@@ -110,7 +138,7 @@ func _add_world(raw_world: Variant, loader: Callable, seen: Dictionary) -> void:
 			entry["number"] = entries.size() + 1
 			entries.append(entry)
 			chapter["entries"].append(entry)
-		if not chapter["entries"].is_empty():
+		if not chapter["entries"].is_empty() or not chapter["blocked"].is_empty():
 			world["chapters"].append(chapter)
 	if not world["chapters"].is_empty():
 		worlds.append(world)
@@ -126,16 +154,35 @@ func _load_entry(level_id: Variant, loader: Callable, seen: Dictionary) -> Dicti
 		return {}
 	seen[id] = true
 	var level: Variant = loader.call(id)
+	var verdict := _judge(level, id)
+	if verdict.has("error"):
+		errors.append(verdict["error"])
+		return {}
+	if verdict.has("blocked"):
+		errors.append("Level %s needs a newer version of the game." % id)
+		return verdict
+	return {"id": id, "level": level}
+
+
+## Decides whether a level can be played: {} when it can, {error} when it is unusable, or
+## {blocked} when this version of the game is too old for it.
+func _judge(level: Variant, id: String) -> Dictionary:
 	var check := LevelValidator.validate_level(level)
 	if not check["ok"]:
 		var first: Dictionary = check["issues"][0] if not check["issues"].is_empty() else {}
-		errors.append("Level %s was skipped: %s" % [id, first.get("message", "unreadable")])
-		return {}
+		if first.get("code") == "UNSUPPORTED_SCHEMA_VERSION":
+			return {"blocked": {"id": id, "title": _title_of(level, id), "reason": "schema"}}
+		var why := str(first.get("message", "unreadable"))
+		return {"error": "Level %s was skipped: %s" % [id, why]}
 	for mechanic: Variant in level["requires"]["mechanics"]:
 		if not SUPPORTED_MECHANICS.has(mechanic):
-			errors.append("Level %s was skipped: it needs a newer version of the game." % id)
-			return {}
+			return {"blocked": {"id": id, "title": _title_of(level, id), "reason": "mechanic"}}
 	if level["slug"] != id:
-		errors.append("Level %s was skipped: its file names a different level." % id)
-		return {}
-	return {"id": id, "level": level}
+		return {"error": "Level %s was skipped: its file names a different level." % id}
+	return {}
+
+
+func _title_of(level: Variant, fallback: String) -> String:
+	if typeof(level) == TYPE_DICTIONARY and typeof(level.get("title")) == TYPE_STRING:
+		return level["title"]
+	return fallback

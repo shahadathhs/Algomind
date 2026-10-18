@@ -12,7 +12,7 @@ export class AppConfig {
   readonly superAdminEmail?: string;
   readonly superAdminPass?: string;
   readonly trustProxy: number;
-  readonly seedStarterCampaign: boolean;
+  readonly seedStarterCampaign: "always" | "when-empty" | "never";
   readonly webRevalidateUrl?: string;
   readonly revalidateSecret?: string;
 
