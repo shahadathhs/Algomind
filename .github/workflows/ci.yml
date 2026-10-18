@@ -1,5 +1,5 @@
-# One pipeline. Pull requests and pushes run the quality gates. Later phases add
-# the API, web, game, deploy, and release jobs described in docs/CI.md.
+# One pipeline. Pull requests and pushes run the quality gates. Deploy and release jobs
+# are added later; see docs/CI.md.
 name: CI
 
 on:
@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   quality:
-    name: Quality gates
+    name: Quality gates (TypeScript)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -37,3 +37,83 @@ jobs:
         run: pnpm typecheck
       - name: Test
         run: pnpm test
+
+  api:
+    name: API (build and migrations on a clean database)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: algomind
+          POSTGRES_PASSWORD: algomind
+          POSTGRES_DB: algomind
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U algomind -d algomind"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgresql://algomind:algomind@localhost:5432/algomind
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Apply migrations to an empty database
+        run: pnpm --filter @algomind/api migrate
+      - name: Build
+        run: pnpm --filter @algomind/api build
+
+  web:
+    name: Web (production build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm --filter @algomind/web build
+
+  game:
+    name: Game (lint, load, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - name: Lint GDScript (gdlint and gdformat)
+        run: make game-lint
+      # Headless Godot in Docker: the same commands as local development.
+      - name: Load the project
+        run: make game-docker-check
+      - name: Run the game tests
+        run: make game-docker-test
+
+  docker:
+    name: Containers (build and smoke test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and start the database, API, and web
+        run: docker compose --profile app up -d --build --wait
+      - name: API is ready and talks to the database
+        run: curl -fsS http://localhost:8000/v1/health/ready
+      - name: Web serves the landing page
+        run: curl -fsS http://localhost:3000/ >/dev/null
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose --profile app logs
+      - name: Stop
+        if: always()
+        run: docker compose --profile app down -v
