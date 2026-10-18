@@ -36,13 +36,18 @@ setup: env install db-up api-generate api-migrate game-import ## One-time local 
 	@echo "  make game-run  the game on this machine"
 	@echo "  make up        everything in containers instead"
 
-env: ## Create .env with a generated local database password (never overwrites)
+env: ## Create .env with generated local secrets: database password, JWT key, admin password (never overwrites)
 	@if [ -f .env ]; then echo ".env already exists, keeping it" >&2; else \
 		pw=$$(openssl rand -hex 16); \
+		jwt=$$(openssl rand -hex 32); \
+		admin=$$(openssl rand -hex 12)Aq; \
 		sed -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$$pw|" \
 		    -e "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://algomind:$$pw@localhost:5432/algomind|" \
+		    -e "s|^JWT_ACCESS_SECRET=.*|JWT_ACCESS_SECRET=$$jwt|" \
+		    -e "s|^SUPER_ADMIN_PASS=.*|SUPER_ADMIN_PASS=$$admin|" \
 		    .env.example > .env; \
-		echo "Created .env with a generated database password" >&2; \
+		echo "Created .env with generated secrets (nothing is printed)." >&2; \
+		echo "Dashboard sign-in: the SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASS values in .env; the first sign-in asks for a new password." >&2; \
 	fi
 
 install: ## Install dependencies and git hooks (pnpm)

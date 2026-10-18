@@ -15,12 +15,12 @@ Checked on 2026-10-18: the API answers liveness and readiness with the database 
 
 ## Overview
 
-| Piece                | Host                                                                                                                     | Notes                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
-| API (`apps/api`)     | Render web service, built from a Dockerfile                                                                              | One instance while rate limiting is in-process |
-| Database             | Neon PostgreSQL                                                                                                          | Backups enabled; same region family as the API |
-| Web app (`apps/web`) | Vercel                                                                                                                   | Public site and `/admin` in one project        |
-| Game                 | GitHub Releases hold the Android build (APK only, not on Google Play). A web export served at `/play` is a later option. |                                                |
+| Piece                | Host                                                                                                                     | Notes                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| API (`apps/api`)     | Render web service, built from a Dockerfile                                                                              | One instance while rate limiting is in-process (login, refresh, change-password) |
+| Database             | Neon PostgreSQL                                                                                                          | Backups enabled; same region family as the API                                   |
+| Web app (`apps/web`) | Vercel                                                                                                                   | Public site and `/admin` in one project                                          |
+| Game                 | GitHub Releases hold the Android build (APK only, not on Google Play). A web export served at `/play` is a later option. |                                                                                  |
 
 > **Single instance only.** If rate limits live in the API's memory, a second instance would double the limits and split their counters. Move the limiter to a shared store before scaling out.
 
@@ -42,7 +42,12 @@ Checked on 2026-10-18: the API answers liveness and readiness with the database 
    - `DATABASE_URL` (from Neon; required, there is no default)
    - `CORS_ORIGINS` (the exact web origin, comma-separated for several, no trailing slash: `https://playalgomind.vercel.app`)
 
-   Added when the features land: `JWT_SECRET` (generated; the app refuses to start in production with a weak or default value), `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASS` (first run only; remove or rotate afterwards), and `WEB_REVALIDATE_URL` with `WEB_REVALIDATE_SECRET` so publish can revalidate public pages.
+   - `JWT_ACCESS_SECRET` (signs access tokens; at least 32 characters; required in production, the blueprint generates it)
+   - `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASS` (first run only: the first admin is created when no admin exists; the API refuses to start in production without them while there is no admin, or with a password under 12 characters; the first sign-in forces a new password, after which you can remove both)
+   - `TRUST_PROXY=1` (Render has one reverse proxy; without it every client looks like the proxy and rate limits collapse into one bucket)
+   - Optional: `ACCESS_TOKEN_TTL_SECONDS` (default 900) and `REFRESH_TOKEN_TTL_DAYS` (default 7)
+
+   Added when the features land: `WEB_REVALIDATE_URL` with `WEB_REVALIDATE_SECRET` so publish can revalidate public pages.
 
 4. The start command applies migrations (`prisma migrate deploy`) and then starts the server. Do not use `prisma db push` or `migrate dev` in production.
 5. Create a deploy hook and an API key for CI (see [CI.md](CI.md)). Consider disabling auto-deploy so the hook is the only path and CD verifies the deploy that runs.
@@ -77,7 +82,7 @@ The Android build receives the API URL at build time from the `API_BASE_URL` rep
 ## Operations
 
 - **New migration:** commit and push; CI applies it to a test database, and the start command applies it in production.
-- **Rotate secrets:** change `JWT_SECRET` in Render (this signs everyone out) and rotate the seeded admin password.
+- **Rotate secrets:** change `JWT_ACCESS_SECRET` in Render (access tokens stop working until clients refresh) and rotate the seeded admin password.
 - **Backups:** enable and test restoring from Neon backups before publishing real content.
 - **Rollback:** redeploy an earlier deploy from Render's events; unpublish a bad level from the dashboard.
 - **Logs and health:** use Render logs and the health endpoint; add uptime monitoring for the API and web.

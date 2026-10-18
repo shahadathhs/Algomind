@@ -22,10 +22,18 @@ const CODES: Record<number, string> = {
   403: "FORBIDDEN",
   404: "NOT_FOUND",
   409: "CONFLICT",
+  413: "PAYLOAD_TOO_LARGE",
   422: "VALIDATION_FAILED",
   429: "TOO_MANY_REQUESTS",
   503: "SERVICE_UNAVAILABLE",
 };
+
+function clientErrorStatus(exception: unknown): number | undefined {
+  const { status, expose } = (exception ?? {}) as { status?: unknown; expose?: unknown };
+  return expose === true && typeof status === "number" && status >= 400 && status < 500
+    ? status
+    : undefined;
+}
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -46,7 +54,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
           ? { issues: (detail as { issues: ErrorBody["issues"] }).issues }
           : {}),
       };
+      const retryAfter = (detail as { retryAfter?: number }).retryAfter;
+      if (retryAfter) response.setHeader("Retry-After", String(retryAfter));
       response.status(statusCode).json(body);
+      return;
+    }
+
+    // Body-parser failures (too large, malformed JSON) are client errors raised outside Nest's routing.
+    const clientStatus = clientErrorStatus(exception);
+    if (clientStatus) {
+      const body: ErrorBody = {
+        statusCode: clientStatus,
+        code: CODES[clientStatus] ?? "BAD_REQUEST",
+        message:
+          clientStatus === 413 ? "The request body is too large." : "The request is invalid.",
+      };
+      response.status(clientStatus).json(body);
       return;
     }
 

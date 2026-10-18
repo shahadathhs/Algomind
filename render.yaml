@@ -1,6 +1,6 @@
 # Render Blueprint for the Algomind API. Create it with: Render dashboard > New > Blueprint,
-# pick this repo. Secrets are NOT stored here: DATABASE_URL and CORS_ORIGINS are asked for on
-# first deploy. See docs/DEPLOY.md.
+# pick this repo. Secrets are NOT stored here: DATABASE_URL, CORS_ORIGINS and the SUPER_ADMIN_*
+# values are asked for on first deploy; JWT_ACCESS_SECRET is generated. See docs/DEPLOY.md.
 #
 # Live at https://algomind-api.onrender.com (see docs/DEPLOY.md). If Render rejects a key, check
 # the current spec at render.com/docs/blueprint-spec.
@@ -30,5 +30,14 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
-      # Added when authentication lands: JWT_SECRET (generateValue: true),
-      # SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASS (sync: false).
+      # Render generates the signing key once; rotating it signs everyone out.
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      # The first admin (first run only; the first sign-in forces a new password).
+      - key: SUPER_ADMIN_EMAIL
+        sync: false
+      - key: SUPER_ADMIN_PASS
+        sync: false
+      # Render puts one reverse proxy in front of the service.
+      - key: TRUST_PROXY
+        value: "1"

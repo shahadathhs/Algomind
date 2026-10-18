@@ -231,6 +231,7 @@ The reference simulator in `packages/level-contract` is used by the dashboard pr
 - `email` (unique)
 - `passwordHash`
 - `role` (`ADMIN` or `PLAYER`; introduce editor roles only when needed)
+- `mustChangePassword` (true for the seeded admin until the first password change)
 - `createdAt`, `updatedAt`
 
 One identity model and one auth system serve admins and (in the accounts phase) players. Use a reputable authentication approach. Store only a strong password hash, never plaintext or reversible passwords. Do not build custom cryptography. On API startup, if no `ADMIN` user exists, one is created from environment variables (idempotent, password hashed and never logged; in production the API refuses to start with missing or weak values while no admin exists; first sign-in forces a password change). Admins are never created through public sign-up; public sign-up creates only `PLAYER` users and is enabled only in the accounts phase.
@@ -241,7 +242,7 @@ One identity model and one auth system serve admins and (in the accounts phase) 
 - `expiresAt`, `revokedAt` (nullable), `replacedById` (nullable)
 - `createdAt`
 
-Supports rotation, reuse detection (revoke the whole family), and logout.
+Only the SHA-256 hash of the opaque token is stored. All tokens descending from one sign-in share a `familyId`. Supports rotation (the old row gets `revokedAt` and `replacedById`), reuse detection (revoke the whole family), and logout.
 
 ### `Level`
 
@@ -338,7 +339,9 @@ The merge follows the policy in [README_GAME_RULES.md](README_GAME_RULES.md): un
 | ----------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------- |
 | `POST`                        | `/v1/auth/login`                          | Admin sign-in; returns a short-lived access token and a refresh token              |
 | `POST`                        | `/v1/auth/refresh`                        | Exchange a refresh token for a new access token and a new refresh token (rotation) |
-| `POST`                        | `/v1/auth/logout`                         | Revoke the current refresh token                                                   |
+| `POST`                        | `/v1/auth/logout`                         | Revoke the current refresh token's family (204, idempotent)                        |
+| `POST`                        | `/v1/auth/change-password`                | Bearer. Change the password; returns a fresh session and revokes the other tokens  |
+| `GET`                         | `/v1/auth/me`                             | Bearer. The signed-in user: `id`, `email`, `role`, `mustChangePassword`            |
 | `POST`                        | `/v1/admin/levels`                        | Create a draft level                                                               |
 | `GET`                         | `/v1/admin/levels`                        | List drafts and published levels                                                   |
 | `GET`                         | `/v1/admin/levels/:id`                    | Read metadata and authoring content                                                |
@@ -397,6 +400,9 @@ A draft save is not a publish. Client-side validation improves the editing exper
 - **Auto logout.** The web app signs the admin out automatically when a refresh fails or is rejected, when the refresh token expires, after a period of inactivity, and when the admin signs out in another tab. It clears all session state and redirects to sign-in. A 401 on an API call triggers one refresh attempt and one retry, then logout.
 - **Token storage in the web app.** Keep the access token in memory only. Keep the refresh token out of JavaScript-readable storage (an httpOnly, secure, same-site cookie set by the web app's server). Never put tokens in `localStorage`. A page reload restores the session through the refresh token.
 - Logout and password change revoke refresh tokens server-side.
+- **Implementation.** Access token: JWT (HS256, `jose`), 900 s by default (`ACCESS_TOKEN_TTL_SECONDS`). Refresh token: 32 random bytes, 7 days by default (`REFRESH_TOKEN_TTL_DAYS`). Passwords: argon2id (`@node-rs/argon2`, 19 MiB, 2 passes); an unknown email is checked against a dummy hash so timing and the 401 body match a wrong password. A new password needs at least 12 characters, and must differ from the current one. A wrong current password on `change-password` is 422, so clients that treat 401 as "refresh, then log out" do not fire.
+- **Guards** (`apps/api/src/modules/auth`): `JwtAuthGuard` reads the user from the database on every request, `RolesGuard` with `@Roles(...)`, and `AdminGuard`, which also answers 403 `PASSWORD_CHANGE_REQUIRED` while `mustChangePassword` is set (`@AllowPasswordChange()` opts a route out). Admin routes use `@UseGuards(JwtAuthGuard, AdminGuard)`; none is registered globally, so health and `/docs` stay public.
+- **Rate limits** are fixed 15-minute windows in process memory (login: 10 per IP and email plus 60 per IP; refresh: 60 per IP; change-password: 10 per user and IP), answered with 429 and `Retry-After`. They are per instance, so run one instance. `TRUST_PROXY` (1 on Render) makes `req.ip` the real client. JSON bodies are capped at 16 kB. Nothing logs passwords, tokens, or the `Authorization` header.
 - Protect all admin routes with authentication and server-side authorization in the API; the web app's route protection is only for user experience.
 - Start with a single admin role; do not implement a complex role model prematurely.
 - Rate-limit login attempts and sensitive endpoints.
@@ -457,9 +463,12 @@ Level validation issues use the stable codes defined in `packages/level-contract
 
 ### API
 
+The API has no automated tests for now (removed on purpose; add them when a feature's risk justifies it, publish gates and authorization first). The list below is what to cover when they return, against real PostgreSQL where behavior depends on it.
+
 - Test public routes do not expose drafts, reference solutions, or unassigned levels.
 - Test publish is blocked when validation fails, the budget is below par, there is no current solved playtest, or a required mechanic is unsupported.
-- Test the admin seed is idempotent and never logs the password.
+- Test the admin seed is idempotent, never logs the password, and that production refuses to start without a valid seed while no admin exists.
+- Test login (and that an unknown email looks like a wrong password), refresh rotation, reuse detection, logout, change-password (including the 422), the guards (401 without or with an expired token, 403 for the wrong role, 403 while a password change is required), rate limiting, and environment validation.
 - Test import rejects invalid or unsupported files and never overwrites existing levels.
 - Test anonymous users cannot access admin routes.
 - Test invalid or unsolvable level content cannot be published.

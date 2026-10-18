@@ -6,12 +6,24 @@ export class AppConfig {
   readonly port: number;
   readonly databaseUrl: string;
   readonly corsOrigins: string[];
+  readonly jwtAccessSecret: string;
+  readonly accessTokenTtlSeconds: number;
+  readonly refreshTokenTtlDays: number;
+  readonly superAdminEmail?: string;
+  readonly superAdminPass?: string;
+  readonly trustProxy: number;
 
   constructor(env: Env) {
     this.nodeEnv = env.nodeEnv;
     this.port = env.port;
     this.databaseUrl = env.databaseUrl;
     this.corsOrigins = env.corsOrigins;
+    this.jwtAccessSecret = env.jwtAccessSecret;
+    this.accessTokenTtlSeconds = env.accessTokenTtlSeconds;
+    this.refreshTokenTtlDays = env.refreshTokenTtlDays;
+    this.superAdminEmail = env.superAdminEmail;
+    this.superAdminPass = env.superAdminPass;
+    this.trustProxy = env.trustProxy;
   }
 
   static fromEnvironment(): AppConfig {
