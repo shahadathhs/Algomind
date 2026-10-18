@@ -41,19 +41,19 @@ Both refuse the same version or a lower one. `release` also refuses to run with 
 
 ## Local tooling
 
-| Tool                                  | Purpose                                                                                                                                                 |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Husky                                 | Git hooks (`pre-commit`, `commit-msg`)                                                                                                                  |
-| lint-staged                           | Lint and format staged files only                                                                                                                       |
-| commitlint                            | Enforce Conventional Commits (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, `wip`, `release`)           |
-| commitizen + cz-git                   | Guided commits (`pnpm commit`)                                                                                                                          |
-| prettier                              | Formatting for TypeScript, JSON, Markdown, YAML                                                                                                         |
-| oxlint (type-aware)                   | TypeScript linting for every TypeScript app and package. There is no ESLint: TypeScript 7 has no JS compiler API, so typescript-eslint cannot parse it. |
-| tsc                                   | Type checking in each TypeScript app and package                                                                                                        |
-| Vitest / Playwright                   | Not used in the API or web for now; add smoke tests (Playwright) when a flow needs them.                                                                |
-| gdlint + gdformat (gdtoolkit, pinned) | GDScript style gate                                                                                                                                     |
-| GUT                                   | Game unit tests, run headless in Docker                                                                                                                 |
-| Prisma                                | Schema validation and migrations                                                                                                                        |
+| Tool                                  | Purpose                                                                                                                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Husky                                 | Git hooks (`pre-commit`, `commit-msg`)                                                                                                                                          |
+| lint-staged                           | Lint and format staged files only                                                                                                                                               |
+| commitlint                            | Enforce Conventional Commits (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, `wip`, `release`)                                   |
+| commitizen + cz-git                   | Guided commits (`pnpm commit`)                                                                                                                                                  |
+| prettier                              | Formatting for TypeScript, JSON, Markdown, YAML                                                                                                                                 |
+| oxlint (type-aware)                   | TypeScript linting for every TypeScript app and package. There is no ESLint: TypeScript 7 has no JS compiler API, so typescript-eslint cannot parse it.                         |
+| tsc                                   | Type checking in each TypeScript app and package                                                                                                                                |
+| Vitest / Playwright                   | Vitest runs the API unit tests (publish gates, authorization, sessions, progress merge). The web app has no tests for now; add smoke tests (Playwright) when a flow needs them. |
+| gdlint + gdformat (gdtoolkit, pinned) | GDScript style gate                                                                                                                                                             |
+| GUT                                   | Game unit tests, run headless in Docker                                                                                                                                         |
+| Prisma                                | Schema validation and migrations                                                                                                                                                |
 
 Hooks live at the repository root and cover the whole repo. Typical `make` targets:
 

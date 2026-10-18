@@ -16,6 +16,8 @@ import {
   LoginBody,
   loginSchema,
   parseBody,
+  RegisterBody,
+  registerSchema,
   RefreshBody,
   refreshSchema,
 } from "./auth.dto.js";
@@ -33,6 +35,22 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly limiter: RateLimiter,
   ) {}
+
+  @Post("register")
+  @HttpCode(201)
+  @ApiOperation({
+    summary: "Create a player account and sign in.",
+    description: "Accounts are optional: the game is fully playable without one.",
+  })
+  @ApiResponse({ status: 201, type: AuthSessionResponse })
+  @ApiResponse({ status: 409, description: "An account with this email already exists." })
+  @ApiResponse({ status: 422, description: "The email is not valid or the password is too weak." })
+  @ApiResponse({ status: 429, description: "Too many attempts; see Retry-After." })
+  register(@Body() body: RegisterBody, @Req() req: Request): Promise<AuthSession> {
+    const { email, password } = parseBody(registerSchema, body);
+    this.limit(`register:${req.ip}`, 10);
+    return this.auth.register(email, password);
+  }
 
   @Post("login")
   @HttpCode(200)

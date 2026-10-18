@@ -9,6 +9,11 @@ export const loginSchema = z.object({
   email: z.string().min(1).max(254),
   password: z.string().min(1).max(MAX_PASSWORD_LENGTH),
 });
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const registerSchema = z.object({
+  email: z.string().trim().min(3).max(254).regex(EMAIL_PATTERN, "must be an email address"),
+  password: z.string().max(MAX_PASSWORD_LENGTH),
+});
 export const refreshSchema = z.object({ refreshToken: z.string().min(1).max(512) });
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1).max(MAX_PASSWORD_LENGTH),
@@ -34,6 +39,13 @@ export class LoginBody {
   @ApiProperty({ example: "admin@example.com" })
   email!: string;
   @ApiProperty()
+  password!: string;
+}
+
+export class RegisterBody {
+  @ApiProperty({ example: "player@example.com" })
+  email!: string;
+  @ApiProperty({ description: "At least 12 characters." })
   password!: string;
 }
 

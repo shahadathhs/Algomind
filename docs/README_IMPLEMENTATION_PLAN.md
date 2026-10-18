@@ -94,7 +94,7 @@ The architecture is complete after step 6 with only a handful of test levels. Th
 
 - API can store drafts, publish a level version, list published levels, and retrieve a selected published version.
 - Migrations apply from a clean database.
-- Automated tests (against a real PostgreSQL) cover public/private access and publishing behavior. No API test framework is set up yet; choose one when writing the first of these.
+- Automated tests cover publishing behavior and authorization (Vitest, no database); public/private access and the database constraints are checked against a real PostgreSQL in CI and by hand.
 - **Status:** implemented except automated tests and the web revalidation call after publish. Auth, worlds and chapters, ordering, drafts and versions, validate, the publish gates, unpublish, restore, duplicate, import and export, playtests, the client registry, the audit log, and the public catalog exist (route list in [README_ARCHITECTURE.md](README_ARCHITECTURE.md), section 7.1). Behavior was checked by hand against a real PostgreSQL (clean migration, every gate failing alone, the public catalog, round trips, DB constraints), not by an automated suite.
 
 ### Exit criteria
@@ -237,6 +237,8 @@ Build a modest editor that helps create valid content. Do not build a general-pu
 - The project clearly distinguishes working features from planned features.
 
 ## Phase 8 — Optional accounts and cloud sync (after the core release)
+
+**Status: the API half is built; the game screens are in progress.** Built: registration, `/v1/me/progress` with the merge, `/v1/me/settings`, and account deletion, with tests for the merge rules and authorization. See [README_ARCHITECTURE.md](README_ARCHITECTURE.md) section 7.2.
 
 ### Tasks
 

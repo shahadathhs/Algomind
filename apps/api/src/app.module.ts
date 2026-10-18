@@ -8,6 +8,7 @@ import { CatalogModule } from "./modules/catalog/catalog.module.js";
 import { ClientVersionsModule } from "./modules/client-versions/client-versions.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { LevelsModule } from "./modules/levels/levels.module.js";
+import { MeModule } from "./modules/me/me.module.js";
 import { SeedModule } from "./modules/seed/seed.module.js";
 
 @Module({
@@ -21,6 +22,7 @@ import { SeedModule } from "./modules/seed/seed.module.js";
     LevelsModule,
     CampaignModule,
     CatalogModule,
+    MeModule,
     SeedModule,
   ],
 })

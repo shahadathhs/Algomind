@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { Injectable, UnauthorizedException, UnprocessableEntityException } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+  UnprocessableEntityException,
+} from "@nestjs/common";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
 import type { AuthSession, AuthUser } from "./auth.types.js";
 import { passwordProblem } from "./password-policy.js";
@@ -48,6 +53,34 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly tokens: TokenService,
   ) {}
+
+  /** Creates a PLAYER account and signs it in. Admins are never created here. */
+  async register(email: string, password: string): Promise<AuthSession> {
+    const normalized = normalizeEmail(email);
+    const problem = passwordProblem(password);
+    if (problem) {
+      throw new UnprocessableEntityException({
+        code: "WEAK_PASSWORD",
+        message: `The password ${problem}.`,
+        issues: [{ path: "password", code: "WEAK_PASSWORD", message: `Password ${problem}.` }],
+      });
+    }
+    const passwordHash = await this.passwords.hash(password);
+    try {
+      const user = await this.prisma.user.create({
+        data: { email: normalized, passwordHash, role: "PLAYER", mustChangePassword: false },
+      });
+      return await this.startSession(user, randomUUID());
+    } catch (error) {
+      if ((error as { code?: unknown } | null)?.code === "P2002") {
+        throw new ConflictException({
+          code: "EMAIL_TAKEN",
+          message: "An account with this email already exists.",
+        });
+      }
+      throw error;
+    }
+  }
 
   async login(email: string, password: string): Promise<AuthSession> {
     const user = await this.prisma.user.findUnique({ where: { email: normalizeEmail(email) } });

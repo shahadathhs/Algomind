@@ -1,0 +1,144 @@
+import { describe, expect, it } from "vitest";
+import {
+  analyzeLevel,
+  contentHash,
+  failedGates,
+  type MinimumClient,
+  type RegistryVersion,
+} from "../src/modules/levels/level-analysis.js";
+import { level, SOLUTION } from "./support/level.js";
+
+const MINIMUM: MinimumClient = { version: "0.0.1", supportedMechanics: ["move", "turn"] };
+const REGISTRY: RegistryVersion[] = [{ version: "0.0.1", supportedMechanics: ["move", "turn"] }];
+
+/** Gates for a level, with every other gate satisfied unless the test says otherwise. */
+function gates(
+  content: unknown,
+  solution: unknown,
+  overrides: Partial<Parameters<typeof failedGates>[0]> = {},
+) {
+  return failedGates({
+    analysis: analyzeLevel(content, solution),
+    hasSolvedPlaytest: true,
+    chapterId: "chapter-1",
+    minimum: MINIMUM,
+    registry: REGISTRY,
+    ...overrides,
+  });
+}
+
+const codes = (issues: { code: string }[]) => issues.map((i) => i.code);
+
+describe("publish gates", () => {
+  it("lets a valid, solved, tested, compatible, placed level through", () => {
+    expect(gates(level(), SOLUTION)).toEqual([]);
+  });
+
+  it("validation: refuses a level the contract rejects, and skips the later checks", () => {
+    const failed = gates(level({ board: { width: 99, height: 5, walls: [] } }), SOLUTION);
+    expect(failed.some((i) => i.gate === "validation" && i.path === "board.width")).toBe(true);
+    expect(failed.some((i) => i.gate === "reference_solution" || i.gate === "par")).toBe(false);
+  });
+
+  it("reference solution: refuses a solution that does not reach the goal", () => {
+    const failed = gates(level(), [{ op: "MOVE_FORWARD" }]);
+    expect(codes(failed)).toContain("REFERENCE_SOLUTION_FAILS");
+  });
+
+  it("par: refuses a goal that cannot be reached", () => {
+    const walled = level({
+      board: {
+        width: 5,
+        height: 5,
+        walls: [
+          [0, 3],
+          [1, 4],
+        ],
+      },
+    });
+    expect(codes(gates(walled, SOLUTION))).toContain("GOAL_UNREACHABLE");
+  });
+
+  it("par: refuses a command limit below the shortest solution", () => {
+    // No solution fits under par, so the reference here is a short one that does not solve it.
+    const tight = level({ constraints: { maxCommands: 2, maxSteps: 20 } });
+    const failed = gates(tight, [{ op: "MOVE_FORWARD" }, { op: "MOVE_FORWARD" }]);
+    expect(codes(failed)).toContain("BUDGET_BELOW_PAR");
+  });
+
+  it("validation: refuses a reference solution longer than the command limit", () => {
+    const tight = level({ constraints: { maxCommands: 2, maxSteps: 20 } });
+    expect(codes(gates(tight, SOLUTION))).toContain("TOO_MANY_COMMANDS");
+  });
+
+  it("par: refuses a step limit below the shortest solution", () => {
+    const tight = level({ constraints: { maxCommands: 6, maxSteps: 2 } });
+    expect(codes(gates(tight, SOLUTION))).toContain("STEPS_BELOW_PAR");
+  });
+
+  it("playtest: refuses a level with no solved playtest for the current content", () => {
+    expect(codes(gates(level(), SOLUTION, { hasSolvedPlaytest: false }))).toEqual([
+      "PLAYTEST_REQUIRED",
+    ]);
+  });
+
+  it("compatibility: refuses when no minimum client version is set", () => {
+    expect(codes(gates(level(), SOLUTION, { minimum: null }))).toEqual([
+      "NO_MINIMUM_CLIENT_VERSION",
+    ]);
+  });
+
+  it("compatibility: refuses a mechanic the minimum client does not support, and says where it is", () => {
+    const old: MinimumClient = { version: "0.0.1", supportedMechanics: ["move"] };
+    const registry: RegistryVersion[] = [
+      { version: "0.0.1", supportedMechanics: ["move"] },
+      { version: "0.2.0", supportedMechanics: ["move", "turn"] },
+    ];
+    const failed = gates(level(), SOLUTION, { minimum: old, registry });
+    const issue = failed.find((i) => i.code === "UNSUPPORTED_MECHANIC");
+    expect(issue?.message).toContain("0.2.0");
+  });
+
+  it("placement: refuses a level that is not in a chapter", () => {
+    expect(codes(gates(level(), SOLUTION, { chapterId: null }))).toEqual(["PLACEMENT_REQUIRED"]);
+  });
+
+  it("reports every failed gate at once, not only the first", () => {
+    const failed = gates(level(), SOLUTION, {
+      hasSolvedPlaytest: false,
+      chapterId: null,
+      minimum: null,
+    });
+    expect(codes(failed).sort()).toEqual(
+      ["NO_MINIMUM_CLIENT_VERSION", "PLACEMENT_REQUIRED", "PLAYTEST_REQUIRED"].sort(),
+    );
+  });
+
+  it("warns, without blocking, when the limit is far above par or the solution is long", () => {
+    const loose = level({ constraints: { maxCommands: 40, maxSteps: 100 } });
+    const analysis = analyzeLevel(loose, [...SOLUTION, { op: "TURN_LEFT" }, { op: "TURN_RIGHT" }]);
+    expect(analysis.errors).toEqual([]);
+    expect(analysis.warnings.map((w) => w.code).sort()).toEqual([
+      "BUDGET_FAR_ABOVE_PAR",
+      "REFERENCE_LONGER_THAN_PAR",
+    ]);
+  });
+});
+
+describe("content hash (ties a playtest to exact content)", () => {
+  it("is stable for the same content whatever the key order", () => {
+    const a = level();
+    const b = Object.fromEntries(Object.entries(a).reverse());
+    expect(contentHash(a)).toBe(contentHash(b));
+  });
+
+  it("ignores the level version, so a restored draft keeps its playtests", () => {
+    expect(contentHash(level({ levelVersion: 1 }))).toBe(contentHash(level({ levelVersion: 7 })));
+  });
+
+  it("changes when the board changes, which makes earlier playtests stale", () => {
+    expect(contentHash(level())).not.toBe(
+      contentHash(level({ board: { width: 5, height: 5, walls: [[2, 2]] } })),
+    );
+  });
+});

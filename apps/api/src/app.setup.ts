@@ -12,9 +12,9 @@ export function setupApp(app: INestApplication): void {
   // Every JSON body is small (a level is a few kB, a full campaign order a few tens); reject
   // anything larger before it is parsed.
   (app as NestExpressApplication).useBodyParser("json", { limit: "64kb" });
-  // Admin and auth responses are per user and never cached.
+  // Admin, auth, and account responses are per user and never cached.
   (app as NestExpressApplication).use(
-    ["/v1/admin", "/v1/auth"],
+    ["/v1/admin", "/v1/auth", "/v1/me"],
     (_req: unknown, res: { setHeader(name: string, value: string): void }, next: () => void) => {
       res.setHeader("Cache-Control", "no-store");
       next();
