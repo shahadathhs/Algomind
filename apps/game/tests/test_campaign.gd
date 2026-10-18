@@ -113,7 +113,7 @@ func test_level_that_needs_a_mechanic_is_skipped() -> void:
 
 func test_level_file_naming_another_id_is_skipped() -> void:
 	var levels := _all_four()
-	levels["a"]["levelId"] = "other"
+	levels["a"]["slug"] = "other"
 	var campaign := Campaign.from_data(_placement(), _loader(levels))
 	assert_eq(campaign.entry_by_id("a"), {})
 	assert_eq(campaign.errors.size(), 1)

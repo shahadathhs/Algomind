@@ -2,13 +2,16 @@ class_name Campaign
 extends RefCounted
 ## The campaign: worlds, then chapters, then levels, built from data.
 ##
-## Placement (world, chapter, order) lives in data/campaign.json and refers to levels by id.
+## Placement (world, chapter, order) lives in data/campaign.json and refers to levels by slug,
+## the stable id of a level (progress is keyed by it, online and offline).
 ## Level content lives in one file per level and is checked by LevelValidator before it is used.
 ## An invalid or missing level is left out and reported in `errors`; loading never crashes.
 ## The flattened order (world, chapter, level) is the unlock order.
 
 const BUNDLED_CAMPAIGN := "res://data/campaign.json"
 const BUNDLED_LEVELS := "res://data/levels"
+## The mechanics this version of the game can play (the client-registry names).
+const SUPPORTED_MECHANICS: Array[String] = ["move", "turn"]
 
 ## [{ id, title, summary, chapters: [{ id, title, entries: [entry] }] }]
 var worlds: Array[Dictionary] = []
@@ -128,10 +131,11 @@ func _load_entry(level_id: Variant, loader: Callable, seen: Dictionary) -> Dicti
 		var first: Dictionary = check["issues"][0] if not check["issues"].is_empty() else {}
 		errors.append("Level %s was skipped: %s" % [id, first.get("message", "unreadable")])
 		return {}
-	if not (level["requires"]["mechanics"] as Array).is_empty():
-		errors.append("Level %s was skipped: it needs a newer version of the game." % id)
-		return {}
-	if level["levelId"] != id:
+	for mechanic: Variant in level["requires"]["mechanics"]:
+		if not SUPPORTED_MECHANICS.has(mechanic):
+			errors.append("Level %s was skipped: it needs a newer version of the game." % id)
+			return {}
+	if level["slug"] != id:
 		errors.append("Level %s was skipped: its file names a different level." % id)
 		return {}
 	return {"id": id, "level": level}

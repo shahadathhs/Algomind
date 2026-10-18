@@ -16,14 +16,21 @@ var _screen: ScreenBase
 func _ready() -> void:
 	var store := ProgressStore.new()
 	store.load_data()
-	_state = AppState.new(Campaign.load_bundled(), store)
-	for message in _state.campaign.errors:
-		push_warning(message)
 	var options := _debug_options()
 	if options.has("shot"):
+		# Screenshots always use the bundled levels, never whatever is cached on this machine.
+		_state = AppState.new(
+			Campaign.load_bundled(), store, ContentStore.new("user://content_shot")
+		)
 		_debug_screenshot(options)
 		return
+	var api := ApiClient.new()
+	add_child(api)
+	_state = AppState.new(Campaign.load_bundled(), store, ContentStore.new(), api)
+	for message in _state.campaign.errors:
+		push_warning(message)
 	_show("home", {})
+	_state.refresh_content()
 
 
 func _notification(what: int) -> void:

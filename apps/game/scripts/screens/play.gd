@@ -352,7 +352,13 @@ func _update_stats() -> void:
 	var used := _tape.size()
 	_stats[0].value = "%d / %d" % [used, _tape.limit]
 	_stats[1].value = str(int(_session.result.get("steps", 0)))
-	_stats[2].value = str(best) if best > 0 else "-"
+	var par: Dictionary = _entry.get("par", {})
+	if par.has("commands"):
+		_stats[2].caption = "BEST / PAR"
+		_stats[2].value = "%s / %d" % [str(best) if best > 0 else "-", int(par["commands"])]
+	else:
+		_stats[2].caption = "BEST"
+		_stats[2].value = str(best) if best > 0 else "-"
 	for stat in _stats:
 		stat.queue_redraw()
 

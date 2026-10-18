@@ -10,6 +10,8 @@ var _title: Label
 var _scroll: ScrollContainer
 var _content: VBoxContainer
 var _play: TileButton
+var _status: Label
+var _retry: TileButton
 
 
 func _build() -> void:
@@ -20,6 +22,13 @@ func _build() -> void:
 
 	_title = UiKit.label("LEVELS", 34, Palette.INK, 1)
 	add_child(_title)
+
+	_status = UiKit.label("", 14, Palette.MUTE, 1)
+	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(_status)
+	_retry = TileButton.make(TileButton.Kind.SECONDARY, "RETRY", "", 14)
+	_retry.pressed.connect(func() -> void: app.refresh_content())
+	add_child(_retry)
 
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -37,6 +46,57 @@ func _build() -> void:
 	add_child(_play)
 
 	_fill_content()
+	_update_status()
+	app.content_changed.connect(_on_content_changed)
+
+
+func _exit_tree() -> void:
+	if app != null and app.content_changed.is_connected(_on_content_changed):
+		app.content_changed.disconnect(_on_content_changed)
+
+
+## The campaign or the download status changed: rebuild the list and the play button.
+func _on_content_changed() -> void:
+	for child in _content.get_children():
+		child.queue_free()
+	_fill_content()
+	var play_index := app.progress.level_to_play(app.campaign)
+	_play.label = "PLAY LEVEL %02d" % (play_index + 1) if play_index >= 0 else "NO LEVELS"
+	_play.set_disabled(play_index < 0)
+	for connection in _play.pressed.get_connections():
+		_play.pressed.disconnect(connection["callable"])
+	_play.pressed.connect(_open.bind(play_index))
+	_update_status()
+	_layout()
+
+
+## One short line about where the levels came from. Never blocks play.
+func _update_status() -> void:
+	var text := ""
+	var can_retry := false
+	match app.sync_status:
+		"loading":
+			text = "CHECKING FOR NEW LEVELS"
+		"updated":
+			text = "LEVELS UPDATED"
+		"unchanged":
+			text = "LEVELS UP TO DATE"
+		"offline":
+			text = "OFFLINE. PLAYING SAVED LEVELS"
+			can_retry = true
+		"invalid":
+			text = "THE LEVEL SERVER SENT SOMETHING UNREADABLE. PLAYING SAVED LEVELS"
+			can_retry = true
+		_:
+			text = ""
+	var skipped := app.skipped_count()
+	if skipped > 0:
+		var plural := "S NEED" if skipped != 1 else " NEEDS"
+		var note := "%d LEVEL%s A NEWER VERSION OF THE GAME" % [skipped, plural]
+		text = (text + ". " + note) if not text.is_empty() else note
+	_status.text = text
+	_status.visible = not text.is_empty()
+	_retry.visible = can_retry
 
 
 func go_back() -> void:
@@ -57,6 +117,14 @@ func _layout() -> void:
 	_play.size = Vector2(width, play_h)
 	_play.position = Vector2(m, size.y - inset_bottom() - m - play_h)
 	var list_top := _title.position.y + 52.0
+	var status_h := 0.0
+	if _status.visible:
+		_status.position = Vector2(m, list_top - 4.0)
+		_status.size = Vector2(width - (84.0 if _retry.visible else 0.0), 44.0)
+		status_h = 48.0
+	_retry.position = Vector2(size.x - m - 76.0, list_top - 4.0)
+	_retry.size = Vector2(76.0, 44.0)
+	list_top += status_h
 	_scroll.position = Vector2(m, list_top)
 	_scroll.size = Vector2(width, _play.position.y - 16.0 - list_top)
 	_content.custom_minimum_size = Vector2(width, 0)
