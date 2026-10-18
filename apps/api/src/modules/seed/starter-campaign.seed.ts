@@ -33,38 +33,220 @@ function readBoard(rows: readonly string[]) {
   return { width: rows[0]!.length, height: rows.length, walls, goal, start };
 }
 
-// The first three levels of the web app's sample campaign (apps/web/src/lib/campaign.ts), in the
-// level-contract format.
-const WORLD = { title: "Sequences", description: "Instructions run in order, one after another." };
-const CHAPTER = { title: "First steps" };
-const LEVELS = [
+// The starter campaign: four worlds, five chapters, nineteen levels, in play order. Each limit is
+// at least the shortest possible program (the seed checks this with the solver and fails loudly
+// otherwise), shrinking world by world until the last world allows exactly the shortest program.
+const CAMPAIGN = [
   {
-    slug: "straight-ahead",
-    title: "Straight ahead",
-    maxCommands: 5,
-    rows: [".....", "G....", ".....", ".....", "^...."],
-    hints: ["Move forward until the automaton reaches the target."],
+    title: "Sequences",
+    description: "Instructions run in order, one after another.",
+    chapters: [
+      {
+        title: "First steps",
+        levels: [
+          {
+            slug: "straight-ahead",
+            title: "Straight ahead",
+            difficulty: "easy",
+            maxCommands: 5,
+            rows: [".....", "G....", ".....", ".....", "^...."],
+            hints: ["Move forward until the automaton reaches the target."],
+          },
+          {
+            slug: "all-the-way",
+            title: "All the way",
+            difficulty: "easy",
+            maxCommands: 6,
+            rows: ["G....", ".....", ".....", ".....", "^...."],
+          },
+          {
+            slug: "along-the-floor",
+            title: "Along the floor",
+            difficulty: "easy",
+            maxCommands: 6,
+            rows: [".....", ".....", ".....", ".....", ">...G"],
+          },
+          {
+            slug: "mind-the-gap",
+            title: "Mind the gap",
+            difficulty: "easy",
+            maxCommands: 6,
+            rows: ["G....", ".#...", ".#...", ".#...", "^...."],
+          },
+        ],
+      },
+    ],
   },
   {
-    slug: "all-the-way",
-    title: "All the way",
-    maxCommands: 6,
-    rows: ["G....", ".....", ".....", ".....", "^...."],
-    hints: [],
+    title: "Turns",
+    description: "Turn before you move to change where you are going.",
+    chapters: [
+      {
+        title: "Corners",
+        levels: [
+          {
+            slug: "one-turn",
+            title: "One turn",
+            difficulty: "easy",
+            maxCommands: 8,
+            rows: [".....", ".....", "...G.", ".....", "^...."],
+          },
+          {
+            slug: "turn-left",
+            title: "Turn left",
+            difficulty: "easy",
+            maxCommands: 8,
+            rows: [".....", "..G..", ".....", ".....", ">...."],
+          },
+          {
+            slug: "up-and-across",
+            title: "Up and across",
+            difficulty: "easy",
+            maxCommands: 8,
+            rows: [".....", "..G..", ".....", ".....", "^...."],
+          },
+          {
+            slug: "turn-around",
+            title: "Turn around",
+            difficulty: "easy",
+            maxCommands: 6,
+            rows: [".....", ".....", "..^..", ".....", "..G.."],
+          },
+        ],
+      },
+      {
+        title: "Around walls",
+        levels: [
+          {
+            slug: "the-wall",
+            title: "The wall",
+            difficulty: "medium",
+            maxCommands: 12,
+            rows: [".....", ".....", ".#.G#", "..#..", "^#..."],
+          },
+          {
+            slug: "two-walls",
+            title: "Two walls",
+            difficulty: "medium",
+            maxCommands: 8,
+            rows: [".....", ".#.#.", ".....", ".#.#.", "^...G"],
+          },
+          {
+            slug: "the-detour",
+            title: "The detour",
+            difficulty: "medium",
+            maxCommands: 11,
+            rows: ["..#..", "..#G.", "..#..", "..#..", "^...."],
+          },
+          {
+            slug: "long-way-round",
+            title: "Long way round",
+            difficulty: "hard",
+            maxCommands: 18,
+            rows: ["G....", "####.", ".....", ".####", "^...."],
+          },
+        ],
+      },
+    ],
   },
   {
-    slug: "along-the-floor",
-    title: "Along the floor",
-    maxCommands: 6,
-    rows: [".....", ".....", ".....", ".....", ">...G"],
-    hints: [],
+    title: "Planning",
+    description: "Look at the whole board first, then choose a route.",
+    chapters: [
+      {
+        title: "Routes",
+        levels: [
+          {
+            slug: "the-ring",
+            title: "The ring",
+            difficulty: "medium",
+            maxCommands: 7,
+            rows: [".....", ".#.#.", "..G..", ".#.#.", "^...."],
+          },
+          {
+            slug: "pick-a-side",
+            title: "Pick a side",
+            difficulty: "medium",
+            maxCommands: 9,
+            rows: ["..#..", ".....", "..#G.", ".....", "^.#.."],
+          },
+          {
+            slug: "switchback",
+            title: "Switchback",
+            difficulty: "hard",
+            maxCommands: 12,
+            rows: ["....G", "####.", ".....", ".####", "^...."],
+          },
+          {
+            slug: "the-maze",
+            title: "The maze",
+            difficulty: "hard",
+            maxCommands: 18,
+            rows: ["..#G.", ".##..", "...#.", ".#...", "^.#.."],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Limits",
+    description: "Solve it with exactly as many commands as it takes, no more.",
+    chapters: [
+      {
+        title: "Tight budgets",
+        levels: [
+          {
+            slug: "tight-corner",
+            title: "Tight corner",
+            difficulty: "medium",
+            maxCommands: 5,
+            rows: [".....", ".....", "..G..", ".....", ">...."],
+          },
+          {
+            slug: "exactly-enough",
+            title: "Exactly enough",
+            difficulty: "hard",
+            maxCommands: 6,
+            rows: [".....", ".###.", ".#G#.", ".#.#.", "^...."],
+          },
+          {
+            slug: "no-wasted-moves",
+            title: "No wasted moves",
+            difficulty: "hard",
+            maxCommands: 11,
+            rows: ["..#.G", "..#..", "..#..", "....#", "^...."],
+          },
+        ],
+      },
+    ],
   },
 ] as const;
+
+type LevelDef = {
+  slug: string;
+  title: string;
+  difficulty: "easy" | "medium" | "hard";
+  maxCommands: number;
+  rows: readonly string[];
+  hints?: readonly string[];
+};
+
+/** Every level with its place in the campaign, in play order. */
+const LEVELS = CAMPAIGN.flatMap((world) =>
+  world.chapters.flatMap((chapter) =>
+    (chapter.levels as readonly LevelDef[]).map((def, orderInChapter) => ({
+      def,
+      world: { title: world.title, description: world.description },
+      chapterTitle: chapter.title,
+      orderInChapter,
+    })),
+  ),
+);
 
 /** The starter content failed the validator or solver: a bug in this file, never a data problem. */
 class SeedContentError extends Error {}
 
-function buildLevel(def: (typeof LEVELS)[number], id: string): Level {
+function buildLevel(def: LevelDef, id: string): Level {
   const board = readBoard(def.rows);
   return {
     schemaVersion: 1,
@@ -73,19 +255,19 @@ function buildLevel(def: (typeof LEVELS)[number], id: string): Level {
     slug: def.slug,
     title: def.title,
     description: "",
-    difficulty: "easy",
+    difficulty: def.difficulty,
     requires: { mechanics: [] },
     board: { width: board.width, height: board.height, walls: board.walls },
     initialState: board.start,
     availableCommands: ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"],
-    constraints: { maxCommands: def.maxCommands, maxSteps: 30 },
+    constraints: { maxCommands: def.maxCommands, maxSteps: 100 },
     goal: { type: "reach_tile", position: board.goal },
-    hints: [...def.hints],
+    hints: [...(def.hints ?? [])],
   };
 }
 
 /**
- * Creates one world, one chapter, and three published starter levels so a fresh install has a
+ * Creates the starter worlds, chapters, and nineteen published levels so a fresh install has a
  * playable campaign. Idempotent: anything that already exists (by slug, title) is left alone.
  * Controlled by SEED_STARTER_CAMPAIGN (default on outside production, off in production).
  */
@@ -116,16 +298,17 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
     const existing = new Set(
       (
         await this.prisma.level.findMany({
-          where: { slug: { in: LEVELS.map((l) => l.slug) } },
+          where: { slug: { in: LEVELS.map((l) => l.def.slug) } },
           select: { slug: true },
         })
       ).map((l) => l.slug),
     );
-    const missing = LEVELS.filter((l) => !existing.has(l.slug));
+    const missing = LEVELS.filter((l) => !existing.has(l.def.slug));
     if (missing.length === 0) return;
 
     // Check everything before writing anything.
-    const prepared = missing.map((def) => {
+    const prepared = missing.map((entry) => {
+      const { def } = entry;
       const id = randomUUID();
       const level = buildLevel(def, id);
       const best = solve(level);
@@ -136,33 +319,50 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
           `Starter level ${def.slug} is invalid: ${JSON.stringify(analysis.errors)}`,
         );
       }
-      return { def, id, level, program: best.program, analysis, par: analysis.par };
+      return { entry, def, id, level, program: best.program, analysis, par: analysis.par };
     });
 
     await this.prisma.$transaction(async (tx) => {
-      const world =
-        (await tx.world.findFirst({ where: { title: WORLD.title }, orderBy: { order: "asc" } })) ??
-        (await tx.world.create({
-          data: {
-            ...WORLD,
-            order: ((await tx.world.aggregate({ _max: { order: true } }))._max.order ?? -1) + 1,
-          },
-        }));
-      const chapter =
-        (await tx.chapter.findFirst({ where: { worldId: world.id, title: CHAPTER.title } })) ??
-        (await tx.chapter.create({
-          data: {
-            ...CHAPTER,
-            worldId: world.id,
-            order:
-              ((await tx.chapter.aggregate({ where: { worldId: world.id }, _max: { order: true } }))
-                ._max.order ?? -1) + 1,
-          },
-        }));
+      const worlds = new Map<string, string>();
+      const chapters = new Map<string, string>();
+      const worldId = async (title: string, description: string): Promise<string> => {
+        const known = worlds.get(title);
+        if (known) return known;
+        const world =
+          (await tx.world.findFirst({ where: { title }, orderBy: { order: "asc" } })) ??
+          (await tx.world.create({
+            data: {
+              title,
+              description,
+              order: ((await tx.world.aggregate({ _max: { order: true } }))._max.order ?? -1) + 1,
+            },
+          }));
+        worlds.set(title, world.id);
+        return world.id;
+      };
+      const chapterId = async (wid: string, title: string): Promise<string> => {
+        const key = `${wid}/${title}`;
+        const known = chapters.get(key);
+        if (known) return known;
+        const chapter =
+          (await tx.chapter.findFirst({ where: { worldId: wid, title } })) ??
+          (await tx.chapter.create({
+            data: {
+              title,
+              worldId: wid,
+              order:
+                ((await tx.chapter.aggregate({ where: { worldId: wid }, _max: { order: true } }))
+                  ._max.order ?? -1) + 1,
+            },
+          }));
+        chapters.set(key, chapter.id);
+        return chapter.id;
+      };
 
       for (const item of prepared) {
-        const { def, id, level, program, analysis, par } = item;
-        const index = LEVELS.findIndex((l) => l.slug === def.slug);
+        const { entry, def, id, level, program, analysis, par } = item;
+        const wid = await worldId(entry.world.title, entry.world.description);
+        const cid = await chapterId(wid, entry.chapterTitle);
         const hash = contentHash(level);
         const now = new Date();
         const summary: ValidationSummary = {
@@ -180,10 +380,10 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
             id,
             slug: def.slug,
             title: def.title,
-            difficulty: "easy",
+            difficulty: def.difficulty,
             status: "PUBLISHED",
-            chapterId: chapter.id,
-            orderInChapter: index,
+            chapterId: cid,
+            orderInChapter: entry.orderInChapter,
           },
         });
         const version = await tx.levelVersion.create({
@@ -214,7 +414,7 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
       }
     });
     this.logger.log(
-      `Created ${missing.length} starter level(s): ${missing.map((l) => l.slug).join(", ")}`,
+      `Created ${missing.length} starter level(s): ${missing.map((l) => l.def.slug).join(", ")}`,
     );
   }
 

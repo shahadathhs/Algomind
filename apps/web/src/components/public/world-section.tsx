@@ -29,7 +29,7 @@ export function WorldSection({ world }: { world: World }) {
         {world.summary}
       </p>
       <p className="mt-2 text-xs font-bold tracking-[2px] text-mute uppercase">
-        {`Teaches ${world.teaches.toLowerCase()} · ${chapters} ${chapters === 1 ? "chapter" : "chapters"} · ${levels} levels`}
+        {`${chapters} ${chapters === 1 ? "chapter" : "chapters"} · ${levels} levels`}
       </p>
       {world.chapters.map((chapter, index) => (
         <div key={chapter.id} className="mt-10">

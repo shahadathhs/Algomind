@@ -432,7 +432,7 @@ Warnings (never block): `BUDGET_FAR_ABOVE_PAR` (limit above par plus the larger 
 
 Publishing, under a row lock on the level: re-validates the draft, checks every gate, marks the previous published version `SUPERSEDED`, freezes the draft as `PUBLISHED` (`publishedAt`, `par`, `validationSummary`), moves `currentPublishedVersionId`, sets `status = PUBLISHED`, and writes the `AuditEvent`, all in one transaction. The web revalidation call (section 8 step 7) is not implemented yet.
 
-Seeds: on startup, after the admin seed, `SEED_STARTER_CAMPAIGN` (default true outside production, false in production) creates the world "Sequences", the chapter "First steps" and three published starter levels (the first three of the web sample campaign, converted to the contract, validated and solved with the solver at seed time, each with a "seed" playtest) plus a client-registry row for the API's package version supporting `move` and `turn`. It skips anything that exists by slug and fails startup if the starter content does not validate.
+Seeds: on startup, after the admin seed, `SEED_STARTER_CAMPAIGN` (default true outside production, false in production) creates four worlds (Sequences, Turns, Planning, Limits), five chapters and nineteen published starter levels (converted to the contract, validated and solved with the solver at seed time, each with a "seed" playtest) plus a client-registry row for the API's package version supporting `move` and `turn`. It skips anything that exists by slug and fails startup if the starter content does not validate.
 
 ## 8. Publication lifecycle
 
