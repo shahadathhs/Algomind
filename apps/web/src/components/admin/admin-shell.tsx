@@ -13,6 +13,11 @@ import { useSessionManager, useSessionState } from "./session-provider";
 /** Only built screens appear here. */
 const NAV = [
   { href: "/admin", label: "Home" },
+  { href: "/admin/levels", label: "Levels" },
+  { href: "/admin/campaign", label: "Campaign" },
+  { href: "/admin/capabilities", label: "Capabilities" },
+  { href: "/admin/import", label: "Import" },
+  { href: "/admin/audit", label: "Audit log" },
   { href: "/admin/settings", label: "Settings" },
 ] as const;
 
@@ -104,9 +109,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       {!mustChange && (
-        <nav aria-label="Dashboard" className="mb-10 flex gap-3">
+        <nav aria-label="Dashboard" className="mb-10 flex flex-wrap gap-3">
           {NAV.map((item) => {
-            const current = pathname === item.href;
+            const current =
+              item.href === "/admin" ? pathname === item.href : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}

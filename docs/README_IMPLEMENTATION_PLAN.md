@@ -63,7 +63,7 @@ The architecture is complete after step 6 with only a handful of test levels. Th
 ### Deliverables
 
 - Documented schema and fixtures.
-- **Status:** the TypeScript contract (126 tests) and the GDScript validator and simulator (49 tests, every `levels` and `runs` fixture) are done and pass the same fixtures. Solver fixtures are TypeScript-only. Remaining: wiring the contract into the API, the dashboard, and the game's level loading.
+- **Status:** the TypeScript contract (126 tests) and the GDScript validator and simulator (every `levels` and `runs` fixture) are done and pass the same fixtures. Solver fixtures are TypeScript-only. Remaining: wiring the contract into the API, the dashboard, and the game's level loading.
 - The same fixture suite passing in TypeScript and in GDScript.
 
 ### Exit criteria
@@ -95,6 +95,7 @@ The architecture is complete after step 6 with only a handful of test levels. Th
 - API can store drafts, publish a level version, list published levels, and retrieve a selected published version.
 - Migrations apply from a clean database.
 - Automated tests (against a real PostgreSQL) cover public/private access and publishing behavior. No API test framework is set up yet; choose one when writing the first of these.
+- **Status:** implemented except automated tests and the web revalidation call after publish. Auth, worlds and chapters, ordering, drafts and versions, validate, the publish gates, unpublish, restore, duplicate, import and export, playtests, the client registry, the audit log, and the public catalog exist (route list in [README_ARCHITECTURE.md](README_ARCHITECTURE.md), section 7.1). Behavior was checked by hand against a real PostgreSQL (clean migration, every gate failing alone, the public catalog, round trips, DB constraints), not by an automated suite.
 
 ### Exit criteria
 
@@ -134,6 +135,8 @@ Build a modest editor that helps create valid content. Do not build a general-pu
 - Preview results match the fixture expectations.
 
 ## Phase 4 — Game client
+
+**Status: the offline slice is built; the networked half is not.** Done: the gameplay screen (ready, running, paused, failed, solved) with the board renderer, automaton, and tape editor; Home, level select, and settings (theme, reduce motion); a bundled 9-level campaign (2 worlds, 3 chapters) loaded from data through the validator; local progress in a versioned, atomically written save with backup recovery; the debug screenshot path (`make game-shots`); 102 GUT tests. Not done: hints and the pause menu, sound, haptics, run speed, the API base URL use, catalog and level fetching, the cache, the loading and error states for remote content, and any run on a device. Verified on a desktop with host Godot only.
 
 ### Tasks
 

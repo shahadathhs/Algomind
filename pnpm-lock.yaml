@@ -41,6 +41,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@algomind/level-contract':
+        specifier: workspace:*
+        version: link:../../packages/level-contract
       '@nestjs/common':
         specifier: 12.1.3
         version: 12.1.3(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -99,6 +102,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@algomind/level-contract':
+        specifier: workspace:*
+        version: link:../../packages/level-contract
       next:
         specifier: 16.4.2
         version: 16.4.2(@types/node@26.6.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)

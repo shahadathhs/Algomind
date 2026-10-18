@@ -2,7 +2,7 @@
 
 > **Purpose:** Plan the admin dashboard (the `(admin)` route group of `apps/web`): the only place levels, worlds, and chapters are created, validated, playtested, published, and ordered.  
 > **Reference renders:** [design/dashboard/](design/dashboard/) shows five key screens in light and dark. Names and numbers in them are placeholders.  
-> **Status:** Plan. Nothing is built.
+> **Status:** the API side of every phase below exists (levels, validation and solver, publishing gates, playtests, version history and restore, campaign structure, import and export, capabilities registry, audit log; see [README_ARCHITECTURE.md](README_ARCHITECTURE.md), section 7.1 for the exact routes and shapes). The dashboard screens built so far: shell, sign-in and session handling (phase 1); the level list with search, filters, sort and paging, create, duplicate and delete (phase 2); the level editor with details, board, commands and limits, solution tape, preview with the shared simulator, playtest records, checks and a confirmed publish, with explicit save, conflict handling and a local backup of unsaved edits (phases 2 to 4); version history with export and restore as draft; campaign (worlds, chapters, ordering, unassigned); import; capabilities registry; audit log. Not built yet: the dedicated publish review page with a visual and field diff against the live version, a diff between versions, unpublish and archive controls, level thumbnails in the list, home counts, and the quality pass (see section 12). The API and web apps have no automated tests for now; behavior was checked by hand against a real API and a headless browser.
 
 ## 1. Goals and constraints
 
@@ -81,7 +81,7 @@ The campaign is a tree: **World → Chapter → Level**.
 
 ## 7. Client compatibility
 
-- The capabilities registry lists released app versions and the mechanics each supports (`MOVE`, `TURN`, later `REPEAT`, and so on), plus the minimum supported version.
+- The capabilities registry lists released app versions and the mechanics each supports (`move`, `turn`, later `repeat`, and so on; lowercase, the same pattern as `requires.mechanics`. A level needs the mechanics of its available commands plus any listed in `requires.mechanics`), plus the minimum supported version.
 - Each level computes the mechanics it requires from its definition.
 - Publish is blocked if a required mechanic is not supported by the minimum supported version. The page explains which mechanic and which versions lack it.
 - A level that needs a newer app can still be published once the minimum version is raised; players on older apps see the "update required" screen.
@@ -94,7 +94,7 @@ The campaign is a tree: **World → Chapter → Level**.
 
 ## 9. Import and export format
 
-- Export wraps a level in an envelope: `format` and `schemaVersion`, the level content, the reference solution, and metadata (title, slug). It never includes placement, playtest records, or user data.
+- Export wraps a level in an envelope: `{ format: "algomind-level", schemaVersion, exportedAt, meta: { title, slug }, level, referenceSolution }` (`level` is the contract level; `meta` is informational and the level's own fields win). It never includes placement, playtest records, or user data.
 - Import validates the envelope and the level against the current schema and rules, shows field-level errors, and on success creates a **new draft** (never overwrites an existing level or version). A slug conflict asks for a new slug.
 - Unsupported `schemaVersion` is rejected with a clear message.
 

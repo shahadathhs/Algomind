@@ -3,6 +3,8 @@
 > **Purpose:** Define the player-facing experience and separate MVP gameplay from later ideas.  
 > **Rules:** The authoritative rules (commands, execution, progress, sync) are in [README_GAME_RULES.md](README_GAME_RULES.md). This document describes the player-facing feature set.
 
+> **Status:** the MVP loop below works offline with bundled levels: board, tape editor (add, remove, reorder), Run, Step, Pause or Continue, Reset, plain-language results, sequential unlock, local best, theme, and reduce motion. Not built yet: hints (3.6), sound, haptics, and run speed (3.7), remote levels (3.8). Sound, music, and haptics are not offered in Settings because the game has no audio or haptic feedback yet.
+
 ## 1. Core gameplay concept
 
 Each level presents a compact board with a starting state and a goal. The player creates a short program using a limited set of available commands. When the player presses **Run**, the automaton executes those commands in order. The player studies the result, changes the program, and tries again until the goal is satisfied.

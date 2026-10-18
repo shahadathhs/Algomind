@@ -1,4 +1,9 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import type {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+} from "react";
 
 /** A labelled text field: a chamfered tile with a 2 px ink outline. */
 export function Field({
@@ -99,5 +104,49 @@ export function PageHeading({ caption, title }: { caption: string; title: string
       <p className="mb-2 text-xs tracking-[2px] text-mute uppercase">{caption}</p>
       <h1 className="text-[34px] leading-tight tracking-[1px] uppercase">{title}</h1>
     </div>
+  );
+}
+
+/** A labelled select, drawn like Field. */
+export function SelectField({
+  label,
+  id,
+  children,
+  ...select
+}: { label: string; id: string; children: ReactNode } & SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-2 block text-xs tracking-[2px] text-mute uppercase">
+        {label}
+      </label>
+      <span className="tile block bg-ink p-[2px]" style={{ ["--chamfer" as string]: "12px" }}>
+        <select
+          id={id}
+          className="block h-12 w-full bg-floor px-3 text-base text-ink focus-visible:outline-offset-[-7px]"
+          {...select}
+        >
+          {children}
+        </select>
+      </span>
+    </div>
+  );
+}
+
+/** A status mark: draft is an outlined tile, published a solid one, and both carry a label. */
+export function StatusTile({ status }: { status: "DRAFT" | "PUBLISHED" | "ARCHIVED" }) {
+  const solid = status === "PUBLISHED";
+  return (
+    <span
+      className={`tile inline-flex h-7 items-center px-2.5 text-xs tracking-[2px] uppercase ${
+        solid
+          ? "bg-ink text-on-ink"
+          : status === "ARCHIVED"
+            ? "bg-strip text-mute"
+            : "bg-ground text-ink outline-2 -outline-offset-2 outline-ink"
+      }`}
+      style={{ ["--chamfer" as string]: "7px" }}
+    >
+      {status === "ARCHIVED" ? "Archived" : status === "PUBLISHED" ? "Published" : "Draft"}
+    </span>
   );
 }

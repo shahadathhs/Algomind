@@ -82,6 +82,7 @@ Tokens are defined once, in `packages/design-tokens` (a data file). A script gen
 
 - **Direction:** a bold, condensed, geometric sans for UI and display, set mostly in capitals with generous letter-spacing for labels; numerals tabular so counters never change width.
 - **Renders** use macOS system fonts as placeholders (Avenir Next Condensed). They are not shippable.
+- **Chosen for the game:** Barlow Condensed Bold (SIL OFL, `apps/game/assets/fonts/`, licence beside it), bundled, with letter spacing and tabular numerals set in code. The web app has not adopted it yet; the choice is open until both use the same font. The original brief for the choice follows.
 - **To decide:** one open-licensed (SIL OFL) condensed sans, bundled in both Godot and the web app (not loaded from a third-party host at runtime). Evaluate a few candidates on the tile wordmark and on 12–16 px labels before choosing, and record the license beside the font files. Do not use monospaced or pixel faces as the primary identity.
 - Keep body copy short. Long text uses sentence case; capitals are for labels, titles, and button text.
 
