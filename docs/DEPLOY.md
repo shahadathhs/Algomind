@@ -44,6 +44,7 @@ Checked on 2026-10-18: the API answers liveness and readiness with the database 
 
    - `JWT_ACCESS_SECRET` (signs access tokens; at least 32 characters; required in production, the blueprint generates it)
    - `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASS` (first run only: the first admin is created when no admin exists; the API refuses to start in production without them while there is no admin, or with a password under 12 characters; the first sign-in forces a new password, after which you can remove both)
+   - `WEB_REVALIDATE_URL` and `REVALIDATE_SECRET` (optional; `https://playalgomind.vercel.app/api/revalidate` and a random string of at least 16 characters). After a publish, unpublish, or reorder the API calls this address so the public `/levels` page refreshes at once; without them it still refreshes on its own every minute. Put the same secret in Vercel as `REVALIDATE_SECRET`.
    - `TRUST_PROXY=1` (Render has one reverse proxy; without it every client looks like the proxy and rate limits collapse into one bucket)
    - `SEED_STARTER_CAMPAIGN` (`true` or `false`; defaults to `false` in production and `true` elsewhere, and the blueprint sets `false`). When `true`, startup creates the starter campaign if it is missing: four worlds, five chapters, and nineteen published levels (each checked by the validator and solver) with a recorded "seed" playtest, and a client-registry row for the API's version that is the minimum supported version when none exists. It skips anything that already exists by slug, so it is safe to leave on; it never edits or deletes. The public `/levels` page reads the published campaign from the API, so on a fresh production database it shows "could not be loaded" until levels exist: set this to `true` once to get the nineteen starter levels, or publish levels from the dashboard; with it off, add a client version under `/v1/admin/client-versions` before the first publish.
    - Optional: `ACCESS_TOKEN_TTL_SECONDS` (default 900) and `REFRESH_TOKEN_TTL_DAYS` (default 7)
@@ -56,7 +57,7 @@ Checked on 2026-10-18: the API answers liveness and readiness with the database 
 ## 3. Web app (Vercel)
 
 1. Import the repository; set the root directory to `apps/web` with the workspace install.
-2. Set environment variables: `API_BASE_URL` (server-side, `https://algomind-api.onrender.com/v1`; the only one the site needs today) and, optionally, `SITE_URL` (the public origin used in the sitemap and metadata; it defaults to `https://playalgomind.vercel.app`, so set it only for a custom domain). Later: the revalidation secret.
+2. Set environment variables: `API_BASE_URL` (server-side, `https://algomind-api.onrender.com/v1`; the only one the site needs today) and, optionally, `SITE_URL` (the public origin used in the sitemap and metadata; it defaults to `https://playalgomind.vercel.app`, so set it only for a custom domain). Optional: `REVALIDATE_SECRET` (the same value as the API's; enables `POST /api/revalidate`).
 3. Add a Deploy Hook for `main` and store it as the `VERCEL_DEPLOY_HOOK` secret in GitHub so the site rebuilds after a new release is published (and, later, after a new web export).
 4. Confirm `/admin` routes are not indexed and public pages render without JavaScript.
 

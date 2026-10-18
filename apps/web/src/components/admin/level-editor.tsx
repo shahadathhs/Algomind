@@ -56,6 +56,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
   const [restorable, setRestorable] = useState<ReturnType<typeof readBackup>>(null);
   const [tab, setTab] = useState<TabId>("details");
   const [playtestKey, setPlaytestKey] = useState(0);
+  const [unpublishing, setUnpublishing] = useState(false);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const adopt = useCallback((view: LevelView) => {
@@ -163,6 +164,22 @@ export function LevelEditor({ levelId }: { levelId: string }) {
     }
   }
 
+  async function unpublish(archive: boolean) {
+    setNotice(null);
+    setUnpublishing(false);
+    try {
+      adopt(await api.unpublishLevel(levelId, archive));
+      setNotice({
+        kind: "info",
+        text: archive
+          ? "The level is archived and no longer offered to players."
+          : "The level is no longer offered to players.",
+      });
+    } catch (err) {
+      if (!(err instanceof SessionEndedError)) setNotice({ kind: "error", text: errorText(err) });
+    }
+  }
+
   async function discardDraft() {
     setNotice(null);
     try {
@@ -262,6 +279,33 @@ export function LevelEditor({ levelId }: { levelId: string }) {
       {notice && (
         <div className="mb-4">
           <Notice kind={notice.kind}>{notice.text}</Notice>
+        </div>
+      )}
+      {level.status === "PUBLISHED" && (
+        <div className="mb-6">
+          {unpublishing ? (
+            <div className="grid max-w-[640px] gap-3">
+              <p className="text-base font-semibold">
+                Unpublishing removes the level from what players fetch from now on. Copies already
+                downloaded to devices stay there; this does not delete them.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <OutlineAction type="button" onClick={() => void unpublish(false)}>
+                  Confirm unpublish
+                </OutlineAction>
+                <OutlineAction type="button" onClick={() => void unpublish(true)}>
+                  Unpublish and archive
+                </OutlineAction>
+                <OutlineAction type="button" onClick={() => setUnpublishing(false)}>
+                  Cancel
+                </OutlineAction>
+              </div>
+            </div>
+          ) : (
+            <OutlineAction type="button" onClick={() => setUnpublishing(true)}>
+              Unpublish
+            </OutlineAction>
+          )}
         </div>
       )}
       {conflict && (
@@ -370,15 +414,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
                 onRecorded={() => setPlaytestKey((n) => n + 1)}
               />
             )}
-            {tab === "checks" && (
-              <ChecksPanel
-                levelId={levelId}
-                dirty={dirty}
-                hasDraft
-                playtestVersion={level.draft?.versionNumber ?? 0}
-                onPublished={() => void fetchLevel()}
-              />
-            )}
+            {tab === "checks" && <ChecksPanel levelId={levelId} dirty={dirty} hasDraft />}
           </div>
           {level.publishedVersion !== null && (
             <div className="mt-10">

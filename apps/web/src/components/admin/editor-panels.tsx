@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { BoardView } from "@/components/ui/board-view";
 import { TapeView } from "@/components/ui/tape-view";
@@ -740,52 +741,23 @@ export function ChecksPanel({
   levelId,
   dirty,
   hasDraft,
-  playtestVersion,
-  onPublished,
 }: {
   levelId: string;
   dirty: boolean;
   hasDraft: boolean;
-  playtestVersion: number;
-  onPublished: () => void;
 }) {
   const api = useAdminApi();
   const [result, setResult] = useState<ValidateResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [blocked, setBlocked] = useState<CheckIssue[]>([]);
-  const [busy, setBusy] = useState<"" | "validate" | "publish">("");
-  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState<"" | "validate">("");
 
   async function validate() {
     setError(null);
-    setBlocked([]);
     setBusy("validate");
     try {
       setResult(await api.validateLevel(levelId));
     } catch (err) {
       if (!(err instanceof SessionEndedError)) setError(errorText(err));
-    } finally {
-      setBusy("");
-    }
-  }
-
-  async function publish() {
-    setError(null);
-    setBlocked([]);
-    setConfirming(false);
-    setBusy("publish");
-    try {
-      await api.publishLevel(levelId);
-      setResult(null);
-      onPublished();
-    } catch (err) {
-      if (err instanceof SessionEndedError) return;
-      if (err instanceof ApiError && err.code === "PUBLISH_BLOCKED" && Array.isArray(err.issues)) {
-        setBlocked(err.issues as CheckIssue[]);
-        setError("Publishing is blocked. Fix the issues below.");
-      } else {
-        setError(errorText(err));
-      }
     } finally {
       setBusy("");
     }
@@ -805,34 +777,16 @@ export function ChecksPanel({
         >
           {busy === "validate" ? "Checking" : "Run checks"}
         </OutlineAction>
-        {result && !confirming && (
-          <OutlineAction
-            type="button"
-            onClick={() => setConfirming(true)}
-            disabled={!result.publish.ready || dirty || busy !== ""}
+        {hasDraft && !dirty && (
+          <Link
+            href={`/admin/publish/${levelId}`}
+            className="inline-flex min-h-11 items-center text-[13px] font-bold tracking-[2px] uppercase underline decoration-2 underline-offset-[6px]"
           >
-            Publish
-          </OutlineAction>
+            Review and publish
+          </Link>
         )}
       </div>
-      {confirming && (
-        <div className="grid gap-3">
-          <p className="text-base font-semibold">
-            Publish draft v{playtestVersion}? It becomes the version players download and cannot be
-            edited afterwards. Changing it later creates a new draft.
-          </p>
-          <div className="flex gap-3">
-            <OutlineAction type="button" onClick={() => void publish()} disabled={busy !== ""}>
-              Confirm publish
-            </OutlineAction>
-            <OutlineAction type="button" onClick={() => setConfirming(false)}>
-              Cancel
-            </OutlineAction>
-          </div>
-        </div>
-      )}
       {error && <Notice>{error}</Notice>}
-      {blocked.length > 0 && <IssueList title="Publish blocked by" issues={blocked} />}
       {result && (
         <div className="grid gap-6">
           <div>
