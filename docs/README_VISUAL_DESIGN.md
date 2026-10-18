@@ -46,31 +46,31 @@ These apply to the game, the public site, and the dashboard. Reviewers and AI to
 
 Light and dark are both first-class. The setting offers System (default), Light, and Dark. Every screen is designed and checked in both. The shape language, layout, and yellow accent do not change between themes; only the ground and ink swap.
 
-| Token | Light | Dark | Use |
-|---|---|---|---|
-| `ground` | `#F1F1EC` | `#0E0F11` | Screen background |
-| `ink` | `#13161A` | `#F2F2EE` | Text, outlines, solid tiles |
-| `on-ink` | `#FFFFFF` | `#0E0F11` | Text/icons on solid ink tiles |
-| `floor` | `#FFFFFF` | `#1D1F23` | Empty board cells, upcoming tiles |
-| `strip` | `#E4E4DD` | `#191B1E` | Tape background |
-| `mute` | `#5C6168` | `#8D9299` | Secondary text, captions |
-| `faint` | `#B9BBB5` | `#3B3F45` | Locked (disabled) tiles |
-| `slot` | `#9A9D9A` | `#5A5F66` | Dashed empty slots and not-downloaded tiles |
-| `signal` | `#FFC20E` | `#FFC20E` | Accent fill: current step, target, read-head, primary action |
-| `on-signal` | `#13161A` | `#0E0F11` | Text/icons on signal |
-| `wall` | `#13161A` | `#3A3E44` | Wall fill |
-| `wall-hatch` | `#383E45` | `#5E646C` | Wall hatch |
-| `trail` | `#FFE9A0` | `#3D3418` | Cells the automaton has passed |
+| Token        | Light     | Dark      | Use                                                          |
+| ------------ | --------- | --------- | ------------------------------------------------------------ |
+| `ground`     | `#F1F1EC` | `#0E0F11` | Screen background                                            |
+| `ink`        | `#13161A` | `#F2F2EE` | Text, outlines, solid tiles                                  |
+| `on-ink`     | `#FFFFFF` | `#0E0F11` | Text/icons on solid ink tiles                                |
+| `floor`      | `#FFFFFF` | `#1D1F23` | Empty board cells, upcoming tiles                            |
+| `strip`      | `#E4E4DD` | `#191B1E` | Tape background                                              |
+| `mute`       | `#5C6168` | `#8D9299` | Secondary text, captions                                     |
+| `faint`      | `#B9BBB5` | `#3B3F45` | Locked (disabled) tiles                                      |
+| `slot`       | `#9A9D9A` | `#5A5F66` | Dashed empty slots and not-downloaded tiles                  |
+| `signal`     | `#FFC20E` | `#FFC20E` | Accent fill: current step, target, read-head, primary action |
+| `on-signal`  | `#13161A` | `#0E0F11` | Text/icons on signal                                         |
+| `wall`       | `#13161A` | `#3A3E44` | Wall fill                                                    |
+| `wall-hatch` | `#383E45` | `#5E646C` | Wall hatch                                                   |
+| `trail`      | `#FFE9A0` | `#3D3418` | Cells the automaton has passed                               |
 
 Contrast (WCAG ratios, computed from these values):
 
-| Pair | Light | Dark |
-|---|---|---|
-| `ink` on `ground` | 16.0 | 17.1 |
-| `on-signal` on `signal` | 11.2 | 11.9 |
-| `mute` on `ground` | 5.5 | 6.1 |
-| `mute` on `strip` | 4.9 | 5.5 |
-| `signal` on `ground` | 1.4 (fill only, never text) | 11.9 |
+| Pair                    | Light                       | Dark |
+| ----------------------- | --------------------------- | ---- |
+| `ink` on `ground`       | 16.0                        | 17.1 |
+| `on-signal` on `signal` | 11.2                        | 11.9 |
+| `mute` on `ground`      | 5.5                         | 6.1  |
+| `mute` on `strip`       | 4.9                         | 5.5  |
+| `signal` on `ground`    | 1.4 (fill only, never text) | 11.9 |
 
 The concept renders used `#6C7076` for light `mute`; it measured 4.4 on `ground` and 3.9 on `strip`, so it was darkened to `#5C6168`. `faint` is for disabled tiles and is exempt from text contrast, but locked levels must still be identifiable by their icon or legend, not only by being faint. Re-check every token pair when values change.
 
@@ -87,28 +87,28 @@ Tokens are defined once, in `packages/design-tokens` (a data file). A script gen
 
 Reference sizes at the 390 px-wide design width (adjust per platform and test on devices):
 
-| Role | Size |
-|---|---|
-| Screen title | 34 |
-| Level title | 22 |
-| Button label | 15–22 |
-| Body, messages | 14–16 |
+| Role                  | Size  |
+| --------------------- | ----- |
+| Screen title          | 34    |
+| Level title           | 22    |
+| Button label          | 15–22 |
+| Body, messages        | 14–16 |
 | Caption, step numbers | 12–13 |
 
 ## 4. Shape and board language
 
-| Element | Rule |
-|---|---|
+| Element               | Rule                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------ |
 | Tile / button / field | Square with the top-right corner chamfered. Chamfer is about 0.2 of tile size (12 px on a 58 px tile). |
-| Board cell | Square, 2 px gap, no chamfer, no grid lines |
-| Floor | `floor` fill |
-| Wall | `wall` fill with diagonal `wall-hatch`; yellow-striped when it caused a failure |
-| Target | Yellow cell with a ring and a dot |
-| Trail | `trail` tint plus a small square marker (so it does not rely on tint) |
-| Automaton | Chamfered ink block with a yellow wedge pointing along its facing |
-| Outline control | 2 px `ink` inset outline on a `ground` fill (the fill hides content behind overlays) |
-| Toggle | Chamfered tile: filled yellow with ON, outlined with OFF |
-| Dashed outline | An empty slot or content that is not downloaded |
+| Board cell            | Square, 2 px gap, no chamfer, no grid lines                                                            |
+| Floor                 | `floor` fill                                                                                           |
+| Wall                  | `wall` fill with diagonal `wall-hatch`; yellow-striped when it caused a failure                        |
+| Target                | Yellow cell with a ring and a dot                                                                      |
+| Trail                 | `trail` tint plus a small square marker (so it does not rely on tint)                                  |
+| Automaton             | Chamfered ink block with a yellow wedge pointing along its facing                                      |
+| Outline control       | 2 px `ink` inset outline on a `ground` fill (the fill hides content behind overlays)                   |
+| Toggle                | Chamfered tile: filled yellow with ON, outlined with OFF                                               |
+| Dashed outline        | An empty slot or content that is not downloaded                                                        |
 
 ## 5. The tape and the game screen
 

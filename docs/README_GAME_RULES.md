@@ -1,22 +1,22 @@
 # Algomind — Game Rules & Progress Specification
 
 > **Purpose:** The authoritative definition of how Algomind plays, how a program executes, how progress is saved and synced, and how levels are published. Other docs link here instead of repeating rules.  
-> **Status:** Core decisions settled (see below). Details marked *later* are intentionally deferred.
+> **Status:** Core decisions settled (see below). Details marked _later_ are intentionally deferred.
 
 ## Decisions at a glance
 
-| Topic | Decision |
-|---|---|
-| Core concept | Visual programming puzzle: build a program, run it, debug it |
-| First command set | `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT` |
-| First board cells | Floor, Wall, Goal |
-| First win condition | Reach the goal cell |
-| Wall or boundary hit | Execution stops and the run fails, with a clear explanation |
-| Orientation | Portrait-first; landscape later |
-| Progress | Local-first and offline-first; syncs to the cloud when the player signs in and is online |
-| Accounts | Optional; never required to play |
-| Level delivery | Published from the dashboard; no app rebuild for compatible levels |
-| Production URLs | Vercel (web) and Render (API) default URLs, known after the first deployment |
+| Topic                | Decision                                                                                 |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| Core concept         | Visual programming puzzle: build a program, run it, debug it                             |
+| First command set    | `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`                                                |
+| First board cells    | Floor, Wall, Goal                                                                        |
+| First win condition  | Reach the goal cell                                                                      |
+| Wall or boundary hit | Execution stops and the run fails, with a clear explanation                              |
+| Orientation          | Portrait-first; landscape later                                                          |
+| Progress             | Local-first and offline-first; syncs to the cloud when the player signs in and is online |
+| Accounts             | Optional; never required to play                                                         |
+| Level delivery       | Published from the dashboard; no app rebuild for compatible levels                       |
+| Production URLs      | Vercel (web) and Render (API) default URLs, known after the first deployment             |
 
 ## 1. Core game concept
 
@@ -69,21 +69,21 @@ Players build programs from a visual command palette, not a text editor. They se
 
 ### Initial commands
 
-| Command | Behavior |
-|---|---|
+| Command        | Behavior                                                |
+| -------------- | ------------------------------------------------------- |
 | `MOVE_FORWARD` | Move one cell in the direction the automaton is facing. |
-| `TURN_LEFT` | Rotate 90 degrees counterclockwise without moving. |
-| `TURN_RIGHT` | Rotate 90 degrees clockwise without moving. |
+| `TURN_LEFT`    | Rotate 90 degrees counterclockwise without moving.      |
+| `TURN_RIGHT`   | Rotate 90 degrees clockwise without moving.             |
 
 These three commands are sufficient for the first levels and establish the core programming concept.
 
 ### Added after the basics work
 
-| Command | Behavior |
-|---|---|
-| `REPEAT(n)` | Execute a nested sequence a specified number of times. |
-| `IF_FRONT_BLOCKED` | Execute a branch if the cell ahead is blocked. |
-| `INTERACT` | Activate a supported object, such as a switch. |
+| Command            | Behavior                                               |
+| ------------------ | ------------------------------------------------------ |
+| `REPEAT(n)`        | Execute a nested sequence a specified number of times. |
+| `IF_FRONT_BLOCKED` | Execute a branch if the cell ahead is blocked.         |
+| `INTERACT`         | Activate a supported object, such as a switch.         |
 
 Do not implement these all at once. Introduce each command only when the level design has a reason to teach it. Each one requires a rule definition, visual treatment, tutorial level, deterministic simulation behavior, shared fixtures, tests, and a client-compatibility decision (a new command needs a client release; see section 9).
 
@@ -122,12 +122,12 @@ The program cannot be edited while `RUNNING`. Editing from `PAUSED`, `SUCCEEDED`
 
 ### Outcomes and messages
 
-| Outcome | Example message |
-|---|---|
-| Succeeded | “Level solved.” |
-| Failed: blocked by wall or boundary | “The automaton tried to move into a wall.” |
-| Failed: program ended | “The program ended before the goal.” |
-| Failed: step limit | “The program ran too long and was stopped.” |
+| Outcome                             | Example message                             |
+| ----------------------------------- | ------------------------------------------- |
+| Succeeded                           | “Level solved.”                             |
+| Failed: blocked by wall or boundary | “The automaton tried to move into a wall.”  |
+| Failed: program ended               | “The program ended before the goal.”        |
+| Failed: step limit                  | “The program ran too long and was stopped.” |
 
 Never show a bare “Level failed,” a raw error code, or a stack trace. Level data that fails validation is a content error shown with a friendly load message, not a player failure.
 
@@ -141,16 +141,16 @@ The campaign is a tree: **worlds** (one concept each), **chapters** (small group
 
 Teach concepts progressively rather than making early levels arbitrarily difficult.
 
-| Stage | Concept | Example challenge |
-|---|---|---|
-| 1 | Sequencing | Move straight to the goal. |
-| 2 | Direction | Turn before moving. |
-| 3 | Combining instructions | Navigate a simple corner. |
-| 4 | Planning | Route around a wall. |
-| 5 | Constraints | Solve using a limited number of commands. |
-| 6 | Loops | Replace repeated instructions with `REPEAT(n)`. |
-| Later | Conditions | Make decisions based on the environment. |
-| Later | Optimization | Find a shorter or more efficient solution. |
+| Stage | Concept                | Example challenge                               |
+| ----- | ---------------------- | ----------------------------------------------- |
+| 1     | Sequencing             | Move straight to the goal.                      |
+| 2     | Direction              | Turn before moving.                             |
+| 3     | Combining instructions | Navigate a simple corner.                       |
+| 4     | Planning               | Route around a wall.                            |
+| 5     | Constraints            | Solve using a limited number of commands.       |
+| 6     | Loops                  | Replace repeated instructions with `REPEAT(n)`. |
+| Later | Conditions             | Make decisions based on the environment.        |
+| Later | Optimization           | Find a shorter or more efficient solution.      |
 
 The game accepts any valid solution unless a level explicitly introduces an optimization challenge. Players must not feel that one particular sequence is required when several correct solutions exist.
 

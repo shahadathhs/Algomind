@@ -81,16 +81,16 @@ Linting, formatting, type checks, tests, commit conventions, and CI gates exist 
 
 ## 6. Platform and technology direction
 
-| Component | Responsibility | Planned technology |
-|---|---|---|
-| Game client | Gameplay, board rendering, simulation, local settings, cached levels, Android and web export | Godot 4.x / GDScript, GUT tests, gdtoolkit (gdlint, gdformat) |
-| Web app | **Admin dashboard** (level authoring, validation, preview, publishing) and **public website** (landing, level catalog, browser play, downloads, legal) in one codebase | Next.js (App Router) / TypeScript / Tailwind |
-| API | Authentication, level catalog, validation, publishing, optional player progress | NestJS / TypeScript / REST |
-| Database | Admins, levels, immutable versions, publication state, optional player progress | PostgreSQL |
-| Database access | Migrations and typed persistence | Prisma |
-| Level contract | JSON Schema, TypeScript types, shared validator, reference simulator, shared fixtures | `packages/level-contract` |
-| Design tokens | Colors and shared values for light and dark themes, generated into the Godot palette and web CSS | `packages/design-tokens` |
-| Hosting | API, database, web | Render (API), Neon (PostgreSQL), Vercel (web) |
+| Component       | Responsibility                                                                                                                                                         | Planned technology                                            |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Game client     | Gameplay, board rendering, simulation, local settings, cached levels, Android and web export                                                                           | Godot 4.x / GDScript, GUT tests, gdtoolkit (gdlint, gdformat) |
+| Web app         | **Admin dashboard** (level authoring, validation, preview, publishing) and **public website** (landing, level catalog, browser play, downloads, legal) in one codebase | Next.js (App Router) / TypeScript / Tailwind                  |
+| API             | Authentication, level catalog, validation, publishing, optional player progress                                                                                        | NestJS / TypeScript / REST                                    |
+| Database        | Admins, levels, immutable versions, publication state, optional player progress                                                                                        | PostgreSQL                                                    |
+| Database access | Migrations and typed persistence                                                                                                                                       | Prisma                                                        |
+| Level contract  | JSON Schema, TypeScript types, shared validator, reference simulator, shared fixtures                                                                                  | `packages/level-contract`                                     |
+| Design tokens   | Colors and shared values for light and dark themes, generated into the Godot palette and web CSS                                                                       | `packages/design-tokens`                                      |
+| Hosting         | API, database, web                                                                                                                                                     | Render (API), Neon (PostgreSQL), Vercel (web)                 |
 
 The game, web app, and API are separate applications. They share the level contract, not runtime code. Godot reimplements the validator and simulator in GDScript and is verified against the same fixtures. Godot does not depend on the Next.js application to retrieve published content.
 
