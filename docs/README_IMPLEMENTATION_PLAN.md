@@ -27,10 +27,13 @@ The architecture is complete after step 6 with only a handful of test levels. Th
 - Define the initial command set and exact movement/collision rules.
 - Define win, failure, reset, and step-limit behavior.
 - Sketch the first few levels on paper.
-- Create the repository with `apps/api`, `apps/web`, `apps/game`, and `packages/level-contract`.
+- Create the repository with `apps/api`, `apps/web`, `apps/game`, `packages/level-contract`, and `packages/design-tokens`.
 - Set up the pnpm workspace, `Makefile` (single command surface), `.env.example`, and `VERSION`.
 - Configure Husky, lint-staged, commitlint, and commitizen with cz-git; configure prettier and the chosen linters.
 - Add GitHub Actions with the quality gates for every app (even while the apps are skeletons), Dependabot, and issue and PR templates.
+- Create the design token source (light and dark) with generators for the Godot palette and web CSS, and a CI drift check.
+- Write the anti-slop visual rules from [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md) into AGENTS.md, so every contributor and AI tool follows them.
+- Choose and bundle the font (open license) for both the game and the web app.
 - Add AGENTS.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, LICENSE, a root README, and the CI and deployment docs.
 - Adopt the branching model: work on `dev`, pull request into `main`.
 
@@ -130,7 +133,8 @@ Build a modest editor that helps create valid content. Do not build a general-pu
 
 ### Tasks
 
-- Create the Godot main scene, board renderer, automaton representation, and command editor.
+- Build the gameplay screen first, fully, in both themes and every state (ready, running, failed, solved), before the other screens; add a debug-only screenshot path to the Godot build.
+- Create the Godot main scene, board renderer, automaton representation, and tape-based command editor.
 - Wire the simulation (from Phase 1) to the UI through signals; keep logic independent of animation.
 - Implement Run, Step, Reset, success, failure, and step-limit handling.
 - Configure the API base URL by environment/build configuration.
@@ -138,7 +142,7 @@ Build a modest editor that helps create valid content. Do not build a general-pu
 - Add loading, no-network, not-found, unsupported-schema, unsupported-mechanic, and retry states.
 - Cache downloaded levels by ID and version; never replace a valid cache with an invalid response.
 - Bundle a small set of starter levels so first launch works offline.
-- Store local progress keyed by stable level ID and published level version.
+- Store local progress in a versioned, interruption-safe save format: completions keyed by stable level ID, best metrics with the level version they came from, last played level, and settings.
 - Add basic temporary UI and test at phone-sized viewports.
 
 ### Deliverables
@@ -180,7 +184,8 @@ Build a modest editor that helps create valid content. Do not build a general-pu
 ### Tasks
 
 - Author the starter levels one at a time in the dashboard, each solved with a reference solution and playtested.
-- Apply the visual design guide to the game, public site, and dashboard.
+- Apply the visual design guide to the game, public site, and dashboard, in both themes.
+- Capture every screen in [design/SCREENS.md](design/SCREENS.md) at 390×844, 360×640, and 412×915 in both themes, and fix what the visual checklist flags.
 - Test on at least one real Android device plus different viewport sizes.
 - Tune board scale, command controls, spacing, typography, and animation duration.
 - Add audio/motion settings if they are in the MVP.
@@ -222,7 +227,30 @@ Build a modest editor that helps create valid content. Do not build a general-pu
 
 - Another developer can follow the setup instructions on a clean checkout.
 - Production does not rely on local files or development credentials.
+- The deployed Vercel and Render URLs are recorded in the docs and injected into the builds.
 - The project clearly distinguishes working features from planned features.
+
+## Phase 8 — Optional accounts and cloud sync (after the core release)
+
+### Tasks
+
+- Add player registration (`PLAYER` role) using the existing auth system, with the same bearer, refresh, and auto-logout behavior.
+- Add `LevelProgress` and `PlayerSettings` tables and the `/v1/me/*` endpoints with an idempotent server-side merge.
+- Add sign-in, sign-out, and account deletion to the game, and a background `Sync` component that is the only code allowed to upload progress.
+- Sync after sign-in, after a level completion, on app start, and when connectivity returns; retry with backoff.
+- Keep signed-out play fully offline for progress.
+
+### Deliverables
+
+- A player can sign in on a second device and receive merged progress.
+
+### Exit criteria
+
+- Merge follows the documented policy (union, recalculated unlocks, better metrics, newest settings).
+- A failed or interrupted sync never removes or corrupts local progress.
+- Repeating a sync does not change the result.
+- Signed-out play makes no progress uploads.
+- Account deletion removes server-side progress.
 
 ## 2. Release gates
 
@@ -244,7 +272,7 @@ Do not expand the command set or mechanics until several authored levels have be
 
 ### Online gate
 
-Do not add player accounts or cloud progress until remote level delivery and caching work reliably.
+Do not build player accounts or cloud progress sync until remote level delivery and caching work reliably. The save format and data model are sync-ready earlier, so this gate adds a feature, not a migration.
 
 ### Leaderboard gate
 

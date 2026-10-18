@@ -48,6 +48,7 @@ One workflow, `.github/workflows/ci.yml`, with `concurrency` per ref, least-priv
 
 | Job | Runs for | What it does |
 |---|---|---|
+| `tokens` | every push and PR | Regenerate the Godot palette and web CSS from `packages/design-tokens`; fail if the generated files differ from the committed ones; fail if a hand-defined color appears outside them |
 | `contract` | every push and PR | Lint, typecheck, and test `packages/level-contract` (all fixtures) |
 | `api` | every push and PR | Lint, typecheck, Prisma validate, migrate a PostgreSQL service container, unit and e2e tests, build |
 | `web` | every push and PR | Lint, typecheck, tests, `next build` |

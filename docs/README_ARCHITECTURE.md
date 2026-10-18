@@ -1,5 +1,7 @@
 # Algomind — Architecture
 
+> **Rules:** gameplay, commands, progress, and sync behavior are defined in [README_GAME_RULES.md](README_GAME_RULES.md); this document covers structure.
+>
 > **Architecture goal:** Support a Godot mobile game whose levels are created and published from an admin dashboard from day one, without requiring a game-client rebuild for compatible content changes, alongside a public website that shares the same web codebase.
 
 ## 1. High-level architecture
@@ -26,6 +28,7 @@
                                 └─────────────────────┘
 
         packages/level-contract: schema · validator · reference simulator · fixtures
+        packages/design-tokens:  light/dark tokens → Godot palette + web CSS (generated)
         (consumed by api and web; mirrored and fixture-verified in Godot)
 ```
 
@@ -103,6 +106,7 @@ Stores relational metadata and immutable level versions. JSONB is suitable for t
 | Persistence | PostgreSQL |
 | ORM/migrations | Prisma (split schema files, migrations committed, generated client not committed) |
 | Level contract | JSON Schema plus shared TypeScript types, validator, and reference simulator |
+| Design tokens | A single token data file in `packages/design-tokens`; generated Godot palette script and web CSS variables; CI fails on drift |
 | Monorepo | pnpm workspace for `apps/api`, `apps/web`, and `packages/*` only |
 | Lint and format | oxlint (type-aware) plus prettier for all TypeScript (no ESLint: TypeScript 7 has no JS compiler API for typescript-eslint); gdlint and gdformat for GDScript |
 | Git tooling | Husky, lint-staged, commitlint (Conventional Commits), commitizen with cz-git |
@@ -126,6 +130,7 @@ A monorepo is convenient for a solo developer, but keep the applications isolate
  │   ├── web/                        # Next.js: (public) and (admin) route groups
  │   └── api/                        # NestJS + Prisma
  ├── packages/
+ │   ├── design-tokens/              # Theme tokens (source) plus generators for Godot and web
  │   └── level-contract/
  │       ├── schema/                 # Versioned JSON Schema
  │       ├── fixtures/               # Valid and invalid levels, plus programs with expected outcomes
@@ -186,6 +191,10 @@ Do not treat this example as permission to ship without schema validation. Valid
 
 If more board mechanics are added later (switches, doors, items), model them as a typed `entities` array rather than adding a new top-level key for each.
 
+### Program representation
+
+Programs (the reference solution and fixture programs) are ordered lists of instruction nodes, for example `{ "op": "MOVE_FORWARD" }`, not bare strings, so `REPEAT` and `IF_FRONT_BLOCKED` can contain nested instructions later without breaking the format. The first schema supports a flat list of the three initial commands. Command-budget counting (a loop is one slot; nested instructions have their own limit) is defined in [README_GAME_RULES.md](README_GAME_RULES.md) and gets a schema field when loops are introduced.
+
 ### Mechanics and client compatibility
 
 `requires.mechanics` lists the mechanics a level uses. Each game build declares the set of mechanics it supports, and the catalog response lets a client skip or flag levels it cannot play. The dashboard may only publish a mechanic that the currently deployed client declares as supported.
@@ -195,6 +204,8 @@ If more board mechanics are added later (switches, doors, items), model them as 
 Authoring content includes a reference solution (a command sequence). It is stored with the draft and each version, used by the API to confirm the level is solvable within its constraints, and is **not** returned by public endpoints.
 
 ### Shared simulation
+
+Visual tokens are separate from the contract: `packages/design-tokens` is the only place colors are defined (see [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md)).
 
 The reference simulator in `packages/level-contract` is used by the dashboard preview and by the API's publish-time check. The game's GDScript simulator implements the same rules. `fixtures/` contains levels, programs, and the expected result and step trace for each; the TypeScript tests and the GUT tests both run every fixture. A fixture failing in either implementation blocks merge.
 
@@ -208,15 +219,23 @@ The reference simulator in `packages/level-contract` is used by the dashboard pr
 
 ## 6. Data model
 
-### `AdminUser`
+### `User`
 
 - `id`
 - `email` (unique)
 - `passwordHash`
-- `role` (start with `ADMIN`; introduce editor roles only when needed)
+- `role` (`ADMIN` or `PLAYER`; introduce editor roles only when needed)
 - `createdAt`, `updatedAt`
 
-Use a reputable authentication approach. Store only a strong password hash, never plaintext or reversible passwords. Do not build custom cryptography. The first admin is created by a seed script driven by environment variables; there is no public sign-up.
+One identity model and one auth system serve admins and (in the accounts phase) players. Use a reputable authentication approach. Store only a strong password hash, never plaintext or reversible passwords. Do not build custom cryptography. The first admin is created by a seed script driven by environment variables. Admins are never created through public sign-up; public sign-up creates only `PLAYER` users and is enabled only in the accounts phase.
+
+### `RefreshToken`
+
+- `id`, `userId`, `tokenHash`, `familyId`
+- `expiresAt`, `revokedAt` (nullable), `replacedById` (nullable)
+- `createdAt`
+
+Supports rotation, reuse detection (revoke the whole family), and logout.
 
 ### `Level`
 
@@ -230,7 +249,7 @@ Use a reputable authentication approach. Store only a strong password hash, neve
 - `createdBy`, `updatedBy`
 - `createdAt`, `updatedAt`
 
-A published level may also have unpublished edits in progress. Keep the working draft content on the level (or a draft version row) separately from published versions, so editing never alters what players receive.
+`Level.status` describes the level's public state. Working drafts are not stored on the level; they are `LevelVersion` rows (below).
 
 ### `LevelVersion`
 
@@ -243,18 +262,28 @@ A published level may also have unpublished edits in progress. Keep the working 
 - `validationSummary` (optional non-sensitive diagnostics)
 - `createdBy`
 - `createdAt`
+- `state` (`DRAFT`, `PUBLISHED`, `SUPERSEDED`)
 - `publishedAt` (nullable)
 
-Add a unique constraint for `(levelId, versionNumber)`. Once published, a version is immutable. Edits create a draft or a new candidate version; publication must not mutate the version that existing clients are using.
+**Drafts are version rows.** Editing a level means editing its `DRAFT` version; creating a level creates its first draft. A level has **at most one `DRAFT` version** at a time (enforce with a partial unique index). Editing a live level starts a new draft copied from the currently published version, so what players receive never changes while you edit.
 
-### Optional later tables
+Publishing freezes the draft: its `state` becomes `PUBLISHED`, `publishedAt` is set, the level's `currentPublishedVersionId` moves to it, and the previously published version becomes `SUPERSEDED` (kept for history and rollback). Add a unique constraint for `(levelId, versionNumber)`. A `PUBLISHED` or `SUPERSEDED` version is immutable; only a `DRAFT` row is ever updated.
 
-- `Player` or `PlayerIdentity` for cloud saves/accounts.
-- `LevelProgress` keyed by player and level, tracking best completed version/result.
-- `ScoreSubmission` if a leaderboard is added.
+### Progress tables (accounts and sync phase)
+
+Progress is local-first (see [README_GAME_RULES.md](README_GAME_RULES.md), section 7). These tables are added when the optional accounts and sync feature is built, not before:
+
+- `LevelProgress`: `userId`, `levelId`, `completedAt`, `bestCommandCount`, `bestStepCount`, `bestLevelVersion`, `updatedAt`. Unique on `(userId, levelId)`.
+- `PlayerSettings`: `userId`, `settings` (JSON), `updatedAt`.
+
+Completion is keyed by stable level ID, so a new published version does not erase a completion. Best metrics record the level version they came from.
+
+### Other optional later tables
+
+- `ScoreSubmission` if a leaderboard is added (requires server-side verification).
 - `AuditEvent` for tracing admin publication/unpublication actions.
 
-Do not create player tables merely because they might be useful later. Local progress is adequate for the first playable release.
+Do not create tables merely because they might be useful later.
 
 ## 7. API shape
 
@@ -268,13 +297,18 @@ Prefix routes with `/v1` consistently. JSON responses should have documented typ
 | `GET` | `/v1/levels/:slug` | Retrieve the current published level version |
 | `GET` | `/v1/health` | Liveness/readiness endpoint for hosting and diagnostics |
 
-Optional, later:
+Accounts and sync phase (optional accounts; never required to play):
 
 | Method | Route | Purpose |
 |---|---|---|
-| `POST` | `/v1/progress` | Save authenticated or appropriately identified progress |
-| `GET` | `/v1/me/progress` | Retrieve player progress |
-| `POST` | `/v1/scores` | Submit a result for a defined challenge mode |
+| `POST` | `/v1/auth/register` | Create a `PLAYER` account |
+| `GET` | `/v1/me/progress` | Retrieve the player's cloud progress |
+| `POST` | `/v1/me/progress/sync` | Send local progress; the server merges it with cloud progress and returns the merged result (idempotent) |
+| `GET` / `PUT` | `/v1/me/settings` | Read or update synced settings (last write wins by timestamp) |
+
+Later, only with a verification design: `POST /v1/scores`.
+
+The merge follows the policy in [README_GAME_RULES.md](README_GAME_RULES.md): union of completions, unlocks recalculated, better metrics kept, newest settings win, and a failed sync never touches local data.
 
 ### Admin endpoints
 
@@ -434,6 +468,5 @@ Use separate local/staging/production environment values. The Godot client shoul
 - Exact level schema and supported schema versions.
 - Exact token lifetimes, the inactivity timeout, and the refresh-cookie mechanics between the web app and API (the model itself is settled: bearer access token, rotating refresh token, auto logout).
 - API base URLs and CORS policy for the web app.
-- Policy for progress when a level has a new published version.
 - Whether scores are local records or server-validated competitive results.
-- Where the working draft is stored relative to published versions.
+- Sync details: conflict edge cases, rate limits, and account deletion (needed before any store release that offers accounts).

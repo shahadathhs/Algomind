@@ -10,6 +10,8 @@ Algomind is a compact, grid-based logic puzzle game built around a tiny automato
 
 The game is intentionally designed around **small, handcrafted puzzles that teach one idea at a time**. A puzzle should feel understandable at first glance and satisfying to solve, while later levels combine familiar rules in less obvious ways.
 
+Rules are defined in [README_GAME_RULES.md](README_GAME_RULES.md).
+
 Levels are **managed from an admin dashboard from day one**. The dashboard is the only place levels are created, validated, previewed, published, and unpublished. The game downloads published level data from an API, so content can be added or revised without rebuilding or redistributing the mobile app, as long as the level uses mechanics the installed client already supports.
 
 The same web application also serves the **public Algomind website**: a landing page, a browsable level catalog, a browser build of the game, downloads, and legal pages.
@@ -87,6 +89,7 @@ Linting, formatting, type checks, tests, commit conventions, and CI gates exist 
 | Database | Admins, levels, immutable versions, publication state, optional player progress | PostgreSQL |
 | Database access | Migrations and typed persistence | Prisma |
 | Level contract | JSON Schema, TypeScript types, shared validator, reference simulator, shared fixtures | `packages/level-contract` |
+| Design tokens | Colors and shared values for light and dark themes, generated into the Godot palette and web CSS | `packages/design-tokens` |
 | Hosting | API, database, web | Render (API), Neon (PostgreSQL), Vercel (web) |
 
 The game, web app, and API are separate applications. They share the level contract, not runtime code. Godot reimplements the validator and simulator in GDScript and is verified against the same fixtures. Godot does not depend on the Next.js application to retrieve published content.
@@ -108,7 +111,7 @@ The MVP is complete when it includes:
 - Automated tests for the simulation rules, level-data validation, publication behavior, and API authorization.
 - A full CI/CD pipeline, quality tooling, and deployment documentation.
 
-The first release does **not** require player accounts, cloud saves, competitive leaderboards, monetization, multiplayer, a public user-generated-level marketplace, or a complex analytics stack.
+The game is local-first and offline-first: progress saves on the device and nothing requires an account. **Optional accounts with cloud progress sync** follow the core release (the save format, data model, and API are designed for them from the start). The first release does **not** require competitive leaderboards, monetization, multiplayer, a public user-generated-level marketplace, or a complex analytics stack.
 
 ## 8. Scope boundaries
 
@@ -119,7 +122,7 @@ The first release does **not** require player accounts, cloud saves, competitive
 - Versioned data-driven levels managed through the dashboard.
 - Public website in the same Next.js app as the dashboard.
 - Basic content ordering and difficulty metadata.
-- Local progress as the initial default; server persistence can be added when needed.
+- Local-first, offline-first progress. Optional accounts that sync progress to the cloud when the player signs in and is online, built after the core release.
 - Level caching so previously downloaded content can remain playable during temporary network failure.
 
 ### Not included in the initial MVP
@@ -156,15 +159,18 @@ Remote level publishing does not mean every future gameplay idea can be added re
  │   ├── web/                 # Next.js: public site + admin dashboard
  │   └── game/                # Godot project
  ├── packages/
- │   └── level-contract/      # JSON Schema, TS types, validator, reference simulator, fixtures
+ │   ├── level-contract/      # JSON Schema, TS types, validator, reference simulator, fixtures
+ │   └── design-tokens/       # Theme tokens (source of truth) and generators for Godot and web
  ├── docs/
  │   ├── README_PROJECT_OVERVIEW.md
+ │   ├── README_GAME_RULES.md
  │   ├── README_GAMEPLAY_FEATURES.md
  │   ├── README_VISUAL_DESIGN.md
  │   ├── README_ARCHITECTURE.md
  │   ├── README_IMPLEMENTATION_PLAN.md
  │   ├── CI.md
- │   └── DEPLOY.md
+ │   ├── DEPLOY.md
+ │   └── design/              # SCREENS.md and rendered concept screens (light and dark)
  ├── docker/                  # Headless Godot image and helper scripts
  ├── scripts/                 # Version bump and other utilities
  ├── .github/                 # Workflows, Dependabot, issue and PR templates
@@ -180,11 +186,9 @@ The Godot project lives in the same repository but remains a distinct applicatio
 
 ## 12. Open decisions to settle before implementation
 
-- Game logo and branding (the title is settled: Algomind).
-- Exact movement/programming rules and the smallest command set.
-- Whether the game is portrait-only or supports landscape.
+- Final font (one open-licensed condensed sans) and the app icon. The visual direction (Instruction Tape, with light and dark themes) and the wordmark concept are settled; see [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md).
 - Whether level selection begins as a numbered campaign or themed worlds.
-- Whether first-release progress is local-only or tied to anonymous/player accounts.
-- Production domain.
 
-These are deliberate open decisions. Do not block the foundation on branding or optional online features; settle the core rules and level data format first.
+**Settled** (see [README_GAME_RULES.md](README_GAME_RULES.md) and [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md)): the initial command set and rules, portrait-first orientation, local-first progress with optional cloud sync, and the visual direction with light and dark themes. Production URLs are the default Vercel and Render URLs and become known after the first deployment; a custom domain is optional and can come later.
+
+Do not block the foundation on branding or optional online features.

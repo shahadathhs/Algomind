@@ -1,7 +1,7 @@
 # Algomind — Gameplay Features
 
 > **Purpose:** Define the player-facing experience and separate MVP gameplay from later ideas.  
-> **Design assumption:** Algomind is a deterministic, grid-based logic puzzle in which the player plans a small automaton's actions before running them. Confirm and adjust this core rule before implementation.
+> **Rules:** The authoritative rules (commands, execution, progress, sync) are in [README_GAME_RULES.md](README_GAME_RULES.md). This document describes the player-facing feature set.
 
 ## 1. Core gameplay concept
 
@@ -32,7 +32,7 @@ The player should be able to replay a level without friction. There are no lives
 
 ### 3.2 Command/program editor
 
-Start with the smallest command set that makes the core puzzle interesting. A reasonable first prototype is:
+Start with the smallest command set that makes the core puzzle interesting. The settled first command set is:
 
 - `MOVE_FORWARD`
 - `TURN_LEFT`
@@ -68,7 +68,7 @@ Each level defines its goal condition. For the initial version, reaching the goa
 Possible result states:
 
 - **Solved:** Goal condition reached.
-- **Blocked:** A move is prevented by a wall or boundary, if that is a failure under the rules.
+- **Blocked:** A move into a wall or outside the board stops the run. This is a failure.
 - **Program ended:** All commands executed without reaching the goal.
 - **Instruction budget reached:** The safety limit was hit.
 - **Invalid level:** Level data failed validation; this is a content/runtime error, not a player failure.
@@ -81,7 +81,7 @@ For a failure, give a concise explanation and offer **Try Again**. Never expose 
 - Start with a small, curated campaign rather than a huge catalog.
 - Unlock levels sequentially by default; the progression rule should be simple and consistent.
 - Allow completed levels to be replayed.
-- Store completion and best result locally in the MVP.
+- Store completion and best result locally first (offline-first). Progress syncs to the cloud when the player signs in and is online; see [README_GAME_RULES.md](README_GAME_RULES.md).
 - When a newer published version changes a level, preserve progress safely; do not silently reinterpret a stored score against a different level version.
 
 ### 3.6 Hints and onboarding
@@ -92,11 +92,16 @@ For a failure, give a concise explanation and offer **Try Again**. Never expose 
 - A hint should point the player toward the relevant idea rather than automatically solve the puzzle.
 - Hints are optional and never required to make the game playable.
 
-### 3.7 Audio, motion, and feedback
+### 3.7 Audio, motion, theme, and feedback
+
+The look of all screens, the tape, and the board is defined in [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md); the screens are listed in [design/SCREENS.md](design/SCREENS.md).
 
 - Provide a sound toggle and respect device mute settings.
 - Use subtle audio/visual feedback for command placement, movement, blocked actions, and puzzle completion.
-- Provide reduced-motion behavior or a setting to minimize animation.
+- Provide a reduce-motion setting that also respects the system setting; with it on, the tape and automaton jump instead of sliding.
+- Provide a run-speed setting (slow, normal, fast).
+- Provide a theme setting: system (default), light, or dark. Both themes are first-class and every screen exists in both.
+- Provide a vibration (haptics) toggle and separate sound and music toggles.
 - Never make sound necessary to understand whether an action succeeded.
 
 ### 3.8 Remote level content
@@ -154,7 +159,7 @@ Potential additions, in priority order:
 
 1. More board mechanics (for example, switches, doors, pushable objects, or conveyors) after each mechanic is implemented and tested in the engine.
 2. More nuanced goals, such as collecting an item before reaching the exit.
-3. Cloud progress and account linking.
+3. Optional accounts and cloud progress sync (local-first; designed for from the start).
 4. Leaderboards for a clearly defined challenge mode.
 5. Daily or weekly puzzles.
 6. Community levels, moderation, and sharing.
