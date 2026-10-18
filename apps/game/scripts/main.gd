@@ -7,6 +7,8 @@ const SCREENS := {
 	"worlds": "res://scenes/worlds.tscn",
 	"world": "res://scenes/world.tscn",
 	"play": "res://scenes/play.tscn",
+	"sign_in": "res://scenes/sign_in.tscn",
+	"account": "res://scenes/account.tscn",
 	"how_to_play": "res://scenes/how_to_play.tscn",
 	"load_error": "res://scenes/load_error.tscn",
 	"update_required": "res://scenes/update_required.tscn",
@@ -33,6 +35,13 @@ func _ready() -> void:
 	_state = AppState.new(Campaign.load_bundled(), store, ContentStore.new(), api)
 	_state.feedback = Feedback.new(store.settings)
 	add_child(_state.feedback)
+	var account := Account.new()
+	account.load_data()
+	_state.account = account
+	_state.account_client = AccountClient.new(account, api.send_json)
+	_state.account_sync = AccountSync.new(_state.account_client, store)
+	add_child(_state.account_sync)
+	_state.request_sync()
 	for message in _state.campaign.errors:
 		push_warning(message)
 	_show("home", {})
@@ -83,6 +92,12 @@ func _debug_screenshot(options: Dictionary) -> void:
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(viewport)
 
+	if options.has("account"):
+		# Pretend a player is signed in (nothing is sent anywhere).
+		var shot_account := Account.new("user://account_shot.json")
+		shot_account.start(String(options["account"]), "shot-refresh-token")
+		shot_account.last_sync_at = Time.get_unix_time_from_system() - 120.0
+		_state.account = shot_account
 	_state.progress.settings.set_theme(String(options.get("theme", "light")))
 	_state.progress.settings.set_reduce_motion(true)
 	for i in int(options.get("done", "0")):

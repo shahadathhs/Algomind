@@ -135,6 +135,7 @@ func _segment_row(
 
 func _changed() -> void:
 	app.progress.save()
+	app.request_sync()
 	if app.feedback != null:
 		app.feedback.apply_music()
 	app.apply_theme()

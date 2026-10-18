@@ -15,6 +15,10 @@ var content: ContentStore
 var api: ApiClient
 ## Sound, music, and vibration; null in tests and screenshots, where the helpers do nothing.
 var feedback: Feedback
+## The optional account and its sync; null in tests and screenshots.
+var account: Account
+var account_client: AccountClient
+var account_sync: AccountSync
 ## "bundled" or "downloaded": where the current campaign came from.
 var source := "bundled"
 ## "idle", "loading", "updated", "unchanged", "offline", "disabled", or "invalid".
@@ -37,6 +41,17 @@ func _init(
 	content = content_store if content_store != null else ContentStore.new()
 	api = api_client
 	_use_best_campaign()
+
+
+## Whether the player is signed in on this device.
+func signed_in() -> bool:
+	return account != null and account.signed_in()
+
+
+## Asks for progress to be synced soon. Does nothing when signed out.
+func request_sync() -> void:
+	if account_sync != null:
+		account_sync.request()
 
 
 ## Plays a named sound effect when sound is on.

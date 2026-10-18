@@ -28,6 +28,8 @@ for size in 390x844 360x640 412x915; do
 		shot how-to-play how_to_play "$theme" "$size"
 		shot load-error load_error "$theme" "$size" --title="Loops"
 		shot update-required update_required "$theme" "$size" --title="Level 14"
+		shot sign-in sign_in "$theme" "$size"
+		shot account account "$theme" "$size" --done=4 --account=you@example.com
 		shot play-tutorial play "$theme" "$size" --level=straight-ahead
 		shot play-hint play "$theme" "$size" --level=straight-ahead --overlay=hint
 		shot play-pause play "$theme" "$size" --level=the-wall --program=MMMRM --overlay=pause
