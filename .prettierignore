@@ -13,3 +13,6 @@ docs/design/
 # Godot
 apps/game/.godot/
 apps/game/build/
+apps/api/src/generated/
+apps/api/dist/
+apps/web/.next/

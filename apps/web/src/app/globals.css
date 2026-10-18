@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Map the generated design tokens (tokens.css) to Tailwind colors. Colors are defined only in
+   packages/design-tokens; never write a hex value here. */
+@theme inline {
+  --color-ground: var(--ground);
+  --color-ink: var(--ink);
+  --color-on-ink: var(--on-ink);
+  --color-floor: var(--floor);
+  --color-strip: var(--strip);
+  --color-mute: var(--mute);
+  --color-faint: var(--faint);
+  --color-slot: var(--slot);
+  --color-signal: var(--signal);
+  --color-on-signal: var(--on-signal);
+  --color-wall: var(--wall);
+  --color-wall-hatch: var(--wall-hatch);
+  --color-trail: var(--trail);
+  /* Placeholder stack until the final font is chosen (see docs/README_VISUAL_DESIGN.md). */
+  --font-ui: "Avenir Next Condensed", "DIN Condensed", "Arial Narrow", sans-serif;
+}
+
+html {
+  background: var(--ground);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-ui);
+  font-weight: 700;
+}
+
+/* The tile: square with the top-right corner chamfered. */
+.tile {
+  --chamfer: 12px;
+  clip-path: polygon(0 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% 100%, 0 100%);
+}
+
+:focus-visible {
+  outline: 3px solid var(--signal);
+  outline-offset: 2px;
+}

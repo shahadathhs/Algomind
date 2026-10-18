@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "oxc", "import", "node", "promise"],
+  "plugins": ["typescript", "unicorn", "oxc", "import", "node", "promise", "react", "nextjs"],
   "categories": {
     "correctness": "error"
   },
@@ -8,9 +8,23 @@
     "no-unused-vars": "off",
     "typescript/no-unused-vars": [
       "error",
-      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
     ],
-    "typescript/no-explicit-any": "off"
+    "typescript/no-explicit-any": "off",
+    "react/react-in-jsx-scope": "off",
+    "nextjs/no-html-link-for-pages": "off"
   },
-  "ignorePatterns": ["node_modules", ".next", "dist", "coverage", "next-env.d.ts", "pnpm-lock.yaml"]
+  "ignorePatterns": [
+    "node_modules",
+    ".next",
+    "dist",
+    "coverage",
+    "next-env.d.ts",
+    "pnpm-lock.yaml",
+    "apps/api/src/generated",
+    "apps/api/dist"
+  ]
 }

@@ -29,3 +29,6 @@ build/
 
 # Logs
 *.log
+
+# Prisma client (generated on build)
+apps/api/src/generated/

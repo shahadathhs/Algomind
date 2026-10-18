@@ -1,0 +1,15 @@
+enum Role {
+  ADMIN
+  PLAYER
+}
+
+/// One identity model serves the admin and, later, players (see docs/README_ARCHITECTURE.md).
+model User {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  passwordHash       String
+  role               Role     @default(PLAYER)
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
