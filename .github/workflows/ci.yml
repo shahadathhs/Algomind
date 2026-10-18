@@ -51,8 +51,9 @@ jobs:
         image: postgres:17-alpine
         env:
           POSTGRES_USER: algomind
-          POSTGRES_PASSWORD: algomind
           POSTGRES_DB: algomind
+          # A throwaway container on the runner's own network: no password to leak.
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -61,7 +62,7 @@ jobs:
           --health-timeout 3s
           --health-retries 15
     env:
-      DATABASE_URL: postgresql://algomind:algomind@localhost:5432/algomind
+      DATABASE_URL: postgresql://algomind@localhost:5432/algomind
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -110,6 +111,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Create .env with a generated database password
+        run: make env
       - name: Build and start the database, API, and web
         run: docker compose --profile app up -d --build --wait
       - name: API is ready and talks to the database

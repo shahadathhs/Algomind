@@ -19,6 +19,8 @@
 
 **Status:** the Makefile targets behind these jobs were run locally (`make check`, `make up`, and `make game-apk`, which produced a signed 28 MB debug APK). The workflow passes `actionlint`. The workflow itself has **not run on GitHub yet**, and `render.yaml` and the Render and Vercel hooks have not been applied, so treat the action versions and the deploy steps as unverified until the first real run.
 
+**No credentials in the repository.** The local database password is generated into the git-ignored `.env` by `make env` (Compose refuses to start without it, and the database port is bound to `127.0.0.1`). The CI `api` job uses a throwaway Postgres service container with trust authentication and a passwordless URL; the `docker` job runs `make env` to generate a password. The API requires `DATABASE_URL` and has no default. Android's public debug-keystore password (`android`) remains in the Godot container setup because the Android tooling expects it.
+
 ## Versions and releases
 
 `VERSION` is the source of truth. Two make targets use `scripts/bump-version.sh`:

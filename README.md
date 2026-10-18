@@ -101,7 +101,7 @@ The order of work is in the [implementation plan](docs/README_IMPLEMENTATION_PLA
 You need Node 22+, pnpm, Docker, and `make`. For the game you also need Godot 4.7 and [uv](https://docs.astral.sh/uv/) (or use the Docker targets).
 
 ```sh
-make setup      # .env, dependencies and hooks, database in Docker, migrations, Godot cache
+make setup      # .env (with a generated local database password), dependencies and hooks, database in Docker, migrations, Godot cache
 make api-dev    # API at http://localhost:8000 (docs at /docs)
 make web-dev    # web at http://localhost:3000
 make game-run   # the game on this machine

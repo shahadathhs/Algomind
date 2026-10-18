@@ -9,4 +9,4 @@ $swc_build
 $swc_build --watch &
 swc_pid=$!
 trap 'kill $swc_pid 2>/dev/null' EXIT INT TERM
-node --watch dist/main.js
+node --env-file-if-exists=../../.env --watch dist/main.js

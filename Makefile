@@ -36,8 +36,14 @@ setup: env install db-up api-generate api-migrate game-import ## One-time local 
 	@echo "  make game-run  the game on this machine"
 	@echo "  make up        everything in containers instead"
 
-env: ## Create .env from .env.example if it does not exist (never overwrites)
-	@if [ -f .env ]; then echo ".env already exists, keeping it"; else cp .env.example .env && echo "Created .env from .env.example"; fi
+env: ## Create .env with a generated local database password (never overwrites)
+	@if [ -f .env ]; then echo ".env already exists, keeping it"; else \
+		pw=$$(openssl rand -hex 16); \
+		sed -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$$pw|" \
+		    -e "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://algomind:$$pw@localhost:5432/algomind|" \
+		    .env.example > .env; \
+		echo "Created .env with a generated database password"; \
+	fi
 
 install: ## Install dependencies and git hooks (pnpm)
 	pnpm install
@@ -69,18 +75,18 @@ colors-check: ## Fail if a color is hand-written outside the design tokens
 
 # ── Database (Docker Compose) ─────────────────────────────────────────
 
-db-up: ## Start PostgreSQL in Docker and wait until it accepts connections
+db-up: env ## Start PostgreSQL in Docker and wait until it accepts connections
 	$(COMPOSE) up -d --wait db
 
-db-down: ## Stop PostgreSQL (data is kept in the pgdata volume)
+db-down: env ## Stop PostgreSQL (data is kept in the pgdata volume)
 	$(COMPOSE) stop db
 
-db-reset: ## Delete the local database volume and start a fresh one (destroys local data)
+db-reset: env ## Delete the local database volume and start a fresh one (destroys local data)
 	$(COMPOSE) --profile app --profile tools down -v
 	$(COMPOSE) up -d --wait db
 	$(MAKE) api-migrate
 
-db-psql: ## Open psql in the database container
+db-psql: env ## Open psql in the database container
 	$(COMPOSE) exec db psql -U $${POSTGRES_USER:-algomind} -d $${POSTGRES_DB:-algomind}
 
 # ── API ───────────────────────────────────────────────────────────────
@@ -138,42 +144,42 @@ game-run: ## Play the game on this machine
 
 # ── Game (headless Godot in Docker, same result as the host targets) ──
 
-game-docker-image: ## Build the headless Godot image
+game-docker-image: env ## Build the headless Godot image
 	$(COMPOSE) --profile tools build godot
 
-game-docker-check: ## Import and load the project inside the Godot container
+game-docker-check: env ## Import and load the project inside the Godot container
 	$(COMPOSE) --profile tools run --rm godot sh -c 'godot --headless --path . --import && godot --headless --path . --quit-after 1'
 
-game-docker-test: ## Run the game tests inside the Godot container
+game-docker-test: env ## Run the game tests inside the Godot container
 	$(COMPOSE) --profile tools run --rm godot sh -c 'godot --headless --path . --import && godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit'
 
-game-apk: ## Export a debug APK to apps/game/build/ (inside the Godot container)
+game-apk: env ## Export a debug APK to apps/game/build/ (inside the Godot container)
 	@mkdir -p $(GAME)/build
 	$(COMPOSE) --profile tools run --rm godot bash -c 'android-setup && godot --headless --path . --import && godot --headless --path . --export-debug "Android" build/algomind-debug.apk'
 	@echo "Built $(GAME)/build/algomind-debug.apk"
 
-android-key: ## Print a new debug signing key as base64 (the CI secret; see docs/CI.md)
+android-key: env ## Print a new debug signing key as base64 (the CI secret; see docs/CI.md)
 	@$(COMPOSE) --profile tools run --rm godot bash -c 'keytool -genkeypair -keyalg RSA -alias androiddebugkey -keypass android -keystore /tmp/k.ks -storepass android -dname "CN=Algomind Debug" -validity 9999 -deststoretype pkcs12 >/dev/null 2>&1 && base64 -w0 /tmp/k.ks' 2>/dev/null | tail -1
 
 # ── Everything in containers ──────────────────────────────────────────
 
-up: ## Build and start the database, API, and web in containers
+up: env ## Build and start the database, API, and web in containers
 	$(COMPOSE) --profile app up -d --build --wait
 	@echo "web http://localhost:3000   api http://localhost:8000 (docs at /docs)"
 
-down: ## Stop all containers (data is kept)
+down: env ## Stop all containers (data is kept)
 	$(COMPOSE) --profile app --profile tools down
 
-build: ## Build the API and web images
+build: env ## Build the API and web images
 	$(COMPOSE) --profile app build
 
-logs: ## Follow container logs
+logs: env ## Follow container logs
 	$(COMPOSE) --profile app logs -f
 
-ps: ## List containers
+ps: env ## List containers
 	$(COMPOSE) --profile app ps
 
-clean: ## Remove containers and volumes, and build output (destroys local data)
+clean: env ## Remove containers and volumes, and build output (destroys local data)
 	$(COMPOSE) --profile app --profile tools down -v --remove-orphans
 	rm -rf apps/api/dist apps/web/.next apps/game/.godot
 

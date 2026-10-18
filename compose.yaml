@@ -6,10 +6,11 @@ services:
   db:
     image: postgres:17-alpine
     ports:
-      - "${DB_PORT:-5432}:5432"
+      # Bound to localhost only: the local database is never reachable from the network.
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-algomind}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-algomind}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run make env to create .env with a generated password}
       POSTGRES_DB: ${POSTGRES_DB:-algomind}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -32,7 +33,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: "8000"
-      DATABASE_URL: postgresql://${POSTGRES_USER:-algomind}:${POSTGRES_PASSWORD:-algomind}@db:5432/${POSTGRES_DB:-algomind}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-algomind}:${POSTGRES_PASSWORD:?Run make env}@db:5432/${POSTGRES_DB:-algomind}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
 
   web:
