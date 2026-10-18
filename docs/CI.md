@@ -2,6 +2,20 @@
 
 > **Status: planned.** Nothing here has been implemented or run yet. It follows the conventions of the DropGrid project. Update this file in the same change as any workflow or tooling change so it always matches the code.
 
+## What runs today
+
+`.github/workflows/ci.yml` runs on pushes to `main` and `dev`, and on pull requests into `main`:
+
+| Job       | What it does                                                                                                                      |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `quality` | Design-token drift check, oxlint and prettier, `tsc` type checks, and all TypeScript tests                                        |
+| `api`     | Applies migrations to an empty PostgreSQL 17 service container, then builds the API                                               |
+| `web`     | Production `next build`                                                                                                           |
+| `game`    | `gdlint` and `gdformat --check`, then headless Godot (in Docker) loads the project and runs the GUT tests                         |
+| `docker`  | Builds the API and web images, starts the database, API, and web with Compose, and checks `/v1/health/ready` and the landing page |
+
+Deploy, release, and Android jobs below are planned; they are not in the workflow yet. The workflow itself has not run on GitHub yet, so treat the action versions as unverified until its first run.
+
 ## Principles
 
 - **One command surface.** The `Makefile` is how you run everything locally. CI runs the same commands, so "passes locally" means "passes in CI".
@@ -20,7 +34,7 @@
 | prettier                              | Formatting for TypeScript, JSON, Markdown, YAML                                                                                                         |
 | oxlint (type-aware)                   | TypeScript linting for every TypeScript app and package. There is no ESLint: TypeScript 7 has no JS compiler API, so typescript-eslint cannot parse it. |
 | tsc                                   | Type checking in each TypeScript app and package                                                                                                        |
-| Jest / Playwright                     | API unit and e2e tests; web smoke tests                                                                                                                 |
+| Vitest / Playwright                   | API unit and e2e tests; web smoke tests                                                                                                                 |
 | gdlint + gdformat (gdtoolkit, pinned) | GDScript style gate                                                                                                                                     |
 | GUT                                   | Game unit tests, run headless in Docker                                                                                                                 |
 | Prisma                                | Schema validation and migrations                                                                                                                        |

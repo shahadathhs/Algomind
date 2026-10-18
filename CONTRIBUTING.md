@@ -4,11 +4,12 @@ Algomind is a programming puzzle game for Android (Godot) with a NestJS API and 
 
 ## Setup
 
-You need Node 22+, [pnpm](https://pnpm.io) (the version is pinned in `package.json`), and `make`. Later phases also need Docker, [uv](https://docs.astral.sh/uv/) (GDScript lint), and Godot.
+You need Node 22+, [pnpm](https://pnpm.io) (the version is pinned in `package.json`), Docker, and `make`. For the game you also need Godot 4.7 and [uv](https://docs.astral.sh/uv/) (GDScript lint), or you can use the `game-docker-*` targets instead of a host Godot.
 
 ```sh
-pnpm install     # installs dependencies and the git hooks
+make setup       # .env, dependencies and git hooks, database, migrations, Godot cache
 make help        # lists every command
+make up          # or run the database, API, and web in containers
 ```
 
 ## Before you open a PR
