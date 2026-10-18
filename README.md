@@ -43,6 +43,10 @@ Commits follow Conventional Commits (enforced by a hook; `pnpm commit` gives a g
 - [Implementation plan](docs/README_IMPLEMENTATION_PLAN.md)
 - [CI, CD, and releases](docs/CI.md) and [deployment](docs/DEPLOY.md)
 
+## License
+
+[MIT](LICENSE)
+
 ## Security
 
 Report vulnerabilities privately; see [SECURITY.md](SECURITY.md).
