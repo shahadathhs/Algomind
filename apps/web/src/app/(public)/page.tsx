@@ -1,19 +1,32 @@
-import { PrimaryButton } from "@/components/ui/primary-button";
+import type { Metadata } from "next";
+import { DownloadBand } from "@/components/public/download-band";
+import { Hero } from "@/components/public/hero";
+import { HowItWorks } from "@/components/public/how-it-works";
+import { LevelsStrip } from "@/components/public/levels-strip";
+import { ScreensSection } from "@/components/public/screens-section";
+import { ShortList } from "@/components/public/short-list";
+import { getLatestRelease } from "@/lib/releases";
 
-// Placeholder landing page. The real sections are specified in docs/README_WEB_PLAN.md.
-export default function LandingPage() {
+export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: { absolute: "Algomind: a programming puzzle for Android" },
+  description:
+    "Build a program from instruction tiles, run it, and guide the automaton to the target. Free for Android. Offline first. No ads. No purchases.",
+  alternates: { canonical: "/" },
+  openGraph: { url: "/" },
+};
+
+export default async function LandingPage() {
+  const release = await getLatestRelease();
   return (
-    <section className="mx-auto max-w-[1120px] px-5 py-16 sm:px-8">
-      <div className="mb-4 text-xs tracking-[2px] text-mute">ANDROID</div>
-      <h1 className="max-w-[640px] text-[44px] leading-none tracking-[1px] sm:text-[64px]">
-        A PROGRAMMING PUZZLE FOR ANDROID.
-      </h1>
-      <p className="mt-6 mb-8 max-w-[520px] text-lg leading-normal font-semibold tracking-[0.5px] text-mute">
-        Build a program from instruction tiles, run it, and guide the automaton to the target.
-        Offline first. No ads. No purchases.
-      </p>
-      <PrimaryButton href="/download">DOWNLOAD FOR ANDROID</PrimaryButton>
-      <p className="mt-6 text-xs tracking-[2px] text-mute">PLACEHOLDER PAGE</p>
-    </section>
+    <>
+      <Hero release={release} />
+      <HowItWorks />
+      <ScreensSection />
+      <LevelsStrip />
+      <ShortList />
+      <DownloadBand />
+    </>
   );
 }

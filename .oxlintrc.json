@@ -37,9 +37,10 @@
   ],
   "overrides": [
     {
-      "files": ["packages/design-tokens/test/**/*.mjs"],
+      "files": ["packages/design-tokens/test/**/*.mjs", "packages/level-contract/test/**/*.mjs"],
       "rules": {
         "typescript/no-floating-promises": "off",
+        "typescript/require-array-sort-compare": "off",
         "typescript/restrict-template-expressions": "off"
       }
     }
