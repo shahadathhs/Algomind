@@ -2,16 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ProsePage } from "@/components/public/prose-page";
 import { ProseSection } from "@/components/public/prose-section";
+import { pageMetadata } from "@/lib/seo";
 
 const DESCRIPTION =
   "What Algomind does and does not collect: the website sets no cookies and collects nothing, the app keeps progress on your device, and an optional account stores your email and progress.";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Privacy",
+  shareTitle: "Algomind privacy",
   description: DESCRIPTION,
-  alternates: { canonical: "/privacy" },
-  openGraph: { title: "Algomind privacy", description: DESCRIPTION, url: "/privacy" },
-};
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

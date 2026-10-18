@@ -7,6 +7,7 @@ coverage/
 next-env.d.ts
 # Generated from packages/design-tokens (checked by `pnpm tokens:check`)
 apps/web/src/app/tokens.css
+apps/web/src/lib/token-colors.generated.ts
 apps/game/scripts/generated/
 # Rendered design files
 docs/design/

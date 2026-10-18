@@ -2,16 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ProsePage } from "@/components/public/prose-page";
 import { ProseSection } from "@/components/public/prose-section";
+import { pageMetadata } from "@/lib/seo";
 
 const DESCRIPTION =
   "How to reach the developer of Algomind with a bug report, a question, or a deletion request.";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Contact",
+  shareTitle: "Contact Algomind",
   description: DESCRIPTION,
-  alternates: { canonical: "/contact" },
-  openGraph: { title: "Contact Algomind", description: DESCRIPTION, url: "/contact" },
-};
+  path: "/contact",
+});
 
 export default function ContactPage() {
   return (

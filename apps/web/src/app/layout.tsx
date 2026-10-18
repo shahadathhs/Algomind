@@ -1,10 +1,13 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { SITE_DESCRIPTION, VIEWPORT } from "@/lib/seo";
 import { siteUrl } from "@/lib/site";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-const DESCRIPTION = "A programming puzzle for Android. Offline first. No ads. No purchases.";
+const DESCRIPTION = SITE_DESCRIPTION;
+
+export const viewport: Viewport = VIEWPORT;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
@@ -17,7 +20,7 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     locale: "en",
   },
-  twitter: { card: "summary", title: "Algomind", description: DESCRIPTION },
+  twitter: { card: "summary_large_image", title: "Algomind", description: DESCRIPTION },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

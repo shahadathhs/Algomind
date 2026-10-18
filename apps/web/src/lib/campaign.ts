@@ -99,8 +99,8 @@ function level(
 }
 
 // The command limit is the shortest possible program plus some slack, shrinking world by world;
-// in the last world it is exactly the shortest program. campaign.test.ts checks this against a
-// breadth-first search, so the numbers cannot drift from the boards.
+// in the last world it is exactly the shortest program. These sample levels are placeholders until
+// levels are served by the API; keep the limits at or above the shortest program for each board.
 const SAMPLE_WORLDS: World[] = [
   {
     id: "sequences",

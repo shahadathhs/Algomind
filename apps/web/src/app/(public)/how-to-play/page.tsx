@@ -8,16 +8,17 @@ import { TapeView } from "@/components/ui/tape-view";
 import type { Command } from "@/lib/board";
 import { FAILED_BOARD, READY_BOARD, SOLUTION } from "@/lib/sample-screens";
 import { tapeFromProgram } from "@/lib/tape";
+import { pageMetadata } from "@/lib/seo";
 
 const DESCRIPTION =
   "How Algomind works: build a program from three instruction tiles, run it, and read what happened when it fails.";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "How to play",
+  shareTitle: "How to play Algomind",
   description: DESCRIPTION,
-  alternates: { canonical: "/how-to-play" },
-  openGraph: { title: "How to play Algomind", description: DESCRIPTION, url: "/how-to-play" },
-};
+  path: "/how-to-play",
+});
 
 const COMMANDS: { command: Command; name: string; text: string }[] = [
   { command: "move", name: "Move", text: "Move one cell in the direction the automaton faces." },

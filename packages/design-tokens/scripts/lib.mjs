@@ -12,6 +12,7 @@ export const repoRoot = join(here, "..", "..", "..");
 export const outputs = {
   gd: "apps/game/scripts/generated/palette.gd",
   css: "apps/web/src/app/tokens.css",
+  ts: "apps/web/src/lib/token-colors.generated.ts",
 };
 
 /**
@@ -78,6 +79,29 @@ ${block("dark", "    ")}
 :root[data-theme="dark"] {
 ${block("dark", "  ")}
 }
+`;
+}
+
+/**
+ * The same values as a TypeScript module, for code that cannot use CSS variables: generated
+ * images (icons, the share image) and the manifest and theme-color metadata.
+ * @param {Token[]} tokens
+ */
+export function generateTypescript(tokens) {
+  const camel = (/** @type {string} */ name) =>
+    name.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  const dict = (/** @type {"light" | "dark"} */ theme) =>
+    tokens.map((t) => `    ${camel(t.name)}: "${t[theme]}",`).join("\n");
+  return `// ${HEADER}
+
+export const TOKEN_COLORS = {
+  light: {
+${dict("light")}
+  },
+  dark: {
+${dict("dark")}
+  },
+} as const;
 `;
 }
 

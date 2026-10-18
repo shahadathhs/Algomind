@@ -7,6 +7,7 @@ import {
   contrast,
   generateCss,
   generateGdscript,
+  generateTypescript,
   loadTokens,
   outputs,
   repoRoot,
@@ -90,4 +91,5 @@ test("committed generated files are up to date", () => {
   const read = (/** @type {string} */ p) => readFileSync(join(repoRoot, p), "utf8");
   assert.equal(read(outputs.gd), generateGdscript(tokens), "run `pnpm tokens`");
   assert.equal(read(outputs.css), generateCss(tokens), "run `pnpm tokens`");
+  assert.equal(read(outputs.ts), generateTypescript(tokens), "run `pnpm tokens`");
 });

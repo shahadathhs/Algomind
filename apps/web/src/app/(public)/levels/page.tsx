@@ -5,16 +5,17 @@ import { Container } from "@/components/ui/container";
 import { Section } from "@/components/ui/section";
 import { TextLink } from "@/components/ui/text-link";
 import { getCampaign, levelCount } from "@/lib/campaign";
+import { pageMetadata } from "@/lib/seo";
 
 const DESCRIPTION =
   "How Algomind's levels are organised: worlds that each teach one idea, chapters inside them, and the levels you unlock in order.";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Levels",
+  shareTitle: "Algomind levels",
   description: DESCRIPTION,
-  alternates: { canonical: "/levels" },
-  openGraph: { title: "Algomind levels", description: DESCRIPTION, url: "/levels" },
-};
+  path: "/levels",
+});
 
 export default function LevelsPage() {
   const campaign = getCampaign();
