@@ -1,0 +1,326 @@
+# Algomind — Implementation Plan
+
+> **Working rule:** Build the full architecture first, thinly, then grow the content. The contract, API, dashboard, game loader, and CI/CD exist before the catalog does. Levels are added one at a time from the dashboard afterwards. Do not build every future feature before you have a fun puzzle.
+
+## 1. Delivery strategy
+
+Implement in vertical slices. Each phase should leave the repository runnable, green in CI, and demonstrable. The schedule is intentionally omitted; finish each phase's acceptance criteria before moving on.
+
+### Recommended order
+
+1. Lock the core rules and set up the repository, tooling, and CI so quality is enforced from the first commit.
+2. Define the level contract: schema, shared validator, reference simulator, and fixtures.
+3. Build the API and versioned level storage.
+4. Build the admin dashboard so levels can be authored and published.
+5. Build the game: simulation, remote and cached level loading, and the player UI.
+6. Connect everything end to end and build the public website.
+7. Author the starter campaign from the dashboard, polish, and playtest.
+8. Deploy and release.
+
+The architecture is complete after step 6 with only a handful of test levels. The catalog then grows through the dashboard without code changes.
+
+## Phase 0 — Product rules, repository, and tooling
+
+### Tasks
+
+- Confirm the core mechanic.
+- Define the initial command set and exact movement/collision rules.
+- Define win, failure, reset, and step-limit behavior.
+- Sketch the first few levels on paper.
+- Create the repository with `apps/api`, `apps/web`, `apps/game`, and `packages/level-contract`.
+- Set up the pnpm workspace, `Makefile` (single command surface), `.env.example`, and `VERSION`.
+- Configure Husky, lint-staged, commitlint, and commitizen with cz-git; configure prettier and the chosen linters.
+- Add GitHub Actions with the quality gates for every app (even while the apps are skeletons), Dependabot, and issue and PR templates.
+- Add AGENTS.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, LICENSE, a root README, and the CI and deployment docs.
+- Adopt the branching model: work on `dev`, pull request into `main`.
+
+### Deliverables
+
+- One-page rules document or a completed gameplay section.
+- A repository where `make lint`, `make test`, and CI pass on empty skeletons.
+- At least three hand-designed level sketches illustrating tutorial, basic obstacle, and a slightly more challenging combination.
+
+### Exit criteria
+
+- Two people could read the rules and agree on what happens for the same command sequence.
+- A commit that breaks lint, types, tests, or the commit-message format is rejected locally and in CI.
+- No online account, leaderboard, or public-site dependency is needed to test the concept.
+
+## Phase 1 — Level contract and reference simulator
+
+### Tasks
+
+- Define `schemaVersion` and the first JSON Schema.
+- Implement the TypeScript validator and the reference simulator in `packages/level-contract`.
+- Create valid and invalid level fixtures, and programs with expected outcomes and step traces.
+- Define the `requires.mechanics` capability model and the reference-solution format.
+- Implement the equivalent validator and simulator in GDScript inside a minimal Godot project, and run every fixture there with GUT.
+
+### Deliverables
+
+- Documented schema and fixtures.
+- The same fixture suite passing in TypeScript and in GDScript.
+
+### Exit criteria
+
+- Repeated identical runs produce identical outcomes in both implementations.
+- Adding a fixture requires adding data, not changing code.
+- A disagreement between the two simulators fails CI.
+
+**Do not add commands or mechanics until the first command set creates satisfying puzzles.**
+
+## Phase 2 — NestJS API and database
+
+### Tasks
+
+- Initialize the NestJS service with typed configuration and OpenAPI docs.
+- Connect PostgreSQL with Prisma; commit migrations; ignore the generated client.
+- Implement `AdminUser`, `Level`, and `LevelVersion`, and a seed for the first admin.
+- Implement health/readiness checks.
+- Implement admin authentication with hashed passwords, token rotation, rate limiting, and server-side authorization.
+- Implement draft CRUD, validate (including solvability from the reference solution), publish, unpublish, and version-history routes.
+- Implement public `GET /v1/levels` and `GET /v1/levels/:slug`, never exposing drafts or reference solutions.
+- Ensure publication is transactional and published versions are immutable.
+- Add structured error responses, request validation, and structured logs.
+- Add the Dockerfile and a Docker Compose service for local PostgreSQL.
+
+### Deliverables
+
+- API can store drafts, publish a level version, list published levels, and retrieve a selected published version.
+- Migrations apply from a clean database.
+- Unit and e2e tests (real PostgreSQL) cover public/private access and publishing behavior.
+
+### Exit criteria
+
+- Public clients cannot retrieve drafts or reference solutions.
+- Unauthenticated users cannot mutate content.
+- Invalid or unsolvable content cannot be published.
+- Editing/publishing a level creates a new version rather than rewriting the previous published version.
+
+## Phase 3 — Admin dashboard (in `apps/web`)
+
+Build a modest editor that helps create valid content. Do not build a general-purpose game engine inside the browser.
+
+### Tasks
+
+- Set up `apps/web` with the `(public)` and `(admin)` route groups and shared UI tokens.
+- Create sign-in and protected `/admin` routes; mark admin routes `noindex`.
+- Create the level list with status, title, difficulty, sort order, and updated timestamp.
+- Build create/edit forms for level metadata.
+- Build a board editor for placing start, goal, walls, and any mechanic already supported by the contract.
+- Add command availability, constraints, goal, hint, and reference-solution controls.
+- Add draft save and server validation display with field-level errors.
+- Add a live preview that runs the reference simulator, including stepping through the reference solution.
+- Add a publish confirmation that displays the version to be published, and unpublish confirmation and version history.
+- Handle unsaved changes, save status, and API errors.
+
+### Deliverables
+
+- An administrator can author, validate, preview, and publish a level without hand-editing JSON.
+- Validation errors point to the problem and suggest a correction.
+
+### Exit criteria
+
+- Save draft and publish are separate actions.
+- The API, not only the browser, enforces validation and permissions.
+- Published content can be identified and traced to an immutable version.
+- Preview results match the fixture expectations.
+
+## Phase 4 — Game client
+
+### Tasks
+
+- Create the Godot main scene, board renderer, automaton representation, and command editor.
+- Wire the simulation (from Phase 1) to the UI through signals; keep logic independent of animation.
+- Implement Run, Step, Reset, success, failure, and step-limit handling.
+- Configure the API base URL by environment/build configuration.
+- Fetch the public catalog and a level's current published version; validate it with the client validator.
+- Add loading, no-network, not-found, unsupported-schema, unsupported-mechanic, and retry states.
+- Cache downloaded levels by ID and version; never replace a valid cache with an invalid response.
+- Bundle a small set of starter levels so first launch works offline.
+- Store local progress keyed by stable level ID and published level version.
+- Add basic temporary UI and test at phone-sized viewports.
+
+### Deliverables
+
+- A complete playable flow from app launch to success/retry using levels published from the dashboard.
+- GUT tests for simulation, validation, caching, and loading.
+
+### Exit criteria
+
+- UI animation cannot change the simulation result.
+- Invalid or unsupported remote content fails visibly without crashing.
+- The game does not call admin routes.
+- Controls are usable without a mouse.
+
+## Phase 5 — End-to-end flow and public website
+
+### Tasks
+
+- Build the public pages in `apps/web`: landing, level catalog and detail, download, privacy, contact.
+- Add `/play`, which hosts the game's web export and loads it only after the visitor presses Play.
+- Add on-demand revalidation after publish and unpublish.
+- Add sitemap and `robots.ts` that exclude `/admin`.
+- Run the end-to-end workflow: dashboard → API → database → game and public site.
+- Add smoke tests for sign-in and the publish flow.
+
+### Deliverables
+
+- A newly published, compatible level becomes available in the game and on the public site without a rebuild of the app or the API.
+
+### Exit criteria
+
+- Publish version 1, play it, publish version 2, and confirm the client can fetch version 2 without an app release.
+- Offline behavior is predictable and a bad response cannot corrupt cached data.
+- Unpublishing removes the level from new catalog results but does not falsely claim to erase previously cached copies.
+- Public pages work without JavaScript, apart from the user-started game.
+
+## Phase 6 — Starter campaign, quality, and design polish
+
+### Tasks
+
+- Author the starter levels one at a time in the dashboard, each solved with a reference solution and playtested.
+- Apply the visual design guide to the game, public site, and dashboard.
+- Test on at least one real Android device plus different viewport sizes.
+- Tune board scale, command controls, spacing, typography, and animation duration.
+- Add audio/motion settings if they are in the MVP.
+- Improve onboarding and level-specific hints.
+- Playtest each level with someone who did not design it.
+- Remove unnecessary menus and options.
+- Test keyboard navigation and focus states in the dashboard.
+
+### Deliverables
+
+- A curated starter campaign, coherent game visuals, a usable dashboard, and a polished public site.
+
+### Exit criteria
+
+- Every published starter level has been solved in a clean playtest.
+- Players can identify the goal, understand commands, and recover from failure.
+- Critical buttons and fields have loading/error/disabled states.
+
+## Phase 7 — Deployment and release
+
+### Tasks
+
+- Create separate environment configuration for local, staging (if used), and production.
+- Deploy the API (Render), database (Neon) with backups, and web (Vercel).
+- Configure HTTPS, CORS, allowed origins, logging, and health checks.
+- Add the CD jobs: wait-for-live API deploy, web rebuild hook, Android build, and rolling and versioned releases.
+- Configure the Android signing key and secrets as documented in [CI.md](CI.md).
+- Remove secrets from repository history if any were accidentally committed; rotate affected credentials.
+- Seed a few published levels and create the admin account.
+- Add screenshots, a short gameplay recording, an architecture diagram, and the project README.
+- Document setup, migrations, tests, deployment, known limitations, and decisions.
+
+### Deliverables
+
+- A working deployed system and reproducible developer setup.
+- A versioned release with an Android build, produced by `make release v=X.Y.Z`.
+
+### Exit criteria
+
+- Another developer can follow the setup instructions on a clean checkout.
+- Production does not rely on local files or development credentials.
+- The project clearly distinguishes working features from planned features.
+
+## 2. Release gates
+
+### Foundation gate
+
+Do not start feature work in an app until its lint, type check, test, and build gates run in CI.
+
+### Contract gate
+
+Do not build the dashboard, API validation, or game loader until the schema and the shared fixture suite are stable enough to version and pass in both implementations.
+
+### Content gate
+
+Do not author a large catalog until the end-to-end flow (author, publish, fetch, play) works. Add levels one at a time after that.
+
+### Prototype gate
+
+Do not expand the command set or mechanics until several authored levels have been played and the core mechanic feels worth expanding.
+
+### Online gate
+
+Do not add player accounts or cloud progress until remote level delivery and caching work reliably.
+
+### Leaderboard gate
+
+Do not expose competitive scores until the score formula, level-version policy, and server-side verification model are designed. Client-sent scores alone are not trustworthy.
+
+## 3. Testing checklist by risk
+
+### Gameplay correctness
+
+- Empty program and maximum-length program.
+- Turn without movement and movement at each board boundary.
+- Wall collision.
+- Repeated reset/run cycles.
+- Program ends before the goal.
+- Instruction or step safety limit.
+- Invalid start and goal positions.
+- Unsupported command or goal type.
+- Every contract fixture in both TypeScript and GDScript.
+
+### Content workflow
+
+- Save a valid draft.
+- Save invalid data and see actionable errors.
+- Attempt to publish invalid or unsolvable data through a direct API request.
+- Publish, edit, and republish a level.
+- Confirm previous published versions remain unchanged.
+- Unpublish and verify public catalog behavior.
+- Confirm unauthorized requests are rejected.
+- Confirm the public API never returns reference solutions.
+
+### Network and caching
+
+- Slow network.
+- API unavailable on first launch.
+- API unavailable after level download.
+- Timeout and retry.
+- Malformed JSON.
+- Unsupported `schemaVersion` or required mechanic.
+- A new published version with the same level ID.
+- A level removed from the public catalog but still present in local cache.
+
+### UI and device behavior
+
+- Small and large phone viewports.
+- Touch targets and one-handed use.
+- Text wrapping and longer title text.
+- App pause/resume during a simulation.
+- Sound muted and reduced-motion behavior.
+- Dashboard keyboard navigation and unsaved changes.
+- Public pages with JavaScript disabled.
+
+## 4. Suggested issue labels
+
+- `gameplay`: game rules, simulation, player loop.
+- `content`: level data, schema, tutorial level design.
+- `web`: public site and admin dashboard (Next.js).
+- `api`: NestJS routes and business rules.
+- `database`: schema and migrations.
+- `design`: visuals, sound, interaction.
+- `quality`: tests, accessibility, errors, performance, tooling.
+- `deployment`: hosting, CI/CD, environment configuration, operations.
+- `later`: explicitly out of MVP scope.
+
+## 5. Avoid scope traps
+
+Do not implement all of these just to make the architecture look sophisticated: microservices, Kubernetes, Redis, queues, WebSockets, multiplayer, social profiles, daily challenges, analytics pipelines, advanced role management, cloud saves, and leaderboards. Build the contract, the dashboard-managed publishing flow, and a good player experience first.
+
+## 6. Definition of done for an MVP feature
+
+A feature is done when:
+
+- Its expected behavior and failure states are defined.
+- Its implementation matches this documentation or the docs are updated to match the final decision.
+- Relevant logic has automated tests.
+- It passes lint, formatting, type checks, and the full CI pipeline.
+- Loading, empty, error, and unauthorized states are handled where applicable.
+- It works in the target viewport/device.
+- It contains no committed secrets or debug-only bypasses.
+- It can be explained clearly in the project README.
