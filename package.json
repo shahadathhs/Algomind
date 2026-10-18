@@ -1,0 +1,37 @@
+{
+  "name": "algomind",
+  "private": true,
+  "description": "Algomind: a programming puzzle game (Godot), its API (NestJS), and the web app (Next.js) with the public site and admin dashboard",
+  "packageManager": "pnpm@11.5.3",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "commit": "cz",
+    "lint": "oxlint --type-aware . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "tokens": "pnpm --filter @algomind/design-tokens build",
+    "tokens:check": "pnpm --filter @algomind/design-tokens check",
+    "colors:check": "node scripts/check-colors.mjs"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "commitizen": "^4.3.2",
+    "cz-git": "^1.14.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "oxlint": "^1.88.0",
+    "oxlint-tsgolint": "^7.0.2004",
+    "prettier": "^3.9.10",
+    "typescript": "^7.0.2"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-git"
+    }
+  }
+}

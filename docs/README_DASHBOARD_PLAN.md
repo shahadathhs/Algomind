@@ -24,43 +24,43 @@ The campaign is a tree: **World → Chapter → Level**.
 
 ## 3. Features (MVP)
 
-| Area | Feature |
-|---|---|
-| **Session** | Email and password sign-in; short-lived bearer access token with rotating refresh token; automatic logout on expiry, refresh failure, or inactivity, with a visible session countdown; change password. |
-| **Home** | Counts (draft, published, archived), last publish, API health, latest app release. |
-| **Level list** | Table with thumbnail, title and slug, placement, status, difficulty, playtest state, updated time. Search, filter (all, draft, published, archived), world filter, sort. A published level with newer edits shows **Draft ahead**. |
-| **Level editor** | Tabs: Details, Board, Commands and limits, Solution, Hints, Preview, Playtest. Board editor with wall, floor, start, and goal tools; size, start and facing, goal. Allowed commands, max commands, max steps. Hints. |
-| **Reference solution** | Authored on the same tape editor as the game. |
-| **Preview** | Runs the shared reference simulator with Run, Step, and Reset; the author can also try their own program. |
-| **Solver** | Computes the true shortest program (par) for the initial command set (section 5). Shown in validation, stored with the version, and used as the "best" result in the game. |
-| **Validation panel** | Errors and warnings linked to their fields: schema, ranges, goal reachable, reference solution solves it, par, budget versus par, mechanics required. |
-| **Save safety** | Explicit Save draft (never publishes); local autosave backup; unsaved-changes warning; optimistic concurrency so two tabs cannot silently overwrite each other. |
-| **Playtest gate** | Required before publish (section 6). |
-| **Publish** | A review page: checks, a visual and field-by-field diff against the live version, and a confirmation. Publishing creates an immutable version. |
-| **Unpublish and archive** | With confirmation and an honest note that downloaded copies stay on devices. |
-| **Version history** | Versions list, visual board diff, field-by-field diff, discard draft, and restore any earlier version as a new draft. |
-| **Campaign structure** | Create, rename, and reorder worlds and chapters; assign and reorder levels; an "unassigned" list. |
-| **Client compatibility** | A registry of which mechanics each released app version supports; publishing is blocked if a level needs something the deployed client cannot do (section 7). |
-| **Duplicate level** | Clone as a starting point. |
-| **Import and export** | Export a level (draft or version) as validated JSON; import a JSON file into a new draft after full validation (section 9). |
-| **Audit log** | Who published, unpublished, archived, reordered, imported, or restored what, and when. |
-| **Settings** | Account, session information, API status. |
+| Area                      | Feature                                                                                                                                                                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Session**               | Email and password sign-in; short-lived bearer access token with rotating refresh token; automatic logout on expiry, refresh failure, or inactivity, with a visible session countdown; change password.                            |
+| **Home**                  | Counts (draft, published, archived), last publish, API health, latest app release.                                                                                                                                                 |
+| **Level list**            | Table with thumbnail, title and slug, placement, status, difficulty, playtest state, updated time. Search, filter (all, draft, published, archived), world filter, sort. A published level with newer edits shows **Draft ahead**. |
+| **Level editor**          | Tabs: Details, Board, Commands and limits, Solution, Hints, Preview, Playtest. Board editor with wall, floor, start, and goal tools; size, start and facing, goal. Allowed commands, max commands, max steps. Hints.               |
+| **Reference solution**    | Authored on the same tape editor as the game.                                                                                                                                                                                      |
+| **Preview**               | Runs the shared reference simulator with Run, Step, and Reset; the author can also try their own program.                                                                                                                          |
+| **Solver**                | Computes the true shortest program (par) for the initial command set (section 5). Shown in validation, stored with the version, and used as the "best" result in the game.                                                         |
+| **Validation panel**      | Errors and warnings linked to their fields: schema, ranges, goal reachable, reference solution solves it, par, budget versus par, mechanics required.                                                                              |
+| **Save safety**           | Explicit Save draft (never publishes); local autosave backup; unsaved-changes warning; optimistic concurrency so two tabs cannot silently overwrite each other.                                                                    |
+| **Playtest gate**         | Required before publish (section 6).                                                                                                                                                                                               |
+| **Publish**               | A review page: checks, a visual and field-by-field diff against the live version, and a confirmation. Publishing creates an immutable version.                                                                                     |
+| **Unpublish and archive** | With confirmation and an honest note that downloaded copies stay on devices.                                                                                                                                                       |
+| **Version history**       | Versions list, visual board diff, field-by-field diff, discard draft, and restore any earlier version as a new draft.                                                                                                              |
+| **Campaign structure**    | Create, rename, and reorder worlds and chapters; assign and reorder levels; an "unassigned" list.                                                                                                                                  |
+| **Client compatibility**  | A registry of which mechanics each released app version supports; publishing is blocked if a level needs something the deployed client cannot do (section 7).                                                                      |
+| **Duplicate level**       | Clone as a starting point.                                                                                                                                                                                                         |
+| **Import and export**     | Export a level (draft or version) as validated JSON; import a JSON file into a new draft after full validation (section 9).                                                                                                        |
+| **Audit log**             | Who published, unpublished, archived, reordered, imported, or restored what, and when.                                                                                                                                             |
+| **Settings**              | Account, session information, API status.                                                                                                                                                                                          |
 
 ## 4. Screens
 
-| Screen | Contents |
-|---|---|
-| Sign in | Email, password, error states; no sign-up |
-| Home | Counts, recent activity, release and API status |
-| Levels | List and filters (rendered) |
-| Level editor | Tabs listed above (Board tab rendered) |
-| Publish | Gate checks, diff, confirm (rendered) |
-| History | Version list and diff (rendered) |
-| Campaign | Worlds, chapters, order, unassigned (rendered) |
+| Screen       | Contents                                                |
+| ------------ | ------------------------------------------------------- |
+| Sign in      | Email, password, error states; no sign-up               |
+| Home         | Counts, recent activity, release and API status         |
+| Levels       | List and filters (rendered)                             |
+| Level editor | Tabs listed above (Board tab rendered)                  |
+| Publish      | Gate checks, diff, confirm (rendered)                   |
+| History      | Version list and diff (rendered)                        |
+| Campaign     | Worlds, chapters, order, unassigned (rendered)          |
 | Capabilities | Registry of app versions and the mechanics they support |
-| Import | File picker, validation result, import into a new draft |
-| Audit log | Chronological list, filter by action |
-| Settings | Account and session |
+| Import       | File picker, validation result, import into a new draft |
+| Audit log    | Chronological list, filter by action                    |
+| Settings     | Account and session                                     |
 
 ## 5. Solver
 

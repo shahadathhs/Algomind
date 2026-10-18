@@ -98,22 +98,24 @@ Stores relational metadata and immutable level versions. JSONB is suitable for t
 
 ## 3. Recommended stack
 
-| Layer | Choice |
-|---|---|
-| Game | Godot 4.x, GDScript, GUT tests, gdtoolkit (gdlint, gdformat); headless Godot in Docker |
-| Web | Next.js App Router, TypeScript, Tailwind CSS |
-| API | NestJS 11, TypeScript, REST/JSON, Swagger (OpenAPI) at `/docs` |
-| Persistence | PostgreSQL |
-| ORM/migrations | Prisma (split schema files, migrations committed, generated client not committed) |
-| Level contract | JSON Schema plus shared TypeScript types, validator, and reference simulator |
-| Design tokens | A single token data file in `packages/design-tokens`; generated Godot palette script and web CSS variables; CI fails on drift |
-| Monorepo | pnpm workspace for `apps/api`, `apps/web`, and `packages/*` only |
-| Lint and format | oxlint (type-aware) plus prettier for all TypeScript (no ESLint: TypeScript 7 has no JS compiler API for typescript-eslint); gdlint and gdformat for GDScript |
-| Git tooling | Husky, lint-staged, commitlint (Conventional Commits), commitizen with cz-git |
-| API tests | Jest unit tests plus e2e tests against a real PostgreSQL service |
-| Web tests | Component and unit tests for the editor and validators; Playwright smoke tests for sign-in and the publish flow |
-| CI/CD | One GitHub Actions workflow; see [CI.md](CI.md) |
-| Hosting | Render (API, Docker), Neon (PostgreSQL), Vercel (web); see [DEPLOY.md](DEPLOY.md) |
+| Layer           | Choice                                                                                                                                                                |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Game            | Godot 4.x, GDScript, GUT tests, gdtoolkit (gdlint, gdformat); headless Godot in Docker                                                                                |
+| Web             | Next.js App Router, TypeScript, Tailwind CSS                                                                                                                          |
+| API             | NestJS 12, TypeScript, REST/JSON, Swagger (OpenAPI) at `/docs`                                                                                                        |
+| Persistence     | PostgreSQL                                                                                                                                                            |
+| ORM/migrations  | Prisma 7 (latest stable; 8 is still a release candidate). Split schema files, migrations committed, generated client not committed)                                   |
+| Level contract  | JSON Schema plus shared TypeScript types, validator, and reference simulator                                                                                          |
+| Design tokens   | A single token data file in `packages/design-tokens`; generated Godot palette script and web CSS variables; CI fails on drift                                         |
+| Monorepo        | pnpm workspace for `apps/api`, `apps/web`, and `packages/*` only                                                                                                      |
+| Lint and format | oxlint (type-aware) plus prettier for all TypeScript (no ESLint: TypeScript 7 has no JS compiler API for typescript-eslint); gdlint and gdformat for GDScript         |
+| Git tooling     | Husky, lint-staged, commitlint (Conventional Commits), commitizen with cz-git                                                                                         |
+| API tests       | None set up yet. A framework is chosen when the first API feature needs tests (publish gates and authorization first); CI already provides a real PostgreSQL service. |
+| Web tests       | Component and unit tests for the editor and validators; Playwright smoke tests for sign-in and the publish flow                                                       |
+| CI/CD           | One GitHub Actions workflow; see [CI.md](CI.md)                                                                                                                       |
+| Hosting         | Render (API, Docker), Neon (PostgreSQL), Vercel (web); see [DEPLOY.md](DEPLOY.md)                                                                                     |
+
+**API toolchain (TypeScript 7 and NestJS 12).** NestJS 12 packages are ES modules only, and TypeScript 7 has no JavaScript compiler API. So the API is an ES module project (`"type": "module"`, imports with `.js` extensions), is built with SWC (which emits decorator metadata), and is type-checked with the native `tsc --noEmit`. The Nest CLI (`nest start`, `nest build`) is not used because it requires the compiler API; the dev server is SWC in watch mode plus `node --watch`.
 
 Select exact versions during implementation and pin them. Keep the first deployment simple; do not add Kubernetes, microservices, a queue, Redis, WebSockets, or a separate cache server without a demonstrated need.
 
@@ -164,7 +166,11 @@ The API must return **data**, not code. Keep the schema explicit and versioned. 
   "board": {
     "width": 5,
     "height": 5,
-    "walls": [[1, 1], [1, 2], [3, 3]]
+    "walls": [
+      [1, 1],
+      [1, 2],
+      [3, 3]
+    ]
   },
   "initialState": {
     "position": [0, 4],
@@ -179,10 +185,7 @@ The API must return **data**, not code. Keep the schema explicit and versioned. 
     "type": "reach_tile",
     "position": [4, 0]
   },
-  "hints": [
-    "Look for a route around the wall.",
-    "A turn changes the direction of the next move."
-  ]
+  "hints": ["Look for a route around the wall.", "A turn changes the direction of the next move."]
 }
 ```
 
@@ -307,21 +310,21 @@ Prefix routes with `/v1` consistently. JSON responses should have documented typ
 
 ### Public/player endpoints
 
-| Method | Route | Purpose |
-|---|---|---|
-| `GET` | `/v1/campaign` | The published campaign as a tree: worlds, chapters, and level summaries in order |
-| `GET` | `/v1/levels` | List published levels and lightweight metadata |
-| `GET` | `/v1/levels/:slug` | Retrieve the current published level version |
-| `GET` | `/v1/health` | Liveness/readiness endpoint for hosting and diagnostics |
+| Method | Route              | Purpose                                                                          |
+| ------ | ------------------ | -------------------------------------------------------------------------------- |
+| `GET`  | `/v1/campaign`     | The published campaign as a tree: worlds, chapters, and level summaries in order |
+| `GET`  | `/v1/levels`       | List published levels and lightweight metadata                                   |
+| `GET`  | `/v1/levels/:slug` | Retrieve the current published level version                                     |
+| `GET`  | `/v1/health`       | Liveness/readiness endpoint for hosting and diagnostics                          |
 
 Accounts and sync phase (optional accounts; never required to play):
 
-| Method | Route | Purpose |
-|---|---|---|
-| `POST` | `/v1/auth/register` | Create a `PLAYER` account |
-| `GET` | `/v1/me/progress` | Retrieve the player's cloud progress |
-| `POST` | `/v1/me/progress/sync` | Send local progress; the server merges it with cloud progress and returns the merged result (idempotent) |
-| `GET` / `PUT` | `/v1/me/settings` | Read or update synced settings (last write wins by timestamp) |
+| Method        | Route                  | Purpose                                                                                                  |
+| ------------- | ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| `POST`        | `/v1/auth/register`    | Create a `PLAYER` account                                                                                |
+| `GET`         | `/v1/me/progress`      | Retrieve the player's cloud progress                                                                     |
+| `POST`        | `/v1/me/progress/sync` | Send local progress; the server merges it with cloud progress and returns the merged result (idempotent) |
+| `GET` / `PUT` | `/v1/me/settings`      | Read or update synced settings (last write wins by timestamp)                                            |
 
 Later, only with a verification design: `POST /v1/scores`.
 
@@ -329,28 +332,28 @@ The merge follows the policy in [README_GAME_RULES.md](README_GAME_RULES.md): un
 
 ### Admin endpoints
 
-| Method | Route | Purpose |
-|---|---|---|
-| `POST` | `/v1/auth/login` | Admin sign-in; returns a short-lived access token and a refresh token |
-| `POST` | `/v1/auth/refresh` | Exchange a refresh token for a new access token and a new refresh token (rotation) |
-| `POST` | `/v1/auth/logout` | Revoke the current refresh token |
-| `POST` | `/v1/admin/levels` | Create a draft level |
-| `GET` | `/v1/admin/levels` | List drafts and published levels |
-| `GET` | `/v1/admin/levels/:id` | Read metadata and authoring content |
-| `PATCH` | `/v1/admin/levels/:id` | Update a draft; do not mutate a published version |
-| `POST` | `/v1/admin/levels/:id/validate` | Return field-level validation issues, including solvability |
-| `POST` | `/v1/admin/levels/:id/publish` | Publish a validated immutable version |
-| `POST` | `/v1/admin/levels/:id/unpublish` | Remove the level from future public catalog responses |
-| `GET` | `/v1/admin/levels/:id/versions` | List content versions |
-| `POST` | `/v1/admin/levels/:id/duplicate` | Clone as a new draft level |
-| `POST` | `/v1/admin/levels/:id/playtests` | Record a playtest for the current draft content |
-| `POST` | `/v1/admin/levels/:id/restore/:versionId` | Restore an earlier version as the new draft |
-| `GET` | `/v1/admin/levels/:id/export` | Export a level as validated JSON |
-| `POST` | `/v1/admin/levels/import` | Import a level JSON file into a new draft |
-| `GET` `POST` `PATCH` `DELETE` | `/v1/admin/worlds`, `/v1/admin/chapters` | Manage worlds and chapters |
-| `PUT` | `/v1/admin/campaign/order` | Reorder worlds, chapters, and levels, and assign levels to chapters |
-| `GET` `POST` `PATCH` | `/v1/admin/client-versions` | The capabilities registry |
-| `GET` | `/v1/admin/audit` | Audit log |
+| Method                        | Route                                     | Purpose                                                                            |
+| ----------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| `POST`                        | `/v1/auth/login`                          | Admin sign-in; returns a short-lived access token and a refresh token              |
+| `POST`                        | `/v1/auth/refresh`                        | Exchange a refresh token for a new access token and a new refresh token (rotation) |
+| `POST`                        | `/v1/auth/logout`                         | Revoke the current refresh token                                                   |
+| `POST`                        | `/v1/admin/levels`                        | Create a draft level                                                               |
+| `GET`                         | `/v1/admin/levels`                        | List drafts and published levels                                                   |
+| `GET`                         | `/v1/admin/levels/:id`                    | Read metadata and authoring content                                                |
+| `PATCH`                       | `/v1/admin/levels/:id`                    | Update a draft; do not mutate a published version                                  |
+| `POST`                        | `/v1/admin/levels/:id/validate`           | Return field-level validation issues, including solvability                        |
+| `POST`                        | `/v1/admin/levels/:id/publish`            | Publish a validated immutable version                                              |
+| `POST`                        | `/v1/admin/levels/:id/unpublish`          | Remove the level from future public catalog responses                              |
+| `GET`                         | `/v1/admin/levels/:id/versions`           | List content versions                                                              |
+| `POST`                        | `/v1/admin/levels/:id/duplicate`          | Clone as a new draft level                                                         |
+| `POST`                        | `/v1/admin/levels/:id/playtests`          | Record a playtest for the current draft content                                    |
+| `POST`                        | `/v1/admin/levels/:id/restore/:versionId` | Restore an earlier version as the new draft                                        |
+| `GET`                         | `/v1/admin/levels/:id/export`             | Export a level as validated JSON                                                   |
+| `POST`                        | `/v1/admin/levels/import`                 | Import a level JSON file into a new draft                                          |
+| `GET` `POST` `PATCH` `DELETE` | `/v1/admin/worlds`, `/v1/admin/chapters`  | Manage worlds and chapters                                                         |
+| `PUT`                         | `/v1/admin/campaign/order`                | Reorder worlds, chapters, and levels, and assign levels to chapters                |
+| `GET` `POST` `PATCH`          | `/v1/admin/client-versions`               | The capabilities registry                                                          |
+| `GET`                         | `/v1/admin/audit`                         | Audit log                                                                          |
 
 Route names are suggestions; choose a consistent convention. Every admin route must check identity and role on the server.
 
@@ -362,7 +365,7 @@ Recommended lifecycle:
 2. Save draft to the server.
 3. Validate the entire definition against the current schema and gameplay rules, run the solver (par, and budget versus par), and check client compatibility.
 4. Preview using the shared reference simulator and run the reference solution.
-4a. Record a playtest for the current content; a solved record for the current content hash is required to publish.
+   4a. Record a playtest for the current content; a solved record for the current content hash is required to publish.
 5. Publish transactionally: create an immutable `LevelVersion`, update the level's published-version pointer/status, record author and timestamp.
 6. Public endpoints return only the published version.
 7. Ask the web app to revalidate affected public pages.

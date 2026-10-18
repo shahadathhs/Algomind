@@ -2,6 +2,36 @@
 
 > **Status: planned.** Nothing here has been implemented or run yet. It follows the conventions of the DropGrid project. Update this file in the same change as any workflow or tooling change so it always matches the code.
 
+## What runs today
+
+`.github/workflows/ci.yml` is one pipeline. Pull requests run the gates; pushes to `main` continue through deploy, build, and release.
+
+| Job          | Runs for             | What it does                                                                                                                          |
+| ------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `quality`    | every push and PR    | Design-token drift check, oxlint (type-aware) and prettier, `tsc` type checks, and all TypeScript tests                               |
+| `api`        | every push and PR    | Applies migrations to an empty PostgreSQL 17 service container, then builds the API                                                   |
+| `web`        | every push and PR    | Production `next build`                                                                                                               |
+| `game`       | every push and PR    | `gdlint` and `gdformat --check`, then headless Godot (in Docker) loads the project and runs the GUT tests                             |
+| `docker`     | every push and PR    | Builds the API and web images, starts the database, API, and web with Compose, checks `/v1/health/ready` and the landing page         |
+| `deploy-api` | `main`               | Calls the Render deploy hook, then polls the Render API until the deploy is live (fails the run if it fails or times out)             |
+| `apk`        | `main` and `v*` tags | Resolves the version, injects the version code and API URL, builds a debug APK in the Godot container, writes a SHA-256, uploads      |
+| `release`    | `main` and `v*` tags | Refreshes the rolling **Latest build** release, calls the Vercel deploy hook, and publishes **Algomind vX.Y.Z** when `VERSION` is new |
+
+**Status:** the Makefile targets behind these jobs were run locally (`make check`, `make up`, and `make game-apk`, which produced a signed 28 MB debug APK). The workflow passes `actionlint`. The workflow itself has **not run on GitHub yet**, and `render.yaml` and the Render and Vercel hooks have not been applied, so treat the action versions and the deploy steps as unverified until the first real run.
+
+**No credentials in the repository.** The local database password is generated into the git-ignored `.env` by `make env` (Compose refuses to start without it, and the database port is bound to `127.0.0.1`). The CI `api` job uses a throwaway Postgres service container with trust authentication and a passwordless URL; the `docker` job runs `make env` to generate a password. The API requires `DATABASE_URL` and has no default. Android's public debug-keystore password (`android`) remains in the Godot container setup because the Android tooling expects it.
+
+## Versions and releases
+
+`VERSION` is the source of truth. Two make targets use `scripts/bump-version.sh`:
+
+```sh
+make version v=0.2.0    # write the version into VERSION, the API and web package.json, and the Android preset (no git)
+make release v=0.2.0    # the same, then commit and push (you run this; nothing runs it automatically)
+```
+
+Both refuse the same version or a lower one. `release` also refuses to run with uncommitted changes, so the release commit contains only the bump. When that commit reaches `main`, the pipeline sees a `VERSION` with no matching release and publishes `v0.2.0` with the APK and its checksum. Rolling builds keep flowing and never take the "latest" flag.
+
 ## Principles
 
 - **One command surface.** The `Makefile` is how you run everything locally. CI runs the same commands, so "passes locally" means "passes in CI".
@@ -11,19 +41,19 @@
 
 ## Local tooling
 
-| Tool | Purpose |
-|---|---|
-| Husky | Git hooks (`pre-commit`, `commit-msg`) |
-| lint-staged | Lint and format staged files only |
-| commitlint | Enforce Conventional Commits (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, `wip`, `release`) |
-| commitizen + cz-git | Guided commits (`pnpm commit`) |
-| prettier | Formatting for TypeScript, JSON, Markdown, YAML |
-| oxlint (type-aware) | TypeScript linting for every TypeScript app and package. There is no ESLint: TypeScript 7 has no JS compiler API, so typescript-eslint cannot parse it. |
-| tsc | Type checking in each TypeScript app and package |
-| Jest / Playwright | API unit and e2e tests; web smoke tests |
-| gdlint + gdformat (gdtoolkit, pinned) | GDScript style gate |
-| GUT | Game unit tests, run headless in Docker |
-| Prisma | Schema validation and migrations |
+| Tool                                  | Purpose                                                                                                                                                 |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Husky                                 | Git hooks (`pre-commit`, `commit-msg`)                                                                                                                  |
+| lint-staged                           | Lint and format staged files only                                                                                                                       |
+| commitlint                            | Enforce Conventional Commits (`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`, `wip`, `release`)           |
+| commitizen + cz-git                   | Guided commits (`pnpm commit`)                                                                                                                          |
+| prettier                              | Formatting for TypeScript, JSON, Markdown, YAML                                                                                                         |
+| oxlint (type-aware)                   | TypeScript linting for every TypeScript app and package. There is no ESLint: TypeScript 7 has no JS compiler API, so typescript-eslint cannot parse it. |
+| tsc                                   | Type checking in each TypeScript app and package                                                                                                        |
+| Vitest / Playwright                   | Web unit tests today (Vitest), smoke tests later (Playwright). The API has no test framework yet.                                                       |
+| gdlint + gdformat (gdtoolkit, pinned) | GDScript style gate                                                                                                                                     |
+| GUT                                   | Game unit tests, run headless in Docker                                                                                                                 |
+| Prisma                                | Schema validation and migrations                                                                                                                        |
 
 Hooks live at the repository root and cover the whole repo. Typical `make` targets:
 
@@ -46,17 +76,17 @@ Work on `dev`, open a pull request into `main`, keep `dev` fast-forwarded to `ma
 
 One workflow, `.github/workflows/ci.yml`, with `concurrency` per ref, least-privilege `permissions`, and current pinned action versions.
 
-| Job | Runs for | What it does |
-|---|---|---|
-| `tokens` | every push and PR | Regenerate the Godot palette and web CSS from `packages/design-tokens`; fail if the generated files differ from the committed ones; fail if a hand-defined color appears outside them |
-| `contract` | every push and PR | Lint, typecheck, and test `packages/level-contract` (all fixtures) |
-| `api` | every push and PR | Lint, typecheck, Prisma validate, migrate a PostgreSQL service container, unit and e2e tests, build |
-| `web` | every push and PR | Lint, typecheck, tests, `next build` |
-| `game` | every push and PR | `gdlint`, `gdformat --check`, headless project load, GUT tests (including every contract fixture) |
-| `deploy-api` | `main` | Triggers the Render deploy hook, then polls the Render API until live; fails the run on a failed or timed-out deploy |
-| `apk` | `main`, `v*` tags | Injects version and API URL, builds the Android package, uploads the artifact |
-| `web-export` | after launch, when browser play is added | Builds the game's web export; PRs prove it still builds |
-| `release` | `main` | Refreshes the rolling **Latest build**, triggers the Vercel rebuild hook, and publishes a versioned release when `VERSION` names a version without a release |
+| Job          | Runs for                                 | What it does                                                                                                                                                                          |
+| ------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tokens`     | every push and PR                        | Regenerate the Godot palette and web CSS from `packages/design-tokens`; fail if the generated files differ from the committed ones; fail if a hand-defined color appears outside them |
+| `contract`   | every push and PR                        | Lint, typecheck, and test `packages/level-contract` (all fixtures)                                                                                                                    |
+| `api`        | every push and PR                        | Lint, typecheck, Prisma validate, migrate a PostgreSQL service container, build                                                                                                       |
+| `web`        | every push and PR                        | Lint, typecheck, tests, `next build`                                                                                                                                                  |
+| `game`       | every push and PR                        | `gdlint`, `gdformat --check`, headless project load, GUT tests (including every contract fixture)                                                                                     |
+| `deploy-api` | `main`                                   | Triggers the Render deploy hook, then polls the Render API until live; fails the run on a failed or timed-out deploy                                                                  |
+| `apk`        | `main`, `v*` tags                        | Injects version and API URL, builds the Android package, uploads the artifact                                                                                                         |
+| `web-export` | after launch, when browser play is added | Builds the game's web export; PRs prove it still builds                                                                                                                               |
+| `release`    | `main`                                   | Refreshes the rolling **Latest build**, triggers the Vercel rebuild hook, and publishes a versioned release when `VERSION` names a version without a release                          |
 
 A normal push to `main`: gates, API deploy, Android and web exports, rolling Latest build, web rebuild. A version bump does all of that plus the versioned release.
 
@@ -70,13 +100,13 @@ When that reaches `main`, the pipeline publishes **Algomind v0.2.0** with the An
 
 ## Secrets and variables
 
-| Name | Kind | Used by |
-|---|---|---|
-| `RENDER_DEPLOY_HOOK_URL` | secret | `deploy-api` |
-| `RENDER_API_KEY` | secret | `deploy-api` (waits for the deploy to be live) |
-| `VERCEL_DEPLOY_HOOK` | secret | `release` (rebuild the public site so the download page shows the new release; later also the web export) |
-| `ANDROID_DEBUG_KEYSTORE_BASE64` | secret | `apk` (fixed signing key so builds install over each other) |
-| `API_BASE_URL` | variable | `apk` (must be `https://…/v1`; the build fails otherwise) |
+| Name                            | Kind     | Used by                                                                                                   |
+| ------------------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| `RENDER_DEPLOY_HOOK_URL`        | secret   | `deploy-api`                                                                                              |
+| `RENDER_API_KEY`                | secret   | `deploy-api` (waits for the deploy to be live)                                                            |
+| `VERCEL_DEPLOY_HOOK`            | secret   | `release` (rebuild the public site so the download page shows the new release; later also the web export) |
+| `ANDROID_DEBUG_KEYSTORE_BASE64` | secret   | `apk` (fixed signing key so builds install over each other)                                               |
+| `API_BASE_URL`                  | variable | `apk` (must be `https://…/v1`; the build fails otherwise)                                                 |
 
 Secrets are never committed. A Google Play release needs a separate upload keystore and an `.aab`; that is outside the initial MVP.
 

@@ -92,7 +92,7 @@ The architecture is complete after step 6 with only a handful of test levels. Th
 
 - API can store drafts, publish a level version, list published levels, and retrieve a selected published version.
 - Migrations apply from a clean database.
-- Unit and e2e tests (real PostgreSQL) cover public/private access and publishing behavior.
+- Automated tests (against a real PostgreSQL) cover public/private access and publishing behavior. No API test framework is set up yet; choose one when writing the first of these.
 
 ### Exit criteria
 

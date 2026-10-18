@@ -16,22 +16,22 @@
 
 **Launch (built once the first APK exists):**
 
-| Route | Purpose | Rendering |
-|---|---|---|
-| `/` | Landing: explain the game and drive the download | Static |
-| `/download` | Install page: the APK, install steps, QR code for desktop visitors | Static shell, release data revalidated hourly |
-| `/how-to-play` | The three commands, the tape, what failure messages mean | Static |
-| `/privacy` | What is and is not collected; account deletion instructions | Static |
-| `/contact` | How to reach the developer | Static |
-| `/robots`, `/sitemap`, 404 | `/admin` excluded from both | n/a |
+| Route                      | Purpose                                                            | Rendering                                     |
+| -------------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
+| `/`                        | Landing: explain the game and drive the download                   | Static                                        |
+| `/download`                | Install page: the APK, install steps, QR code for desktop visitors | Static shell, release data revalidated hourly |
+| `/how-to-play`             | The three commands, the tape, what failure messages mean           | Static                                        |
+| `/privacy`                 | What is and is not collected; account deletion instructions        | Static                                        |
+| `/contact`                 | How to reach the developer                                         | Static                                        |
+| `/robots`, `/sitemap`, 404 | `/admin` excluded from both                                        | n/a                                           |
 
 **After launch (not blockers):**
 
-| Route | Purpose |
-|---|---|
+| Route                       | Purpose                                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `/levels`, `/levels/[slug]` | Public catalog organized by world and chapter, and spoiler-free level pages, with a generated share image per level |
-| `/play` | Browser play through the game's web export, as a secondary "try it" link |
-| `/account` | Sign in, sync status, delete account, only when sync ships |
+| `/play`                     | Browser play through the game's web export, as a secondary "try it" link                                            |
+| `/account`                  | Sign in, sync status, delete account, only when sync ships                                                          |
 
 ## 3. Landing page
 
