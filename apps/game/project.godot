@@ -20,3 +20,10 @@ window/handheld/orientation=1
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+
+[algomind]
+
+; API the game talks to. Empty means offline only. CI sets this for release builds
+; (it must be https and end in /v1); debug builds on a desktop can point at localhost.
+network/api_base_url=""

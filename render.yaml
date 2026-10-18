@@ -1,0 +1,34 @@
+# Render Blueprint for the Algomind API. Create it with: Render dashboard > New > Blueprint,
+# pick this repo. Secrets are NOT stored here: DATABASE_URL and CORS_ORIGINS are asked for on
+# first deploy. See docs/DEPLOY.md.
+#
+# Not run yet: the file was written from Render's Blueprint spec and has not been applied.
+# Check the current spec at render.com/docs/blueprint-spec if Render rejects a key.
+services:
+  - type: web
+    name: algomind-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    # The image's start command applies migrations on every boot (a no-op when the database is
+    # current), so no pre-deploy command is needed and the free plan works.
+    # Keep this at one instance until rate limiting moves out of process memory.
+    plan: free
+    region: singapore # pick one near your players; put the Neon database in the same area
+    healthCheckPath: /v1/health
+    # Only redeploy when the API (or what it depends on) changes.
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/**
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      # Added when authentication lands: JWT_SECRET (generateValue: true),
+      # SUPER_ADMIN_EMAIL and SUPER_ADMIN_PASS (sync: false).
