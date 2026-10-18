@@ -17,8 +17,9 @@ const schema = z
     SUPER_ADMIN_EMAIL: z.string().trim().min(1).optional(),
     SUPER_ADMIN_PASS: z.string().min(1).optional(),
     // Number of reverse proxies in front of the API (1 on Render); 0 means clients connect directly.
-    // Create the starter campaign (4 worlds, 5 chapters, 19 published levels) on startup. Defaults to
-    // on outside production and off in production.
+    // Create the starter campaign (4 worlds, 5 chapters, 19 published levels) on startup: true always
+    // adds what is missing, false never does. Unset: always outside production, and in production
+    // only while the database has no levels at all (so a fresh install is playable).
     SEED_STARTER_CAMPAIGN: z.enum(["true", "false", "1", "0"]).optional(),
     TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
     // Tell the web app to refresh its public pages after a publish or unpublish. Both are needed.
@@ -41,7 +42,7 @@ export type Env = {
   superAdminEmail?: string;
   superAdminPass?: string;
   trustProxy: number;
-  seedStarterCampaign: boolean;
+  seedStarterCampaign: "always" | "when-empty" | "never";
   webRevalidateUrl?: string;
   revalidateSecret?: string;
 };
@@ -73,7 +74,11 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     revalidateSecret: d.REVALIDATE_SECRET,
     seedStarterCampaign:
       d.SEED_STARTER_CAMPAIGN === undefined
-        ? d.NODE_ENV !== "production"
-        : d.SEED_STARTER_CAMPAIGN === "true" || d.SEED_STARTER_CAMPAIGN === "1",
+        ? d.NODE_ENV === "production"
+          ? "when-empty"
+          : "always"
+        : d.SEED_STARTER_CAMPAIGN === "true" || d.SEED_STARTER_CAMPAIGN === "1"
+          ? "always"
+          : "never",
   };
 }

@@ -38,10 +38,9 @@ services:
         sync: false
       - key: SUPER_ADMIN_PASS
         sync: false
-      # Off in production unless set: "true" creates the starter campaign (4 worlds, 5 chapters, 19
-      # published levels) if missing; existing levels are never touched. Safe to flip on and off.
-      - key: SEED_STARTER_CAMPAIGN
-        value: "false"
+      # Not set on purpose: with no value, production creates the starter campaign (4 worlds, 5
+      # chapters, 19 published levels) once, while the database has no levels. Set it to "true" to
+      # add any missing starter level on every start, or "false" to never create them.
       # After a publish the API calls the web app so the public pages refresh at once. Set both
       # (the secret equals the web app's REVALIDATE_SECRET); with either unset the web app simply
       # refreshes on its own schedule.

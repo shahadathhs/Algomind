@@ -58,6 +58,7 @@ const CAMPAIGN = [
             difficulty: "easy",
             maxCommands: 6,
             rows: ["G....", ".....", ".....", ".....", "^...."],
+            hints: ["The target is straight ahead. How many cells away is it?"],
           },
           {
             slug: "along-the-floor",
@@ -65,6 +66,7 @@ const CAMPAIGN = [
             difficulty: "easy",
             maxCommands: 6,
             rows: [".....", ".....", ".....", ".....", ">...G"],
+            hints: ["The automaton faces east. Count the cells to the target."],
           },
           {
             slug: "mind-the-gap",
@@ -72,6 +74,7 @@ const CAMPAIGN = [
             difficulty: "easy",
             maxCommands: 6,
             rows: ["G....", ".#...", ".#...", ".#...", "^...."],
+            hints: ["The walls are not in your way. Go straight."],
           },
         ],
       },
@@ -90,6 +93,7 @@ const CAMPAIGN = [
             difficulty: "easy",
             maxCommands: 8,
             rows: [".....", ".....", "...G.", ".....", "^...."],
+            hints: ["Move up first, then turn toward the target."],
           },
           {
             slug: "turn-left",
@@ -97,6 +101,7 @@ const CAMPAIGN = [
             difficulty: "easy",
             maxCommands: 8,
             rows: [".....", "..G..", ".....", ".....", ">...."],
+            hints: ["Turning left points the automaton up."],
           },
           {
             slug: "up-and-across",
@@ -104,6 +109,7 @@ const CAMPAIGN = [
             difficulty: "easy",
             maxCommands: 8,
             rows: [".....", "..G..", ".....", ".....", "^...."],
+            hints: ["Move up to the target's row, then turn right."],
           },
           {
             slug: "turn-around",
@@ -111,6 +117,7 @@ const CAMPAIGN = [
             difficulty: "easy",
             maxCommands: 6,
             rows: [".....", ".....", "..^..", ".....", "..G.."],
+            hints: ["The target is behind you. Turn twice, then move."],
           },
         ],
       },
@@ -123,6 +130,7 @@ const CAMPAIGN = [
             difficulty: "medium",
             maxCommands: 12,
             rows: [".....", ".....", ".#.G#", "..#..", "^#..."],
+            hints: ["Look for a route around the wall."],
           },
           {
             slug: "two-walls",
@@ -130,6 +138,7 @@ const CAMPAIGN = [
             difficulty: "medium",
             maxCommands: 8,
             rows: [".....", ".#.#.", ".....", ".#.#.", "^...G"],
+            hints: ["The walls leave gaps. Plan the path before you run."],
           },
           {
             slug: "the-detour",
@@ -137,6 +146,7 @@ const CAMPAIGN = [
             difficulty: "medium",
             maxCommands: 11,
             rows: ["..#..", "..#G.", "..#..", "..#..", "^...."],
+            hints: ["Go around the wall. There is only one gap."],
           },
           {
             slug: "long-way-round",
@@ -144,6 +154,7 @@ const CAMPAIGN = [
             difficulty: "hard",
             maxCommands: 18,
             rows: ["G....", "####.", ".....", ".####", "^...."],
+            hints: ["Follow the corridor. Each wall opens at an end."],
           },
         ],
       },
@@ -162,6 +173,7 @@ const CAMPAIGN = [
             difficulty: "medium",
             maxCommands: 7,
             rows: [".....", ".#.#.", "..G..", ".#.#.", "^...."],
+            hints: ["The target is in the middle. Pick a side and go around."],
           },
           {
             slug: "pick-a-side",
@@ -169,6 +181,7 @@ const CAMPAIGN = [
             difficulty: "medium",
             maxCommands: 9,
             rows: ["..#..", ".....", "..#G.", ".....", "^.#.."],
+            hints: ["Two routes work. One needs fewer commands."],
           },
           {
             slug: "switchback",
@@ -176,6 +189,7 @@ const CAMPAIGN = [
             difficulty: "hard",
             maxCommands: 12,
             rows: ["....G", "####.", ".....", ".####", "^...."],
+            hints: ["Zigzag along the corridors. Each wall opens at the opposite end."],
           },
           {
             slug: "the-maze",
@@ -183,6 +197,7 @@ const CAMPAIGN = [
             difficulty: "hard",
             maxCommands: 18,
             rows: ["..#G.", ".##..", "...#.", ".#...", "^.#.."],
+            hints: ["Work backward from the target to find the route."],
           },
         ],
       },
@@ -201,6 +216,7 @@ const CAMPAIGN = [
             difficulty: "medium",
             maxCommands: 5,
             rows: [".....", ".....", "..G..", ".....", ">...."],
+            hints: ["You have very few commands. Count the turns carefully."],
           },
           {
             slug: "exactly-enough",
@@ -208,6 +224,7 @@ const CAMPAIGN = [
             difficulty: "hard",
             maxCommands: 6,
             rows: [".....", ".###.", ".#G#.", ".#.#.", "^...."],
+            hints: ["The limit equals the shortest program. Every command counts."],
           },
           {
             slug: "no-wasted-moves",
@@ -215,6 +232,7 @@ const CAMPAIGN = [
             difficulty: "hard",
             maxCommands: 11,
             rows: ["..#.G", "..#..", "..#..", "....#", "^...."],
+            hints: ["Plan the whole route first. There are no spare commands."],
           },
         ],
       },
@@ -281,7 +299,9 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    if (!this.config.seedStarterCampaign) return;
+    const mode = this.config.seedStarterCampaign;
+    if (mode === "never") return;
+    if (mode === "when-empty" && (await this.prisma.level.count()) > 0) return;
     try {
       await this.seed();
     } catch (error) {
