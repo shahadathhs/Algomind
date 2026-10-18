@@ -103,12 +103,24 @@ func test_missing_level_file_does_not_crash() -> void:
 	assert_eq(campaign.errors.size(), 1)
 
 
-func test_level_that_needs_a_mechanic_is_skipped() -> void:
+func test_level_that_needs_a_mechanic_is_blocked_not_playable() -> void:
 	var levels := _all_four()
 	levels["d"]["requires"]["mechanics"] = ["switch"]
 	var campaign := Campaign.from_data(_placement(), _loader(levels))
-	assert_eq(campaign.entries.size(), 3)
-	assert_eq(campaign.worlds.size(), 1, "a world with no playable level is left out")
+	assert_eq(campaign.entries.size(), 3, "it cannot be played")
+	assert_eq(campaign.worlds.size(), 2, "its world stays, so the player can see why")
+	var blocked := campaign.blocked_by_id("d")
+	assert_eq(blocked["reason"], "mechanic")
+	assert_eq(blocked["title"], levels["d"]["title"])
+	assert_eq(campaign.blocked_levels().size(), 1)
+
+
+func test_level_with_a_newer_schema_is_blocked() -> void:
+	var levels := _all_four()
+	levels["a"]["schemaVersion"] = 2
+	var campaign := Campaign.from_data(_placement(), _loader(levels))
+	assert_eq(campaign.entry_by_id("a"), {})
+	assert_eq(campaign.blocked_by_id("a")["reason"], "schema")
 
 
 func test_level_file_naming_another_id_is_skipped() -> void:

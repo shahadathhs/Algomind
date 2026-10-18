@@ -5,7 +5,6 @@ extends ScreenBase
 ## resulting events with short animations. Animation length never changes the outcome, and with
 ## Reduce motion the tape and automaton jump instead of sliding.
 
-const STEP_SECONDS := 0.2
 const NUDGE_SECONDS := 0.08
 const COMMANDS: Array[Dictionary] = [
 	{"op": "MOVE_FORWARD", "label": "MOVE", "icon": "move"},
@@ -25,7 +24,14 @@ var _run_id := 0
 ## True while one step is being animated.
 var _busy := false
 
+## The size the objective message should have inside its row.
+var _message_box := Vector2.ZERO
 var _back: TileButton
+var _help: TileButton
+var _menu: TileButton
+var _coach: _Coach
+## The open pause or hint panel, if any.
+var _overlay: Control
 var _caption: Label
 var _title: Label
 var _badge: _Badge
@@ -50,7 +56,7 @@ var _next: TileButton
 func _build() -> void:
 	_entry = app.campaign.entry_by_id(str(args.get("level_id", "")))
 	if _entry.is_empty():
-		navigate.emit.call_deferred("levels", {})
+		navigate.emit.call_deferred("worlds", {})
 		return
 	_level = _entry["level"]
 	_session = PlaySession.new(_level)
@@ -71,7 +77,18 @@ func _build() -> void:
 	add_child(_caption)
 	_title = UiKit.label(str(_level["title"]).to_upper(), 24, Palette.INK, 1)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	add_child(_title)
+	_help = TileButton.make(TileButton.Kind.SECONDARY, "", "help")
+	_help.accessibility_name = "Hint"
+	_help.pressed.connect(_open_hint)
+	add_child(_help)
+	_menu = TileButton.make(TileButton.Kind.SECONDARY, "", "menu")
+	_menu.accessibility_name = "Pause menu"
+	_menu.pressed.connect(_open_pause)
+	add_child(_menu)
+	_coach = _Coach.new()
+	add_child(_coach)
 
 	_badge = _Badge.new()
 	add_child(_badge)
@@ -134,8 +151,11 @@ func _build() -> void:
 
 
 func go_back() -> void:
+	if _overlay != null:
+		_close_overlay()
+		return
 	_run_id += 1
-	navigate.emit("levels", {})
+	navigate.emit("world", {"world": int(_entry["world"])})
 
 
 func _notification(what: int) -> void:
@@ -169,10 +189,14 @@ func _layout() -> void:
 
 	_back.position = Vector2(m, y)
 	_back.size = Vector2(44.0, 44.0)
+	_menu.position = Vector2(size.x - m - 44.0, y)
+	_menu.size = Vector2(44.0, 44.0)
+	_help.position = Vector2(size.x - m - 96.0, y)
+	_help.size = Vector2(44.0, 44.0)
 	_caption.position = Vector2(m + 54.0, y)
-	_caption.size = Vector2(width - 108.0, 18.0)
+	_caption.size = Vector2(width - 158.0, 18.0)
 	_title.position = Vector2(m + 54.0, y + 16.0)
-	_title.size = Vector2(width - 108.0, 30.0)
+	_title.size = Vector2(width - 158.0, 30.0)
 	y += 44.0 + (10.0 if compact else 12.0)
 
 	var objective_h := 52.0 if compact else 54.0
@@ -183,9 +207,11 @@ func _layout() -> void:
 	_badge.position = Vector2(m, y + (objective_h - 28.0) / 2.0)
 	_badge.size = Vector2(28.0, 28.0)
 	_message.position = Vector2(m + badge_w, y)
-	_message.size = Vector2(
+	_message_box = Vector2(
 		width - badge_w - counter_w - (8.0 if counter_w > 0.0 else 0.0), objective_h
 	)
+	_message.size = _message_box
+	_settle_message()
 	_counter.position = Vector2(size.x - m - 150.0, y)
 	_counter.size = Vector2(150.0, objective_h)
 	y += objective_h + 8.0
@@ -198,6 +224,11 @@ func _layout() -> void:
 		_commands_caption.position = Vector2(m, cursor - 18.0)
 		_commands_caption.size = Vector2(width, 18.0)
 		cursor -= 18.0 + 14.0
+	var coach_h := 40.0
+	if _coach.visible:
+		_coach.position = Vector2(m, cursor - coach_h)
+		_coach.size = Vector2(width, coach_h)
+		cursor -= coach_h + 8.0
 	var tape_h := 84.0 if compact else 112.0
 	_tape_view.position = Vector2(m, cursor - tape_h)
 	_tape_view.size = Vector2(width, tape_h)
@@ -221,6 +252,7 @@ func _layout() -> void:
 	var row_nodes: Array = []
 	row_nodes.append_array(_command_buttons)
 	row_nodes.append_array(_stats)
+	_sync_tape_scroll()
 	_place_row(row_nodes, row_y, control_h, width, m, 10.0)
 	_layout_controls(controls_y, control_h, width, m)
 	_commands_caption.visible = not compact and not _session.is_finished()
@@ -303,6 +335,7 @@ func _refresh() -> void:
 	if solved:
 		_update_stats()
 	_commands_caption.visible = not solved and size.y >= 760.0
+	_update_coach(state)
 
 	_badge.kind = "check" if solved else "x"
 	_message.text = _message_text()
@@ -320,15 +353,30 @@ func _refresh() -> void:
 	_tape_view.current = (
 		_session.cursor - 1 if _session.cursor > 0 else (0 if _tape_view.running else -1)
 	)
-	if _tape_view.running:
-		_tape_view.scroll = _tape_view.head_scroll(_tape_view.current)
-	else:
-		_tape_view.scroll = _tape_view.edit_scroll()
+	_sync_tape_scroll()
 	_show_board()
 	_layout()
 	queue_redraw()
 	for node in [_badge, _tape_view]:
 		node.queue_redraw()
+
+
+## A wrapping label first measured at zero width keeps a huge minimum height, so it is sized
+## again one frame later, after the label has recomputed its minimum for the real width.
+func _settle_message() -> void:
+	await get_tree().process_frame
+	if is_instance_valid(_message):
+		_message.size = _message_box
+
+
+## Puts the tape where it belongs for the current state: the read-head while a run is shown,
+## otherwise the end of the program. Depends on the tape's width, so it also runs after layout.
+func _sync_tape_scroll() -> void:
+	if _tape_view.running:
+		_tape_view.scroll = _tape_view.head_scroll(_tape_view.current)
+	else:
+		_tape_view.scroll = _tape_view.edit_scroll()
+	_tape_view.queue_redraw()
 
 
 func _set_run_button(label: String, icon: String, disabled: bool) -> void:
@@ -393,6 +441,7 @@ func _on_command(op: String) -> void:
 		return
 	_begin_edit()
 	_tape.append(op)
+	app.sfx("tap")
 	_refresh()
 
 
@@ -459,6 +508,75 @@ func _start(next_state: PlaySession.State) -> bool:
 	return true
 
 
+# ----- coach, hint, and pause ---------------------------------------------------------------
+
+
+## The first-run coach on level 1: step 1 until a command is added, step 2 until the run starts.
+func _update_coach(state: PlaySession.State) -> void:
+	var active := (
+		int(_entry["number"]) == 1
+		and not app.progress.settings.tutorial_done()
+		and state == PlaySession.State.READY
+	)
+	_coach.visible = active
+	if not active:
+		return
+	if _tape.size() == 0:
+		_coach.step_number = 1
+		_coach.text = "TAP MOVE TO ADD A COMMAND"
+	else:
+		_coach.step_number = 2
+		_coach.text = "TAP RUN TO START YOUR PROGRAM"
+	_coach.queue_redraw()
+
+
+func _open_hint() -> void:
+	if _overlay != null:
+		return
+	var overlay := HintOverlay.new()
+	for hint: Variant in _level.get("hints", []):
+		overlay.hints.append(str(hint))
+	overlay.closed.connect(_close_overlay)
+	app.sfx("hint")
+	_show_overlay(overlay)
+
+
+func _open_pause() -> void:
+	if _overlay != null:
+		return
+	if _session.state == PlaySession.State.RUNNING:
+		_session.pause()
+		_refresh()
+	var overlay := PauseOverlay.new()
+	overlay.level_caption = "LEVEL %02d" % _entry["number"]
+	overlay.resume.connect(_close_overlay)
+	overlay.restart.connect(
+		func() -> void:
+			_close_overlay()
+			_on_reset()
+	)
+	var here := {"back": "play", "back_args": {"level_id": _entry["id"]}}
+	overlay.how_to_play.connect(func() -> void: navigate.emit("how_to_play", here))
+	overlay.open_settings.connect(func() -> void: navigate.emit("settings", here))
+	overlay.back_to_levels.connect(
+		func() -> void:
+			_close_overlay()
+			go_back()
+	)
+	_show_overlay(overlay)
+
+
+func _show_overlay(overlay: Control) -> void:
+	_overlay = overlay
+	add_child(overlay)
+
+
+func _close_overlay() -> void:
+	if _overlay != null:
+		_overlay.queue_free()
+		_overlay = null
+
+
 # ----- animation: displays simulation events, never decides them -------------------------------
 
 
@@ -489,7 +607,13 @@ func _animate_next_step() -> void:
 	var cell: Array = entry["position"]
 	var target := Vector2(int(cell[0]), int(cell[1]))
 	var blocked := str(entry["event"]).begins_with("BLOCKED")
-	var slide := 0.0 if app.progress.reduce_motion() else STEP_SECONDS
+	if blocked:
+		app.sfx("blocked")
+		app.haptic(40)
+	else:
+		app.sfx("step")
+	var seconds := app.progress.settings.step_seconds()
+	var slide := 0.0 if app.progress.settings.reduce_motion() else seconds
 	if slide > 0.0:
 		var tween := create_tween().set_parallel(true)
 		tween.tween_property(_board, "automaton", target, slide)
@@ -508,7 +632,7 @@ func _animate_next_step() -> void:
 			return
 	elif slide == 0.0:
 		# Reduce motion: a short beat so each step is still readable.
-		await get_tree().create_timer(STEP_SECONDS).timeout
+		await get_tree().create_timer(seconds).timeout
 		if id != _run_id:
 			return
 	_after_step()
@@ -524,9 +648,16 @@ func _nudge(direction: String) -> void:
 
 
 func _after_step() -> void:
-	if _session.state == PlaySession.State.SUCCEEDED and persist:
-		app.progress.record_completion(_entry["id"], int(_level["levelVersion"]), _tape.size())
-		app.progress.save()
+	if _session.state == PlaySession.State.SUCCEEDED:
+		app.sfx("success")
+		app.haptic(60)
+		if persist and int(_entry["number"]) == 1:
+			app.progress.settings.set_tutorial_done(true)
+		if persist:
+			app.progress.record_completion(_entry["id"], int(_level["levelVersion"]), _tape.size())
+			app.progress.save()
+	elif _session.state == PlaySession.State.FAILED:
+		app.sfx("fail")
 	_refresh()
 
 
@@ -547,6 +678,14 @@ func debug_show(program_text: String, steps: int) -> void:
 		if _session.state == PlaySession.State.SUCCEEDED:
 			app.progress.record_completion(_entry["id"], int(_level["levelVersion"]), _tape.size())
 	_refresh()
+
+
+## Debug only: open the "pause" or "hint" panel.
+func debug_overlay(kind: String) -> void:
+	if kind == "pause":
+		_open_pause()
+	elif kind == "hint":
+		_open_hint()
 
 
 # ----- small drawn parts -------------------------------------------------------------------------
@@ -584,3 +723,24 @@ class _Stat:
 		UiKit.text(self, value, top, int(size.y * 0.5), Palette.INK, 0)
 		var bottom := Rect2(0.0, size.y * 0.62, size.x, size.y * 0.3)
 		UiKit.text(self, caption, bottom, 13, Palette.MUTE, 2)
+
+
+## The first-run coach: a dark bar with a numbered yellow chip and one instruction.
+class _Coach:
+	extends Control
+
+	var step_number := 1
+	var text := ""
+
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		visible = false
+
+	func _draw() -> void:
+		var rect := Rect2(Vector2.ZERO, size)
+		UiKit.fill_chamfer(self, rect, Palette.INK)
+		var chip := Rect2(8.0, (size.y - 24.0) / 2.0, 24.0, 24.0)
+		UiKit.fill_chamfer(self, chip, Palette.SIGNAL)
+		UiKit.text(self, str(step_number), chip, 16, Palette.ON_SIGNAL, 0)
+		var area := Rect2(44.0, 0.0, size.x - 56.0, size.y)
+		UiKit.text(self, text, area, 15, Palette.ON_INK, 1, HORIZONTAL_ALIGNMENT_LEFT)

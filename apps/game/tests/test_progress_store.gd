@@ -63,8 +63,8 @@ func test_missing_file_starts_fresh() -> void:
 	store.load_data()
 	assert_true(store.started_fresh)
 	assert_false(store.is_completed("a"))
-	assert_eq(store.theme(), "system")
-	assert_false(store.reduce_motion())
+	assert_eq(store.settings.theme(), "system")
+	assert_false(store.settings.reduce_motion())
 
 
 func test_save_and_load_round_trip() -> void:
@@ -72,8 +72,8 @@ func test_save_and_load_round_trip() -> void:
 	store.load_data()
 	store.record_completion("a", 1, 5)
 	store.set_last_level("a")
-	store.set_theme("dark")
-	store.set_reduce_motion(true)
+	store.settings.set_theme("dark")
+	store.settings.set_reduce_motion(true)
 	assert_true(store.save())
 	var again := ProgressStore.new(PATH)
 	again.load_data()
@@ -81,8 +81,8 @@ func test_save_and_load_round_trip() -> void:
 	assert_true(again.is_completed("a"))
 	assert_eq(again.best_commands("a", 1), 5)
 	assert_eq(again.last_level(), "a")
-	assert_eq(again.theme(), "dark")
-	assert_true(again.reduce_motion())
+	assert_eq(again.settings.theme(), "dark")
+	assert_true(again.settings.reduce_motion())
 
 
 func test_best_keeps_the_fewest_commands() -> void:
@@ -184,14 +184,14 @@ func test_bad_entries_are_dropped_one_by_one() -> void:
 	assert_false(store.is_completed("b"))
 	assert_false(store.is_completed("c"))
 	assert_eq(store.last_level(), "")
-	assert_eq(store.theme(), "system")
-	assert_false(store.reduce_motion())
+	assert_eq(store.settings.theme(), "system")
+	assert_false(store.settings.reduce_motion())
 
 
 func test_unknown_theme_is_ignored() -> void:
 	var store := ProgressStore.new(PATH)
-	store.set_theme("neon")
-	assert_eq(store.theme(), "system")
+	store.settings.set_theme("neon")
+	assert_eq(store.settings.theme(), "system")
 
 
 func test_only_the_first_level_is_unlocked_at_the_start() -> void:

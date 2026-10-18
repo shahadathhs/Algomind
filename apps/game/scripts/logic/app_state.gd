@@ -13,6 +13,8 @@ var campaign: Campaign
 var progress: ProgressStore
 var content: ContentStore
 var api: ApiClient
+## Sound, music, and vibration; null in tests and screenshots, where the helpers do nothing.
+var feedback: Feedback
 ## "bundled" or "downloaded": where the current campaign came from.
 var source := "bundled"
 ## "idle", "loading", "updated", "unchanged", "offline", "disabled", or "invalid".
@@ -37,8 +39,20 @@ func _init(
 	_use_best_campaign()
 
 
+## Plays a named sound effect when sound is on.
+func sfx(effect: String) -> void:
+	if feedback != null:
+		feedback.play(effect)
+
+
+## A short vibration when vibration is on.
+func haptic(milliseconds: int) -> void:
+	if feedback != null:
+		feedback.buzz(milliseconds)
+
+
 func is_dark() -> bool:
-	match progress.theme():
+	match progress.settings.theme():
 		"dark":
 			return true
 		"light":

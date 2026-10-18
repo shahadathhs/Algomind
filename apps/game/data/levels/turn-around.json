@@ -27,5 +27,5 @@
     "type": "reach_tile",
     "position": [2, 4]
   },
-  "hints": ["Two turns face the opposite way."]
+  "hints": ["The target is behind you. Turn twice, then move."]
 }

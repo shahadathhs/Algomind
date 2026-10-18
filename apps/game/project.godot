@@ -8,6 +8,7 @@ run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
 config/quit_on_go_back=false
+config/version="0.0.1"
 
 [display]
 
@@ -28,3 +29,5 @@ textures/vram_compression/import_etc2_astc=true
 ; API the game talks to. Empty means offline only. CI sets this for release builds
 ; (it must be https and end in /v1); debug builds on a desktop can point at localhost.
 network/api_base_url=""
+; The public website, for the privacy page and the app download page.
+network/site_url="https://playalgomind.vercel.app"

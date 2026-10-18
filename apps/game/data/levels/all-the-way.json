@@ -27,5 +27,5 @@
     "type": "reach_tile",
     "position": [0, 0]
   },
-  "hints": ["Add as many MOVE commands as the distance needs."]
+  "hints": ["The target is straight ahead. How many cells away is it?"]
 }

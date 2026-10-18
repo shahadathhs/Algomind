@@ -27,5 +27,5 @@
     "type": "reach_tile",
     "position": [2, 1]
   },
-  "hints": ["LEFT and RIGHT turn without moving."]
+  "hints": ["Turning left points the automaton up."]
 }

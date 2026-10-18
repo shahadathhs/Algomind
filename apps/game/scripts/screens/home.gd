@@ -25,7 +25,7 @@ func _build() -> void:
 	add_child(_play)
 
 	_levels = TileButton.make(TileButton.Kind.TERTIARY, "LEVELS", "", 18)
-	_levels.pressed.connect(func() -> void: navigate.emit("levels", {}))
+	_levels.pressed.connect(func() -> void: navigate.emit("worlds", {}))
 	_levels.set_disabled(app.campaign.entries.is_empty())
 	_levels.align = HORIZONTAL_ALIGNMENT_LEFT
 	add_child(_levels)

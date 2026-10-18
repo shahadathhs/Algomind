@@ -31,5 +31,5 @@
     "type": "reach_tile",
     "position": [0, 0]
   },
-  "hints": ["Walls stop the automaton. Stay in the open column."]
+  "hints": ["The walls are not in your way. Go straight."]
 }
