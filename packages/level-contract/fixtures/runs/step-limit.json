@@ -65,6 +65,8 @@
       {
         "index": 0,
         "op": "TURN_RIGHT",
+        "node": [0],
+        "round": null,
         "position": [0, 1],
         "direction": "south",
         "event": "TURNED"
@@ -72,6 +74,8 @@
       {
         "index": 1,
         "op": "TURN_LEFT",
+        "node": [1],
+        "round": null,
         "position": [0, 1],
         "direction": "east",
         "event": "TURNED"
@@ -79,6 +83,8 @@
       {
         "index": 2,
         "op": "TURN_RIGHT",
+        "node": [2],
+        "round": null,
         "position": [0, 1],
         "direction": "south",
         "event": "TURNED"
@@ -86,6 +92,8 @@
       {
         "index": 3,
         "op": "TURN_LEFT",
+        "node": [3],
+        "round": null,
         "position": [0, 1],
         "direction": "east",
         "event": "TURNED"

@@ -1,8 +1,14 @@
 /** Schema version this package reads and writes. Anything else is rejected. */
 export const SCHEMA_VERSION = 1;
 
-/** Every command the first command set knows, in the canonical order used by the solver. */
-export const COMMAND_NAMES = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"] as const;
+/** The commands that move or turn the automaton, in the canonical order used by the solver. */
+export const PRIMITIVE_COMMANDS = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"] as const;
+
+/** The loop instruction: a count and a body of primitives. */
+export const REPEAT_OP = "REPEAT";
+
+/** Every command a level can offer, in the canonical order. */
+export const COMMAND_NAMES = [...PRIMITIVE_COMMANDS, REPEAT_OP] as const;
 
 /** Directions in clockwise order starting at north. */
 export const DIRECTIONS = ["north", "east", "south", "west"] as const;
@@ -25,6 +31,9 @@ export const LIMITS = {
   maxWalls: 100,
   maxCommands: { min: 1, max: 64 },
   maxSteps: { min: 1, max: 1000 },
+  /** Instructions in a REPEAT body, and the number of repetitions. A loop cannot contain a loop. */
+  repeatBody: { min: 1, max: 8 },
+  repeatCount: { min: 2, max: 11 },
   levelVersion: { min: 1, max: 1_000_000 },
   /** Lengths are counted in Unicode code points. */
   levelId: { min: 1, max: 64 },

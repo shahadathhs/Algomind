@@ -4,7 +4,7 @@ Language-neutral JSON test data for the level contract. The TypeScript tests and
 
 Every file is one JSON object and has a `description` string explaining what the case shows. Adding a case means adding a file; no test code changes. File names (without `.json`) are unique within a directory and are used only in test names.
 
-Coordinates are `[x, y]`, x grows right, y grows down. Programs are lists of `{ "op": "<COMMAND>" }` nodes. Numbers are JSON integers.
+Coordinates are `[x, y]`, x grows right, y grows down. Programs are lists of `{ "op": "<COMMAND>" }` nodes, where a loop is `{ "op": "REPEAT", "count": 3, "body": [ ...primitive nodes ] }`. Numbers are JSON integers.
 
 ## `levels/valid/*.json`
 
@@ -60,7 +60,7 @@ Coordinates are `[x, y]`, x grows right, y grows down. Programs are lists of `{ 
 - `level` always passes `validateLevel`.
 - `programIssues`: the `(path, code)` pairs `validateProgram(level, program)` must return, compared as a set (empty list means the program is valid). The path prefix is `program`.
 - `expected`: the exact result of `simulate(level, program)`. **`simulate` runs the program even when `programIssues` is not empty** (it checks neither `availableCommands` nor `maxCommands`); the fixtures `disallowed-command` and `max-commands-exceeded` pin this down. An unknown `op` is the exception: it stops the run with `INVALID_INSTRUCTION`.
-- Compare every field. `blockedCell` is `null` unless the reason is `BLOCKED_BY_WALL` or `BLOCKED_BY_BOUNDARY`. `trace` has one entry per executed step in order, `steps` equals its length, and each entry has exactly `index`, `op`, `position`, `direction`, `event`. `position` and `direction` in a trace entry and in `finalState` are the state **after** the step; a blocked move leaves the position unchanged. For field values and semantics (what counts as a step, when the limit is checked, what ends a run) see "The simulator" in `../README.md`.
+- Compare every field. `blockedCell` is `null` unless the reason is `BLOCKED_BY_WALL` or `BLOCKED_BY_BOUNDARY`. `trace` has one entry per executed step in order, `steps` equals its length, and each entry has exactly `index`, `op`, `node`, `round`, `position`, `direction`, `event` (`node` is `[i]` or `[i, j]` inside a loop; `round` is `null` outside a loop). `position` and `direction` in a trace entry and in `finalState` are the state **after** the step; a blocked move leaves the position unchanged. For field values and semantics (what counts as a step, when the limit is checked, what ends a run) see "The simulator" in `../README.md`.
 
 ## `solver/*.json`
 

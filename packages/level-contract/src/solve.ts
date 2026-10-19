@@ -1,13 +1,14 @@
-import { COMMAND_NAMES, DIRECTIONS } from "./constants.js";
+import { DIRECTIONS, PRIMITIVE_COMMANDS, REPEAT_OP } from "./constants.js";
 import { cellAhead, isInsideBoard, isWall, turn } from "./simulate.js";
-import type { CommandName, Direction, Level, Position, Program, SolveResult } from "./types.js";
+import type { Direction, Level, Position, PrimitiveName, Program, SolveResult } from "./types.js";
+import { solveWithRepeat } from "./solve-repeat.js";
 
 interface Node {
   x: number;
   y: number;
   dir: number; // index into DIRECTIONS
   parent: number; // index into the node list, -1 for the start
-  op: CommandName | null; // the command that produced this node
+  op: PrimitiveName | null; // the command that produced this node
 }
 
 /**
@@ -26,7 +27,8 @@ interface Node {
  * ignores both. Expects a level that passed `validateLevel`.
  */
 export function solve(level: Level): SolveResult | null {
-  const available = COMMAND_NAMES.filter((c) => level.availableCommands.includes(c));
+  if (level.availableCommands.includes(REPEAT_OP)) return solveWithRepeat(level);
+  const available = PRIMITIVE_COMMANDS.filter((c) => level.availableCommands.includes(c));
   const goal = level.goal.position;
   const { width, height } = level.board;
   const startDir = DIRECTIONS.indexOf(level.initialState.direction);
@@ -43,8 +45,8 @@ export function solve(level: Level): SolveResult | null {
   const seen = new Set<number>([key(nodes[0]!.x, nodes[0]!.y, startDir, width, height)]);
 
   const finish = (last: number): SolveResult => {
-    const ops: CommandName[] = [];
-    for (let i = last; i > 0; i = nodes[i]!.parent) ops.push(nodes[i]!.op as CommandName);
+    const ops: PrimitiveName[] = [];
+    for (let i = last; i > 0; i = nodes[i]!.parent) ops.push(nodes[i]!.op as PrimitiveName);
     ops.reverse();
     const program: Program = ops.map((op) => ({ op }));
     return {

@@ -77,6 +77,8 @@
       {
         "index": 0,
         "op": "MOVE_FORWARD",
+        "node": [0],
+        "round": null,
         "position": [1, 2],
         "direction": "east",
         "event": "MOVED"
@@ -84,6 +86,8 @@
       {
         "index": 1,
         "op": "TURN_LEFT",
+        "node": [1],
+        "round": null,
         "position": [1, 2],
         "direction": "north",
         "event": "TURNED"
@@ -91,6 +95,8 @@
       {
         "index": 2,
         "op": "MOVE_FORWARD",
+        "node": [2],
+        "round": null,
         "position": [1, 1],
         "direction": "north",
         "event": "MOVED"
@@ -98,6 +104,8 @@
       {
         "index": 3,
         "op": "TURN_RIGHT",
+        "node": [3],
+        "round": null,
         "position": [1, 1],
         "direction": "east",
         "event": "TURNED"
@@ -105,6 +113,8 @@
       {
         "index": 4,
         "op": "MOVE_FORWARD",
+        "node": [4],
+        "round": null,
         "position": [2, 1],
         "direction": "east",
         "event": "MOVED"
@@ -112,6 +122,8 @@
       {
         "index": 5,
         "op": "MOVE_FORWARD",
+        "node": [5],
+        "round": null,
         "position": [3, 1],
         "direction": "east",
         "event": "MOVED"
@@ -119,6 +131,8 @@
       {
         "index": 6,
         "op": "TURN_RIGHT",
+        "node": [6],
+        "round": null,
         "position": [3, 1],
         "direction": "south",
         "event": "TURNED"
@@ -126,6 +140,8 @@
       {
         "index": 7,
         "op": "MOVE_FORWARD",
+        "node": [7],
+        "round": null,
         "position": [3, 2],
         "direction": "south",
         "event": "MOVED"
@@ -133,6 +149,8 @@
       {
         "index": 8,
         "op": "TURN_LEFT",
+        "node": [8],
+        "round": null,
         "position": [3, 2],
         "direction": "east",
         "event": "TURNED"
@@ -140,6 +158,8 @@
       {
         "index": 9,
         "op": "MOVE_FORWARD",
+        "node": [9],
+        "round": null,
         "position": [4, 2],
         "direction": "east",
         "event": "GOAL_REACHED"

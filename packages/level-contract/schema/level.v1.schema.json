@@ -116,7 +116,7 @@
         "availableCommands": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 3,
+          "maxItems": 4,
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/commandName"
@@ -181,22 +181,58 @@
       "enum": ["north", "east", "south", "west"]
     },
     "commandName": {
-      "enum": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+      "enum": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT"]
     },
     "instruction": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["op"],
-      "properties": {
-        "op": {
-          "$ref": "#/$defs/commandName"
+      "oneOf": [
+        {
+          "$ref": "#/$defs/primitiveInstruction"
+        },
+        {
+          "$ref": "#/$defs/repeatInstruction"
         }
-      }
+      ]
     },
     "program": {
       "type": "array",
       "items": {
         "$ref": "#/$defs/instruction"
+      }
+    },
+    "primitiveName": {
+      "enum": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+    },
+    "primitiveInstruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op"],
+      "properties": {
+        "op": {
+          "$ref": "#/$defs/primitiveName"
+        }
+      }
+    },
+    "repeatInstruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "count", "body"],
+      "properties": {
+        "op": {
+          "const": "REPEAT"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 11
+        },
+        "body": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/primitiveInstruction"
+          }
+        }
       }
     }
   }

@@ -53,6 +53,8 @@
       {
         "index": 0,
         "op": "MOVE_FORWARD",
+        "node": [0],
+        "round": null,
         "position": [1, 1],
         "direction": "east",
         "event": "MOVED"
@@ -60,6 +62,8 @@
       {
         "index": 1,
         "op": "MOVE_FORWARD",
+        "node": [1],
+        "round": null,
         "position": [2, 1],
         "direction": "east",
         "event": "MOVED"

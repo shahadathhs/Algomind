@@ -57,7 +57,15 @@ test("a blocked move is a counted, traced step and leaves the position unchanged
   assert.equal(result.steps, 1);
   assert.deepEqual(result.blockedCell, [2, 2]);
   assert.deepEqual(result.trace, [
-    { index: 0, op: "MOVE_FORWARD", position: [1, 2], direction: "east", event: "BLOCKED_BY_WALL" },
+    {
+      index: 0,
+      op: "MOVE_FORWARD",
+      node: [0],
+      round: null,
+      position: [1, 2],
+      direction: "east",
+      event: "BLOCKED_BY_WALL",
+    },
   ]);
 });
 

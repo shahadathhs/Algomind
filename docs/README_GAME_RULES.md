@@ -97,11 +97,40 @@ Do not implement these all at once. Introduce each command only when the level d
 - If the automaton tries to move into a wall or outside the board, execution stops with a clear explanation. This is a failure.
 - A maximum execution-step limit prevents infinite or unexpectedly long programs.
 - Invalid commands are never silently ignored.
-- A loop counts as one authored program slot; its nested instructions have their own limit.
+- A `REPEAT` counts as one slot plus one slot for each instruction in its body (section 3.1), so the command limit bounds the whole program.
 
 ### Program representation
 
 A program is an ordered list of instruction nodes (not bare strings), so `REPEAT` and `IF_FRONT_BLOCKED` can contain nested instructions later without breaking the level format. The same representation is used by the player's program, the reference solution, and the shared fixtures.
+
+### 3.1 REPEAT (specified, not built)
+
+> **Status:** proposed. The par search was prototyped and measured (bodies up to 8 instructions on boards up to 12 by 12 solve in 3 to 70 ms; allowing a loop inside a loop costs 0.4 to 1.8 s for little gain). Nothing in the contract, either simulator, the editor, or the game implements it yet.
+
+A program node is either a primitive (`MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`) or a loop:
+
+```json
+{ "op": "REPEAT", "count": 6, "body": [{ "op": "MOVE_FORWARD" }, { "op": "TURN_RIGHT" }] }
+```
+
+- **Body:** one to 8 primitive instructions. A loop cannot contain a loop in version 1. Nesting would be a separate mechanic (`nested_repeat`) with its own client release.
+- **Count:** a whole number from 2 to 11. One repetition is just the body, and 11 is the most that can matter on the largest board (12 cells a side).
+- **Availability:** a level lists `REPEAT` in `availableCommands`. The mechanic `repeat` is derived from that (the API adds it to the required mechanics), so a client that does not declare `repeat` shows the update screen for that level and never starts it. A loop in the program of a level that does not list `REPEAT` is a content error, never silently skipped.
+- **Slots (the command limit):** a primitive is 1. A `REPEAT` is 1 plus the number of instructions in its body. `maxCommands` limits the total. `REPEAT 6 { MOVE_FORWARD, TURN_RIGHT, MOVE_FORWARD, TURN_LEFT }` is 5 slots.
+- **Steps:** each executed primitive is one step, as before. The `REPEAT` node itself costs no step. The step limit is checked before every primitive, including inside the loop.
+- **Reaching the goal:** the run succeeds the moment the automaton enters the goal, even in the middle of an iteration or of a loop. The rest of the program does not run and is not counted. A body or iteration may therefore be left unfinished.
+- **Failure:** a blocked move inside a loop stops the run. The failing tile is the body instruction that was blocked. The message and the tape also show the iteration ("Round 3 of 6").
+- **Par:** the fewest slots of any program that solves the level, searched exactly over loop bodies of up to 8 instructions. The solver is TypeScript only (the API publish gate and the dashboard); the game never needs it. The reference solution may use `REPEAT`.
+- **Why the metric is slots, not steps:** a loop that repeats a body costs 1 plus the body, whatever the count. A long straight corridor is cheap (`REPEAT 9 { MOVE_FORWARD }` is 2 slots), so a level only needs an algorithm when its structure repeats in a way a plain run of moves cannot capture (stairs, notches, repeated rooms).
+
+**Level design rules for loop levels** (checked by the candidate generator, and by the publish gate where it can be checked mechanically):
+
+1. **Loop par below flat par:** the shortest program without `REPEAT` must be larger than `maxCommands`, so a loop is required, not merely allowed.
+2. **The limit sits at or just above loop par.** The intended pattern must fit; the corridor shortcut must not.
+3. **No accidental shortcuts:** cells on a corridor must not touch another part of the path, or the board solves with a plain run. The solver finds these (a "teeth" candidate with flat par 6 and loop par 2 was caught this way).
+4. **Check par with the solver, never by eye.** On open boards the solver finds patterns the author did not intend (a free 10 by 10 board was solved by `REPEAT 9 { M R M L }`).
+
+**Editing:** the palette gains a Repeat tile. Tapping it appends a group with a count of 2 and an empty body that takes the next tapped commands until it is closed; the count is changed with minus and plus tiles on the group. A group is drawn as a count tile followed by its body tiles inside one outlined bracket. Visual rules are in [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md) (to be updated when this is built).
 
 ## 4. Execution model and feedback
 
