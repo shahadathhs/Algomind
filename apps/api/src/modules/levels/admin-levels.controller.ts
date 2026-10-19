@@ -16,6 +16,10 @@ import { AdminRoute, BodyOf, ErrorOf, QueryOf, ResponseOf } from "../../core/htt
 import { parseInput } from "../../core/http/errors.js";
 import { AdminGuard, JwtAuthGuard } from "../auth/auth.module.js";
 import type { AuthenticatedRequest } from "../auth/auth.types.js";
+import { LevelsPlaytestService } from "./levels-playtest.service.js";
+import { LevelsPublishService } from "./levels-publish.service.js";
+import { LevelsReadService } from "./levels-read.service.js";
+import { LevelsTransferService } from "./levels-transfer.service.js";
 import { LevelsService } from "./levels.service.js";
 import {
   createLevelSchema,
@@ -54,14 +58,20 @@ const exportQuerySchema = z.object({
 @UseGuards(JwtAuthGuard, AdminGuard)
 @AdminRoute()
 export class AdminLevelsController {
-  constructor(private readonly levels: LevelsService) {}
+  constructor(
+    private readonly levels: LevelsService,
+    private readonly reads: LevelsReadService,
+    private readonly publication: LevelsPublishService,
+    private readonly playtestRecords: LevelsPlaytestService,
+    private readonly transfers: LevelsTransferService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: "List levels with filters, search, sorting, and paging." })
   @QueryOf(listLevelsQuerySchema)
   @ResponseOf(200, levelPageSchema, "One page of level summaries.")
   list(@Query() query: unknown): Promise<LevelPage> {
-    return this.levels.list(parseInput(listLevelsQuerySchema, query));
+    return this.reads.list(parseInput(listLevelsQuerySchema, query));
   }
 
   @Post()
@@ -103,7 +113,7 @@ export class AdminLevelsController {
   ): Promise<LevelView> {
     const envelope = parseInput(importEnvelopeSchema, body);
     const { slug } = parseInput(importQuerySchema, query);
-    return this.levels.import(envelope, slug, req.user.id);
+    return this.transfers.import(envelope, slug, req.user.id);
   }
 
   @Get(":id")
@@ -111,7 +121,7 @@ export class AdminLevelsController {
   @ResponseOf(200, levelSchema, "The level.")
   @ErrorOf(404, "NOT_FOUND.")
   get(@Param("id") id: string): Promise<LevelView> {
-    return this.levels.get(id);
+    return this.reads.get(id);
   }
 
   @Patch(":id")
@@ -182,7 +192,7 @@ export class AdminLevelsController {
   @ErrorOf(404, "NOT_FOUND.")
   @ErrorOf(409, "NO_DRAFT.")
   validate(@Param("id") id: string): Promise<ValidateResponse> {
-    return this.levels.validate(id);
+    return this.publication.validate(id);
   }
 
   @Post(":id/publish")
@@ -200,7 +210,7 @@ export class AdminLevelsController {
   @ErrorOf(409, "NO_DRAFT.")
   @ErrorOf(422, "PUBLISH_BLOCKED.")
   publish(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
-    return this.levels.publish(id, req.user.id);
+    return this.publication.publish(id, req.user.id);
   }
 
   @Post(":id/unpublish")
@@ -221,7 +231,7 @@ export class AdminLevelsController {
     @Req() req: AuthenticatedRequest,
   ): Promise<LevelView> {
     const { archive } = parseInput(unpublishBodySchema, body ?? {});
-    return this.levels.unpublish(id, archive, req.user.id);
+    return this.publication.unpublish(id, archive, req.user.id);
   }
 
   @Get(":id/versions")
@@ -229,7 +239,7 @@ export class AdminLevelsController {
   @ResponseOf(200, versionListSchema, "All versions.")
   @ErrorOf(404, "NOT_FOUND.")
   versions(@Param("id") id: string): Promise<{ items: VersionSummary[] }> {
-    return this.levels.versions(id);
+    return this.reads.versions(id);
   }
 
   @Get(":id/versions/:versionId")
@@ -237,7 +247,7 @@ export class AdminLevelsController {
   @ResponseOf(200, versionSchema, "The version.")
   @ErrorOf(404, "NOT_FOUND.")
   version(@Param("id") id: string, @Param("versionId") versionId: string): Promise<VersionView> {
-    return this.levels.version(id, versionId);
+    return this.reads.version(id, versionId);
   }
 
   @Post(":id/restore/:versionId")
@@ -274,7 +284,7 @@ export class AdminLevelsController {
   @ResponseOf(200, playtestListSchema, "Records; current marks those matching the draft content.")
   @ErrorOf(404, "NOT_FOUND.")
   playtests(@Param("id") id: string): Promise<{ items: PlaytestView[] }> {
-    return this.levels.listPlaytests(id);
+    return this.playtestRecords.listPlaytests(id);
   }
 
   @Post(":id/playtests")
@@ -293,7 +303,11 @@ export class AdminLevelsController {
     @Body() body: unknown,
     @Req() req: AuthenticatedRequest,
   ): Promise<PlaytestView> {
-    return this.levels.createPlaytest(id, parseInput(playtestBodySchema, body), req.user.id);
+    return this.playtestRecords.createPlaytest(
+      id,
+      parseInput(playtestBodySchema, body),
+      req.user.id,
+    );
   }
 
   @Get(":id/export")
@@ -307,6 +321,6 @@ export class AdminLevelsController {
   @ErrorOf(422, "LEVEL_VALIDATION_FAILED: only a valid level can be exported.")
   export(@Param("id") id: string, @Query() query: unknown): Promise<ExportEnvelope> {
     const { version } = parseInput(exportQuerySchema, query);
-    return this.levels.export(id, version);
+    return this.transfers.export(id, version);
   }
 }
