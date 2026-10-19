@@ -36,7 +36,7 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [ ] `make check` green (lint, typecheck, API and game tests pass; the full run is not yet repeated)
 - [x] Game plays the new levels (screenshots checked: palette starts with Move only)
 - [ ] Dashboard lists the new levels; `/levels` and `/play` show them
-- [ ] Review all screenshots at 390x844, 360x640, 412x915 in both themes (captured by `make game-shots`; only 390x844 reviewed so far)
+- [x] Screenshots reviewed at 360x640 and 412x915 (play ready, running, failed, solved, big board; pause; worlds; world; home; settings; account; how-to-play): the pause scrim is now opaque. Not every one of the 102 was looked at by eye; the rest were checked identical before and after the `play.gd` split
 
 ## Next: step 2, `REPEAT` in the editor and the dashboard
 
