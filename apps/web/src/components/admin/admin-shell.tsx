@@ -15,6 +15,7 @@ const NAV = [
   { href: "/admin", label: "Home" },
   { href: "/admin/levels", label: "Levels" },
   { href: "/admin/campaign", label: "Campaign" },
+  { href: "/admin/players", label: "Players" },
   { href: "/admin/capabilities", label: "Capabilities" },
   { href: "/admin/points", label: "Points" },
   { href: "/admin/import", label: "Import" },

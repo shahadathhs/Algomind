@@ -1,5 +1,6 @@
 "use client";
 
+import { downloadJson } from "@/lib/admin/download";
 import { apiMessage } from "@/lib/admin/messages";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -38,13 +39,7 @@ export function LevelHistory({ levelId }: { levelId: string }) {
     setError(null);
     try {
       const envelope = await api.exportLevel(levelId, version.id);
-      const blob = new Blob([JSON.stringify(envelope, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${envelope.meta.slug}-v${version.versionNumber}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadJson(`${envelope.meta.slug}-v${version.versionNumber}.json`, envelope);
     } catch (err) {
       if (!(err instanceof SessionEndedError)) setError(apiMessage(err));
     }

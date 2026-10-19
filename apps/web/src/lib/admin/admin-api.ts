@@ -184,6 +184,48 @@ export type PointsRules = {
 export type PointsRulesInput = Omit<PointsRules, "version">;
 export type RuleSet = { version: number; rules: PointsRules; active: boolean; createdAt: string };
 
+export type PlayerStatus = "ACTIVE" | "SUSPENDED";
+export type PlayerSummary = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  status: PlayerStatus;
+  createdAt: string;
+  lastActiveAt: string | null;
+  levelsCleared: number;
+  points: number;
+};
+export type PlayerQuery = {
+  q?: string;
+  status?: PlayerStatus;
+  sort?: "lastActive" | "points" | "cleared" | "created" | "email";
+  order?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+};
+export type PlayerDetail = {
+  account: Omit<PlayerSummary, "levelsCleared" | "points">;
+  progress: {
+    levelSlug: string;
+    levelVersion: number;
+    bestCommands: number;
+    completedAt: string;
+  }[];
+  points: {
+    total: number;
+    history: {
+      createdAt: string;
+      reason: string;
+      delta: number;
+      levelSlug: string | null;
+      ruleVersion: number;
+    }[];
+  };
+  sessions: { familyId: string; startedAt: string; lastUsedAt: string; expiresAt: string }[];
+  settings: { settings: unknown; updatedAt: string } | null;
+  lastSyncAt: string | null;
+};
+
 export type LevelQuery = {
   q?: string;
   status?: LevelStatus;
@@ -253,6 +295,23 @@ export function adminApi(client: ApiClient) {
 
     listPointsRules: () => client.get<{ items: RuleSet[] }>("admin/points-rules"),
     createPointsRules: (body: PointsRulesInput) => client.post<RuleSet>("admin/points-rules", body),
+
+    listPlayers: (query: PlayerQuery = {}) =>
+      client.get<Page<PlayerSummary>>(`admin/players${qs({ ...query })}`),
+    getPlayer: (id: string) => client.get<PlayerDetail>(`admin/players/${id}`),
+    exportPlayer: (id: string) => client.get<unknown>(`admin/players/${id}/export`),
+    revokePlayerSessions: (id: string) =>
+      client.post<{ revoked: number }>(`admin/players/${id}/revoke-sessions`),
+    resetPlayerProgress: (id: string) =>
+      client.post<{ levels: number; points: number }>(`admin/players/${id}/reset-progress`),
+    setPlayerName: (id: string, displayName: string | null) =>
+      client.patch<{ displayName: string | null }>(`admin/players/${id}/display-name`, {
+        displayName,
+      }),
+    suspendPlayer: (id: string) => client.post<void>(`admin/players/${id}/suspend`),
+    unsuspendPlayer: (id: string) => client.post<void>(`admin/players/${id}/unsuspend`),
+    deletePlayer: (id: string, confirmEmail: string) =>
+      client.delete<void>(`admin/players/${id}`, { confirmEmail }),
 
     getCampaign: () => client.get<AdminCampaign>("admin/campaign"),
     createWorld: (body: { title: string; description?: string }) =>
