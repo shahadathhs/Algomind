@@ -37,7 +37,9 @@ func _build() -> void:
 	_list.add_child(_caption("AUDIO AND TOUCH"))
 	_list.add_child(_toggle_row("SOUND", settings.sound(), _toggle_sound))
 	_list.add_child(_toggle_row("MUSIC", settings.music(), _toggle_music))
-	_list.add_child(_toggle_row("VIBRATION", settings.vibration(), _toggle_vibration))
+	# The browser build has no vibration and no link out: the site around it has both.
+	if not OS.has_feature("web"):
+		_list.add_child(_toggle_row("VIBRATION", settings.vibration(), _toggle_vibration))
 	_list.add_child(_gap(10.0))
 	_list.add_child(_caption("MOTION"))
 	_list.add_child(_toggle_row("REDUCE MOTION", settings.reduce_motion(), _toggle_motion))
@@ -46,10 +48,11 @@ func _build() -> void:
 	_list.add_child(_caption("LOOK"))
 	_list.add_child(_segment_row("THEME", THEME_NAMES, settings.theme(), _set_theme))
 
-	_privacy = TileButton.make(TileButton.Kind.TERTIARY, "PRIVACY", "", 16)
-	_privacy.align = HORIZONTAL_ALIGNMENT_LEFT
-	_privacy.pressed.connect(func() -> void: Links.open("/privacy"))
-	add_child(_privacy)
+	if not OS.has_feature("web"):
+		_privacy = TileButton.make(TileButton.Kind.TERTIARY, "PRIVACY", "", 16)
+		_privacy.align = HORIZONTAL_ALIGNMENT_LEFT
+		_privacy.pressed.connect(func() -> void: Links.open("/privacy"))
+		add_child(_privacy)
 	_version = UiKit.label("VERSION %s" % Links.version(), 14, Palette.MUTE, 2)
 	_version.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(_version)
@@ -71,8 +74,9 @@ func _layout() -> void:
 	_title.size = Vector2(width, 40.0)
 	var footer_h := 48.0
 	var bottom := size.y - inset_bottom() - m
-	_privacy.position = Vector2(m, bottom - footer_h)
-	_privacy.size = Vector2(width * 0.4, footer_h)
+	if _privacy != null:
+		_privacy.position = Vector2(m, bottom - footer_h)
+		_privacy.size = Vector2(width * 0.4, footer_h)
 	_version.position = Vector2(size.x - m - width * 0.55, bottom - footer_h)
 	_version.size = Vector2(width * 0.55, footer_h)
 	var list_top := _title.position.y + 56.0

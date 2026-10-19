@@ -55,7 +55,9 @@ func _build() -> void:
 
 
 func go_back() -> void:
-	get_tree().quit()
+	# A browser tab is closed by the visitor, not by the game.
+	if not OS.has_feature("web"):
+		get_tree().quit()
 
 
 func _layout() -> void:

@@ -43,7 +43,7 @@ export default function PlayPage() {
           app is the better way to play.
         </p>
       </div>
-      <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,430px)_minmax(0,1fr)] lg:gap-16">
+      <div className="mt-10 grid gap-12 md:grid-cols-[minmax(0,360px)_minmax(0,1fr)] md:gap-10 lg:grid-cols-[minmax(0,430px)_minmax(0,1fr)] lg:gap-16">
         <div>
           {build.available ? (
             <PlayFrame executable={build.executable} sizes={build.sizes} />
