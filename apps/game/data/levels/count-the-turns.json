@@ -17,7 +17,7 @@
   },
   "hints": ["Count the turns as well as the moves."],
   "title": "Count the turns",
-  "levelId": "d73ee47d-42d8-4159-8ebc-9100e50a359d",
+  "levelId": "fc6a8185-fd72-49ed-b243-22da99afcfbb",
   "requires": {
     "mechanics": []
   },

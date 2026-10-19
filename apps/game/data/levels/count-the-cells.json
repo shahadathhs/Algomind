@@ -11,7 +11,7 @@
   },
   "hints": ["Count the cells between the automaton and the target."],
   "title": "Count the cells",
-  "levelId": "33eecce7-e3ab-43b4-906f-5fed03792327",
+  "levelId": "4bf284e1-ce8a-4997-88ae-c2b6a56230a4",
   "requires": {
     "mechanics": []
   },

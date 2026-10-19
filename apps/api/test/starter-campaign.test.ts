@@ -10,15 +10,17 @@ const built = LEVELS.map((entry) => ({
 }));
 
 describe("the starter campaign", () => {
-  it("has two worlds, four chapters, and eighteen levels in a fixed order", () => {
-    expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual(["Basics", "Routes"]);
+  it("has three worlds, six chapters, and twenty-eight levels in a fixed order", () => {
+    expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual(["Basics", "Routes", "Loops"]);
     expect(CAMPAIGN.worlds.flatMap((w) => w.chapters.map((c) => c.title))).toEqual([
       "Moves",
       "Turns",
       "Detours",
       "Budgets",
+      "Repeat",
+      "Patterns",
     ]);
-    expect(LEVELS).toHaveLength(18);
+    expect(LEVELS).toHaveLength(28);
   });
 
   it("uses each slug, title, and board once", () => {
@@ -49,7 +51,9 @@ describe("the starter campaign", () => {
       // Every offered command is a real choice: the shortest program does not have to use all of
       // them, but none may be missing.
       for (const op of used) expect(entry.def.commands).toContain(op);
-      expect(entry.def.commands).not.toContain("REPEAT");
+      // Loops belong to world 3 only: the first two worlds never offer REPEAT, and world 3 always does.
+      if (entry.world.title === "Loops") expect(entry.def.commands).toContain("REPEAT");
+      else expect(entry.def.commands).not.toContain("REPEAT");
       expect(entry.def.hints?.length ?? 0).toBeGreaterThanOrEqual(1);
       expect(entry.def.hints?.length ?? 0).toBeLessThanOrEqual(3);
       for (const hint of entry.def.hints ?? []) expect(hint.length).toBeLessThanOrEqual(140);
@@ -65,12 +69,12 @@ describe("the starter campaign", () => {
     expect(offers("turn-around")).toHaveLength(3);
   });
 
-  it("gives the Budgets chapter exactly the shortest program, and Basics too", () => {
+  it("gives the Budgets chapter, Basics, and Loops exactly the shortest program", () => {
     for (const entry of built) {
       const par = solve(entry.level)!.commands;
       const world = entry.world.title;
       const chapter = entry.chapterTitle;
-      if (chapter === "Budgets" || world === "Basics") {
+      if (chapter === "Budgets" || world === "Basics" || world === "Loops") {
         expect(entry.def.maxCommands, entry.def.slug).toBe(par);
       } else {
         expect(entry.def.maxCommands, entry.def.slug).toBeGreaterThan(par);
@@ -78,7 +82,36 @@ describe("the starter campaign", () => {
     }
   });
 
-  it("keeps every limit within what fits on a phone without loops", () => {
+  it("keeps every limit within what fits on a phone", () => {
     for (const entry of built) expect(entry.def.maxCommands).toBeLessThanOrEqual(20);
+  });
+
+  it("makes every Loops level need a loop: the plain program is longer than the limit", () => {
+    for (const entry of built.filter((b) => b.world.title === "Loops")) {
+      const plain = solve({
+        ...entry.level,
+        availableCommands: entry.level.availableCommands.filter((c) => c !== "REPEAT"),
+      })!;
+      expect(plain.commands, entry.def.slug).toBeGreaterThan(entry.def.maxCommands);
+      // A loop is not a marginal gain: the plain program is at least twice as long.
+      expect(plain.commands, entry.def.slug).toBeGreaterThanOrEqual(2 * entry.def.maxCommands);
+    }
+  });
+
+  it("introduces loops with Move alone first, then adds a turn, then everything", () => {
+    const offers = (slug: string) => built.find((b) => b.def.slug === slug)!.def.commands;
+    expect(offers("say-it-once")).toEqual(["MOVE_FORWARD", "REPEAT"]);
+    expect(offers("run-turn-run")).toEqual(["MOVE_FORWARD", "TURN_RIGHT", "REPEAT"]);
+    expect(offers("stairs")).toHaveLength(4);
+  });
+
+  it("solves every Loops level with a program that uses a loop", () => {
+    for (const entry of built.filter((b) => b.world.title === "Loops")) {
+      const program = solve(entry.level)!.program;
+      expect(
+        program.some((node) => node.op === "REPEAT"),
+        entry.def.slug,
+      ).toBe(true);
+    }
   });
 });

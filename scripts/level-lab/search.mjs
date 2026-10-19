@@ -44,7 +44,7 @@ export function search(name, { count = 6, seed = 1, tries } = {}) {
     const level = levelFromRows(built.rows, { commands: built.commands });
     if (!validateLevel(level).ok) continue;
     const metrics = measure(level);
-    if (!metrics || !family.accept(metrics)) continue;
+    if (!metrics || !family.accept(metrics, built.meta)) continue;
     const key = canonical(built.rows) + built.commands.join();
     if (!seen.has(key))
       seen.set(key, { family: name, rows: built.rows, commands: built.commands, metrics });

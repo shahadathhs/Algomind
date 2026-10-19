@@ -42,21 +42,24 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 
 **Game**
 
-- [ ] Tape model for nested groups: a loop group of a count tile and body tiles
-- [ ] Repeat tile in the palette; append, remove, reorder, change the count
-- [ ] Slot counter ("5 of 5") and the command limit counted in slots
-- [ ] Run and step animation: the current body tile and "Round n of m"
-- [ ] Failure messages name the body instruction and the round
-- [ ] Result screen and local best use slots; progress and sync merge keep working
-- [ ] GUT tests for the tape model and the play session with loops
-- [ ] Update `README_VISUAL_DESIGN.md` for the loop group and the Repeat tile
+- [x] Tape model for loop groups: a count tile and body tiles (`tape_model.gd`)
+- [x] Repeat tile in the palette; append, remove, reorder, change the count (minus and plus tools)
+- [x] Slot counter ("5 / 5") and the command limit counted in slots
+- [x] Run and step animation: the current body tile and the round on the count tile ("2/6")
+- [x] A failure inside a loop puts the X on the body tile and shows the round on the count tile
+- [x] Result screen and local best use slots (sync merge unchanged: it stores the command count)
+- [x] GUT tests for the tape model and the play session with loops (`test_tape_loops.gd`)
+- [x] Update `README_VISUAL_DESIGN.md` for the loop group and the Repeat tile
+- [ ] In-game how-to-play teaches loops (only shown once a loop level exists)
 
 **Dashboard and API**
 
-- [ ] Solution editor and preview support `REPEAT`
-- [ ] Publish gates: par from the loop solver, budget against par, flat par versus the limit for loop levels
-- [ ] Import and export of loop levels; dashboard texts and the validation panel
-- [ ] Client registry: add the `repeat` mechanic when the game supports it; bump the game version
+- [x] Solution editor and preview support `REPEAT` (loop rows with a rounds field and a body; checked in a browser on a temporary page)
+- [x] Publish gates: par from the loop solver (already), budget against par in slots, and a `LOOP_NOT_REQUIRED` warning when flat par fits the limit (`apps/api/test/loops.test.ts`)
+- [x] Import and export of loop levels (the contract validator and the API pass loop nodes through; no change needed)
+- [ ] Dashboard validation panel and diff texts mention loops (not yet checked in the live editor)
+- [x] Client registry and the game both list the `repeat` mechanic (the seed's registry row and `Campaign.SUPPORTED_MECHANICS`)
+- [ ] Bump the game version when loops ship in a release
 - [ ] Web tests for the publish flow (Playwright or equivalent)
 - [ ] How-to-play page and the browser build teach loops
 

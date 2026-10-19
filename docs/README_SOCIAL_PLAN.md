@@ -23,6 +23,7 @@
 - **Versioned scoring.** A result is stored against the level _version_ and the points rule version that scored it. Results from different level versions are never compared.
 - **Privacy.** The privacy page is updated in the same change that ships any of this, in plain terms: what an opted-in profile stores, who can see it, and how to delete it.
 - **House style.** Color only from the design tokens; every state has a shape or label; no gradients, glow, or shadows; no motivational copy or exclamation marks.
+- **Both themes.** Every new screen, page, and preview image (points and result, profile, leaderboards, daily challenge, sharing, and the dashboard pages) works in light and dark, using only the generated token colors. Rewards are cosmetic and never colors: badges, titles, and ranks. Unlockable color themes are out, because the house style has one palette and one accent.
 
 ## 3. Pillars
 
@@ -92,7 +93,7 @@ Every endpoint is server-authoritative, rate limited, and audited. Tokens never 
 | 5     | Sharing: result cards, link pages, preview images                                                               | phases 3 and 4                   |
 | 6     | Achievements, profile screen, level statistics, polish                                                          | the rest                         |
 
-Each phase ends in something playable, tested, and documented, and meets the "definition of done" in [README_IMPLEMENTATION_PLAN.md](README_IMPLEMENTATION_PLAN.md).
+Each phase ends in something playable, tested, and documented, and meets the "definition of done" in [README_IMPLEMENTATION_PLAN.md](README_IMPLEMENTATION_PLAN.md), with screenshots in both themes at the three phone sizes (and the web pages with JavaScript disabled).
 
 ## 6. Risks
 

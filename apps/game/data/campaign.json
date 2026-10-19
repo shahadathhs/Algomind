@@ -33,6 +33,30 @@
           "levels": ["no-spare-tiles", "fewer-turns", "count-the-turns", "one-route", "gauntlet"]
         }
       ]
+    },
+    {
+      "id": "loops",
+      "title": "Loops",
+      "summary": "Say a pattern once and repeat it.",
+      "chapters": [
+        {
+          "id": "repeat",
+          "title": "Repeat",
+          "levels": ["say-it-once", "run-turn-run", "stairs", "wide-steps"]
+        },
+        {
+          "id": "patterns",
+          "title": "Patterns",
+          "levels": [
+            "sideways-steps",
+            "grand-staircase",
+            "run-and-climb",
+            "climb-and-run",
+            "long-way-up",
+            "final-climb"
+          ]
+        }
+      ]
     }
   ]
 }
