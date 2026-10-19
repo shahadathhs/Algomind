@@ -11,6 +11,7 @@ export const AUDIT_ACTIONS = [
   "LEVEL_IMPORTED",
   "LEVEL_RESTORED",
   "CAMPAIGN_REORDERED",
+  "POINTS_RULES_CHANGED",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

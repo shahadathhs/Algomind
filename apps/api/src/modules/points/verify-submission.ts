@@ -1,0 +1,45 @@
+import { createHash } from "node:crypto";
+import {
+  programSlots,
+  simulate,
+  validateLevel,
+  validateProgram,
+  type Level,
+  type Program,
+} from "@algomind/level-contract";
+
+export type Verified =
+  | { ok: true; slots: number; steps: number }
+  | {
+      ok: false;
+      code: "PROGRAM_INVALID";
+      issues: { path: string; code: string; message: string }[];
+    }
+  | { ok: false; code: "LEVEL_INVALID" | "PROGRAM_DID_NOT_SOLVE"; issues: [] };
+
+/**
+ * Validates a submitted program for a stored level and runs it with the reference simulator. Only
+ * a program that is valid for the level and reaches the goal is a submission. Pure: no database.
+ */
+export function verifySubmission(content: unknown, program: unknown): Verified {
+  const checked = validateLevel(content);
+  if (!checked.ok) return { ok: false, code: "LEVEL_INVALID", issues: [] };
+  const level = content as Level;
+  const checkedProgram = validateProgram(level, program);
+  if (!checkedProgram.ok)
+    return { ok: false, code: "PROGRAM_INVALID", issues: checkedProgram.issues };
+  const result = simulate(level, program as Program);
+  if (result.status !== "SUCCEEDED")
+    return { ok: false, code: "PROGRAM_DID_NOT_SOLVE", issues: [] };
+  return { ok: true, slots: programSlots(program as Program), steps: result.steps };
+}
+
+/** The same program always has the same hash: nodes are rebuilt in a fixed key order. */
+export function programHash(program: { op: string; count?: number; body?: { op: string }[] }[]) {
+  const canonical = program.map((n) =>
+    n.op === "REPEAT"
+      ? { op: n.op, count: n.count, body: (n.body ?? []).map((b) => ({ op: b.op })) }
+      : { op: n.op },
+  );
+  return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
+}

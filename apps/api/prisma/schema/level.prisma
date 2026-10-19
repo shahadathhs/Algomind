@@ -58,6 +58,7 @@ model LevelVersion {
   publishedAt       DateTime?
   publishedFor      Level?           @relation("CurrentPublished")
   playtests         PlaytestRecord[]
+  submissions       Submission[]
 
   @@unique([levelId, versionNumber])
   @@index([levelId, state])

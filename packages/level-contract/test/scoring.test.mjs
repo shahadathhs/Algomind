@@ -25,7 +25,7 @@ test("the default rules are version 1 and match the fixtures' rules", () => {
 });
 
 test("a better result never scores less", () => {
-  const input = { difficulty: "easy", par: { commands: 5, steps: 8 } };
+  const input = { difficulty: /** @type {"easy"} */ ("easy"), par: { commands: 5, steps: 8 } };
   let previous = Infinity;
   for (let slots = 5; slots <= 14; slots += 1) {
     for (const steps of [8, 20]) {
