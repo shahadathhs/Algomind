@@ -1,7 +1,7 @@
 # Algomind — Points, Leaderboards, Daily Challenge, Sharing, and Player Management
 
 > **Purpose:** Plan the features that make Algomind a complete game beyond the campaign: verified points, leaderboards, a daily challenge, sharing, and the dashboard tools to run them.  
-> **Status:** planned, nothing built. Decisions in section 1 were made on 2026-10-19. The rules these features rely on are in [README_GAME_RULES.md](README_GAME_RULES.md); the data and API conventions are in [README_ARCHITECTURE.md](README_ARCHITECTURE.md).
+> **Status:** phases 1 and 2 are built (verified submissions, points ledger, stars, the result screen, and player management in the dashboard; see section 6). Leaderboards, the daily challenge, sharing, achievements, and a player-chosen display name are planned. Decisions in section 1 were made on 2026-10-19. The rules these features rely on are in [README_GAME_RULES.md](README_GAME_RULES.md); the data and API conventions are in [README_ARCHITECTURE.md](README_ARCHITECTURE.md).
 
 ## 1. Decisions
 
@@ -95,7 +95,15 @@ Every endpoint is server-authoritative, rate limited, and audited. Tokens never 
 
 Each phase ends in something playable, tested, and documented, and meets the "definition of done" in [README_IMPLEMENTATION_PLAN.md](README_IMPLEMENTATION_PLAN.md), with screenshots in both themes at the three phone sizes (and the web pages with JavaScript disabled).
 
-## 6. Risks
+## 6. What is built (phases 1 and 2)
+
+- **Scoring** lives in `packages/level-contract` (`scoring.ts`) with a GDScript mirror (`scripts/contract/scoring.gd`); both pass the fixtures in `fixtures/scoring`. Rule set 1: a base by difficulty (10, 20, 30), 10 for par slots or fewer, 5 for within two slots of par, 5 for par steps, 10 for the first clear; stars are 3 at par, 2 within two slots, otherwise 1. A rule change is a new version made in the dashboard (Points) and applies to results from then on.
+- **Submissions** (`POST /v1/me/submissions`): the server validates the program for the exact level version, runs it, and scores it. A level's points only go up, by the amount a better result adds, and the same program is never awarded twice, even from two devices at once. The ledger is append-only (a database trigger refuses updates).
+- **The game** keeps the best program per level in `PlayerResults` and sends it only through the sync (`ProgressSync` stays the only uploader); signed out, nothing is sent. The solved screen shows a provisional stars and points score; the account screen shows the server's total.
+- **Player management** (dashboard, Players): list, detail, and the audited actions. Suspending refuses sign-in and every live token at once. Resetting progress takes points back with ledger entries and does not touch the player's device.
+- **Not yet:** a player's own profile and display name (an admin can set or clear one), leaderboards, the daily challenge, sharing, achievements, level statistics, and stars drawn on the level tiles.
+
+## 7. Risks
 
 - **Scope.** Phases 1 and 2 together make a coherent release; the rest can follow.
 - **Fairness.** Par changes when a level's content changes, so every score is keyed to a level version.
