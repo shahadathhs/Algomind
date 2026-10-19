@@ -1,5 +1,5 @@
 extends ScreenBase
-## How to play: the three commands, the controls, and what a failure message means. Reached from
+## How to play: the commands, loops, the controls, and what a failure message means. Reached from
 ## the pause menu; Back returns to where it was opened from.
 
 const COMMANDS: Array[Dictionary] = [
@@ -13,6 +13,11 @@ const COMMANDS: Array[Dictionary] = [
 		"icon": "right",
 		"name": "RIGHT",
 		"text": "Turns a quarter turn to the right. It does not move."
+	},
+	{
+		"icon": "repeat",
+		"name": "REPEAT",
+		"text": "Starts a loop. Add commands to it, then tap END LOOP."
 	},
 ]
 const CONTROLS: Array[Dictionary] = [
@@ -58,6 +63,16 @@ func _build() -> void:
 	_list.add_child(UiKit.label("COMMANDS", 14, Palette.MUTE, 3))
 	for item in COMMANDS:
 		_list.add_child(_Row.make(item["icon"], item["name"], item["text"]))
+	_list.add_child(UiKit.label("LOOPS", 14, Palette.MUTE, 3))
+	_list.add_child(
+		_paragraph(
+			(
+				"A loop carries out the commands inside it again and again. Select its count "
+				+ "tile and use minus and plus to change how many rounds it runs. A loop uses "
+				+ "one slot for its count and one for each command inside it."
+			)
+		)
+	)
 	_list.add_child(UiKit.label("CONTROLS", 14, Palette.MUTE, 3))
 	for item in CONTROLS:
 		_list.add_child(_Row.make(item["icon"], item["name"], item["text"]))

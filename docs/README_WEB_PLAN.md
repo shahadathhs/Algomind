@@ -20,7 +20,7 @@
 | -------------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
 | `/`                        | Landing: explain the game and drive the download                   | Static                                        |
 | `/download`                | Install page: the APK, install steps, QR code for desktop visitors | Static shell, release data revalidated hourly |
-| `/how-to-play`             | The three commands, the tape, what failure messages mean           | Static                                        |
+| `/how-to-play`             | The commands, loops, the tape, what failure messages mean          | Static                                        |
 | `/privacy`                 | What is and is not collected; account deletion instructions        | Static                                        |
 | `/contact`                 | How to reach the developer                                         | Static                                        |
 | `/robots`, `/sitemap`, 404 | `/admin` excluded from both                                        | n/a                                           |

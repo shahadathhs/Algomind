@@ -11,7 +11,7 @@ import { tapeFromProgram } from "@/lib/tape";
 import { pageMetadata } from "@/lib/seo";
 
 const DESCRIPTION =
-  "How Algomind works: build a program from three instruction tiles, run it, and read what happened when it fails.";
+  "How Algomind works: build a program from instruction tiles, run it, and read what happened when it fails.";
 
 export const metadata: Metadata = pageMetadata({
   title: "How to play",
@@ -24,6 +24,11 @@ const COMMANDS: { command: Command; name: string; text: string }[] = [
   { command: "move", name: "Move", text: "Move one cell in the direction the automaton faces." },
   { command: "left", name: "Left", text: "Turn 90 degrees to the left without moving." },
   { command: "right", name: "Right", text: "Turn 90 degrees to the right without moving." },
+  {
+    command: "repeat",
+    name: "Repeat",
+    text: "Start a loop. Add commands to it, then end the loop.",
+  },
 ];
 
 const MESSAGES = [
@@ -61,7 +66,7 @@ export default function HowToPlayPage() {
         </p>
       </ProseSection>
 
-      <ProseSection title="Three commands">
+      <ProseSection title="Commands">
         <ul className="!list-none !pl-0">
           {COMMANDS.map((item) => (
             <li key={item.command} className="flex items-center gap-4 !pl-0 pb-3">
@@ -78,6 +83,15 @@ export default function HowToPlayPage() {
         <p>
           Each level lists the commands you can use and the most instructions a program may hold.
           The counter above the board shows how many you have used.
+        </p>
+      </ProseSection>
+
+      <ProseSection title="Loops">
+        <p>
+          A loop carries out the commands inside it again and again. Select its count tile to change
+          how many rounds it runs. A loop uses one slot for its count and one for each command
+          inside it, and the counter above the board counts slots. While a loop runs, the count tile
+          shows the current round.
         </p>
       </ProseSection>
 

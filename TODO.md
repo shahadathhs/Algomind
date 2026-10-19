@@ -29,7 +29,7 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [x] Reset the local database and reseed (`make db-reset`)
 - [ ] Reset Render's database when deploying
 - [x] Regenerate the game's bundled levels (`scripts/bundle-levels.mjs`)
-- [ ] Check that saved progress for removed slugs is dropped gracefully (game and API merge)
+- [x] Saved progress for removed slugs is kept and ignored, never crashes (game test `test_progress_for_a_removed_level_is_kept_and_ignored`; the API merge stores any slug)
 
 **Verify**
 
@@ -50,7 +50,7 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [x] Result screen and local best use slots (sync merge unchanged: it stores the command count)
 - [x] GUT tests for the tape model and the play session with loops (`test_tape_loops.gd`)
 - [x] Update `README_VISUAL_DESIGN.md` for the loop group and the Repeat tile
-- [ ] In-game how-to-play teaches loops (only shown once a loop level exists)
+- [x] In-game how-to-play teaches loops (a Repeat row and a Loops paragraph; checked at 390x844 and 360x640, both themes)
 
 **Dashboard and API**
 
@@ -61,7 +61,7 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [x] Client registry and the game both list the `repeat` mechanic (the seed's registry row and `Campaign.SUPPORTED_MECHANICS`)
 - [ ] Bump the game version when loops ship in a release
 - [ ] Web tests for the publish flow (Playwright or equivalent)
-- [ ] How-to-play page and the browser build teach loops
+- [x] How-to-play page and the browser build teach loops (the browser build uses the game screen)
 
 ## Then: step 3, world 3 (Loops)
 
