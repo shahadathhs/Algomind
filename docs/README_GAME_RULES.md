@@ -177,18 +177,28 @@ The simulation engine is separate from visual animation. Animations display simu
 
 The campaign is a tree: **worlds** (one concept each), **chapters** (small groups within a world), and **levels**. Levels unlock sequentially along the flattened order (world, then chapter, then level). The stages below map onto worlds. Placement is campaign data managed in the dashboard, not part of a level's definition.
 
-Teach concepts progressively rather than making early levels arbitrarily difficult.
+Teach concepts progressively rather than making early levels arbitrarily difficult. Each world teaches one idea, and from world 3 on each world needs a mechanic the game must implement first (section 3 and its subsections). The first two worlds need nothing new and are built first; the later worlds are a roadmap, designed one at a time as each is reached.
 
-| Stage | Concept                | Example challenge                               |
-| ----- | ---------------------- | ----------------------------------------------- |
-| 1     | Sequencing             | Move straight to the goal.                      |
-| 2     | Direction              | Turn before moving.                             |
-| 3     | Combining instructions | Navigate a simple corner.                       |
-| 4     | Planning               | Route around a wall.                            |
-| 5     | Constraints            | Solve using a limited number of commands.       |
-| 6     | Loops                  | Replace repeated instructions with `REPEAT(n)`. |
-| Later | Conditions             | Make decisions based on the environment.        |
-| Later | Optimization           | Find a shorter or more efficient solution.      |
+| #   | World      | Idea                                 | Algorithm the player uses                                                                            | Needs                                                                      | Levels |
+| --- | ---------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------ |
+| 1   | Basics     | Sequencing and turning               | Step-by-step execution: trace a program by hand and predict where it ends                            | nothing new                                                                | 8      |
+| 2   | Routes     | Planning and budgets                 | Shortest-path search (turns cost too) and working backward from the goal                             | nothing new                                                                | 10     |
+| 3   | Loops      | Repeating a pattern                  | Pattern detection (find the repeating unit); split a route into loops plus the moves between them    | `REPEAT n` (specified in 3.1; rules package built, no editor UI yet)       | 8-10   |
+| 4   | Until      | One program for any distance         | Scan until a condition holds (linear search with a stop condition); reason about when a loop ends    | `REPEAT UNTIL` (blocked, or at the goal)                                   | 8-10   |
+| 5   | Decisions  | Choosing by what you sense           | Wall-following (the right-hand rule) and a greedy local rule; decisions based on the current state   | `IF` sensors (wall ahead, goal ahead)                                      | 8-10   |
+| 6   | Procedures | Naming and reusing steps             | Abstraction and decomposition: build big solutions from small named parts                            | named procedures                                                           | 8      |
+| 7   | Generalize | One program, many boards             | Generalization and edge cases: the solution must work on every test board, including the tricky ones | multi-board levels (below)                                                 | 8      |
+| 8   | Counters   | Remembering a number and changing it | Accumulation: a value that grows each round (spirals, widening stairs, count to n then act)          | one counter variable: set, add one, use as a loop count                    | 8      |
+| 9   | Memory     | Marking where you have been          | Depth-first search with backtracking (the Tremaux idea): explore, mark, return, never repeat a path  | markers: `DROP MARK`, `IF MARK AHEAD` (the board changes during a run)     | 8      |
+| 10  | Sweep      | Covering everything efficiently      | Systematic coverage (the lawnmower sweep) and efficiency: the same job in far fewer steps            | goal type "visit every floor cell"; step budgets that scale with the board | 8      |
+
+Worlds 1 and 2 hold 18 levels, so a player meets the first algorithmic idea (loops) after about 18 short levels. The budget ideas ("the limit equals par") live in the last chapter of world 2.
+
+**Decisions for the later worlds** (2026-10-19): the counter in world 8 is a single variable. World 9 may change the board during a run, so a run's state then includes the marks and the trace records them. "Visit every floor cell" is its own goal type, not a combination with reaching a tile. Recursion (a procedure that calls itself) and delivery puzzles (pick up and drop items) were considered and left for later.
+
+**Multi-board levels (world 7 onward).** A level may carry several test boards, and one program must solve every one of them. The simulator is unchanged (it runs one board); the level, validator, and publish gates check the program against each board and name the first board that fails. With conditions and procedures, par is no longer an exact shortest-program search: it is the author's best known solution, verified on every test board. Bodies, counts, and the step limit stay bounded as in 3.1.
+
+**Boundary.** This is a set of taught, puzzle-specific tools, never a general-purpose programming language (see the not-included list in [README_PROJECT_OVERVIEW.md](README_PROJECT_OVERVIEW.md)).
 
 The game accepts any valid solution unless a level explicitly introduces an optimization challenge. Players must not feel that one particular sequence is required when several correct solutions exist.
 

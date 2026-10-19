@@ -176,6 +176,8 @@ scripts/           Version bump and repository checks
 - [Visual design](docs/README_VISUAL_DESIGN.md) and [screens](docs/design/SCREENS.md)
 - [Architecture](docs/README_ARCHITECTURE.md)
 - [Public website plan](docs/README_WEB_PLAN.md) and [admin dashboard plan](docs/README_DASHBOARD_PLAN.md)
+- [Roadmap](docs/README_ROADMAP.md) and [TODO](TODO.md)
+- [Points, leaderboards, daily challenge, and sharing plan](docs/README_SOCIAL_PLAN.md)
 - [Implementation plan](docs/README_IMPLEMENTATION_PLAN.md)
 - [CI, CD, and releases](docs/CI.md) and [deployment](docs/DEPLOY.md)
 
