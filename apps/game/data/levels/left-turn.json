@@ -1,17 +1,17 @@
 {
   "goal": {
     "type": "reach_tile",
-    "position": [4, 4]
+    "position": [1, 2]
   },
-  "slug": "along-the-floor",
+  "slug": "left-turn",
   "board": {
     "walls": [],
     "width": 5,
     "height": 5
   },
-  "hints": [],
-  "title": "Along the floor",
-  "levelId": "effab83f-9a91-4373-bf83-9fca83926cb9",
+  "hints": ["Turn left to face the other way.", "Move up to the target's row first."],
+  "title": "Turn left",
+  "levelId": "33c46acb-9516-47a2-8cd0-f358e16e76f5",
   "requires": {
     "mechanics": []
   },
@@ -22,10 +22,10 @@
   },
   "description": "",
   "initialState": {
-    "position": [0, 4],
-    "direction": "east"
+    "position": [4, 4],
+    "direction": "north"
   },
   "levelVersion": 1,
   "schemaVersion": 1,
-  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT"]
 }

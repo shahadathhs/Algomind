@@ -143,6 +143,7 @@ game-test: game-fixtures game-import ## Run the game tests (GUT)
 
 game-bundle: ## Refresh the game's bundled levels from a running API (API_BASE_URL, default localhost:8000/v1)
 	node scripts/bundle-levels.mjs
+	pnpm exec prettier --write $(GAME)/data >/dev/null
 
 game-lint: ## GDScript style gate: gdlint + gdformat --check (config: gdlintrc)
 	$(GDLINT) $(GDPATHS)

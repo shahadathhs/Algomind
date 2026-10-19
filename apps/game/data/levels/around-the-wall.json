@@ -1,37 +1,32 @@
 {
   "goal": {
     "type": "reach_tile",
-    "position": [4, 0]
+    "position": [3, 2]
   },
-  "slug": "switchback",
+  "slug": "around-the-wall",
   "board": {
     "walls": [
-      [0, 1],
-      [1, 1],
-      [2, 1],
-      [3, 1],
-      [1, 3],
-      [2, 3],
       [3, 3],
-      [4, 3]
+      [4, 3],
+      [5, 3]
     ],
-    "width": 5,
-    "height": 5
+    "width": 6,
+    "height": 6
   },
-  "hints": [],
-  "title": "Switchback",
-  "levelId": "16839719-fe71-4868-86ff-893b20cab5ff",
+  "hints": ["Go around the wall. The way around is longer than it looks."],
+  "title": "Around the wall",
+  "levelId": "77661da8-554a-474a-97e9-53164a3afdbb",
   "requires": {
     "mechanics": []
   },
-  "difficulty": "hard",
+  "difficulty": "easy",
   "constraints": {
     "maxSteps": 100,
-    "maxCommands": 12
+    "maxCommands": 13
   },
   "description": "",
   "initialState": {
-    "position": [0, 4],
+    "position": [5, 5],
     "direction": "north"
   },
   "levelVersion": 1,

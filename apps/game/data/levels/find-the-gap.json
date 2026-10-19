@@ -1,32 +1,35 @@
 {
   "goal": {
     "type": "reach_tile",
-    "position": [0, 0]
+    "position": [3, 1]
   },
-  "slug": "mind-the-gap",
+  "slug": "find-the-gap",
   "board": {
     "walls": [
-      [1, 1],
-      [1, 2],
-      [1, 3]
+      [3, 2],
+      [4, 2],
+      [5, 2],
+      [0, 4],
+      [1, 4],
+      [2, 4]
     ],
-    "width": 5,
-    "height": 5
+    "width": 6,
+    "height": 6
   },
-  "hints": [],
-  "title": "Mind the gap",
-  "levelId": "598cd5bd-9f88-45a9-902b-5e682a210f17",
+  "hints": ["Look for the opening first, then plan how to reach it."],
+  "title": "Find the gap",
+  "levelId": "5cfa0ea1-d011-4c60-a187-540e4a90078d",
   "requires": {
     "mechanics": []
   },
   "difficulty": "easy",
   "constraints": {
     "maxSteps": 100,
-    "maxCommands": 6
+    "maxCommands": 14
   },
   "description": "",
   "initialState": {
-    "position": [0, 4],
+    "position": [2, 5],
     "direction": "north"
   },
   "levelVersion": 1,

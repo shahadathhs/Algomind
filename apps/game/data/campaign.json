@@ -1,55 +1,36 @@
 {
   "worlds": [
     {
-      "id": "sequences",
-      "title": "Sequences",
+      "id": "basics",
+      "title": "Basics",
       "summary": "Instructions run in order, one after another.",
       "chapters": [
         {
-          "id": "first-steps",
-          "title": "First steps",
-          "levels": ["straight-ahead", "all-the-way", "along-the-floor", "mind-the-gap"]
-        }
-      ]
-    },
-    {
-      "id": "turns",
-      "title": "Turns",
-      "summary": "Turn before you move to change where you are going.",
-      "chapters": [
-        {
-          "id": "corners",
-          "title": "Corners",
-          "levels": ["one-turn", "turn-left", "up-and-across", "turn-around"]
+          "id": "moves",
+          "title": "Moves",
+          "levels": ["first-step", "count-the-cells", "beside-the-wall", "long-run"]
         },
         {
-          "id": "around-walls",
-          "title": "Around walls",
-          "levels": ["the-wall", "two-walls", "the-detour", "long-way-round"]
+          "id": "turns",
+          "title": "Turns",
+          "levels": ["first-turn", "left-turn", "turn-around", "two-corners"]
         }
       ]
     },
     {
-      "id": "planning",
-      "title": "Planning",
-      "summary": "Look at the whole board first, then choose a route.",
+      "id": "routes",
+      "title": "Routes",
+      "summary": "Look at the whole board, then choose a route.",
       "chapters": [
         {
-          "id": "routes",
-          "title": "Routes",
-          "levels": ["the-ring", "pick-a-side", "switchback", "the-maze"]
-        }
-      ]
-    },
-    {
-      "id": "limits",
-      "title": "Limits",
-      "summary": "Solve it with exactly as many commands as it takes, no more.",
-      "chapters": [
+          "id": "detours",
+          "title": "Detours",
+          "levels": ["around-the-wall", "find-the-gap", "dead-end", "two-ways", "the-long-wall"]
+        },
         {
-          "id": "tight-budgets",
-          "title": "Tight budgets",
-          "levels": ["tight-corner", "exactly-enough", "no-wasted-moves"]
+          "id": "budgets",
+          "title": "Budgets",
+          "levels": ["no-spare-tiles", "fewer-turns", "count-the-turns", "one-route", "gauntlet"]
         }
       ]
     }

@@ -1,33 +1,34 @@
 {
   "goal": {
     "type": "reach_tile",
-    "position": [3, 1]
+    "position": [3, 0]
   },
-  "slug": "the-detour",
+  "slug": "count-the-turns",
   "board": {
     "walls": [
-      [2, 0],
+      [1, 1],
       [2, 1],
-      [2, 2],
-      [2, 3]
+      [3, 1],
+      [4, 1],
+      [5, 4]
     ],
-    "width": 5,
-    "height": 5
+    "width": 6,
+    "height": 6
   },
-  "hints": [],
-  "title": "The detour",
-  "levelId": "27deefb7-155c-43c3-a427-4ecf16053aab",
+  "hints": ["Count the turns as well as the moves."],
+  "title": "Count the turns",
+  "levelId": "d73ee47d-42d8-4159-8ebc-9100e50a359d",
   "requires": {
     "mechanics": []
   },
-  "difficulty": "medium",
+  "difficulty": "hard",
   "constraints": {
     "maxSteps": 100,
-    "maxCommands": 11
+    "maxCommands": 14
   },
   "description": "",
   "initialState": {
-    "position": [0, 4],
+    "position": [5, 5],
     "direction": "north"
   },
   "levelVersion": 1,

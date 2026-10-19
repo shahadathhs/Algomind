@@ -16,7 +16,7 @@
 
 The campaign is a tree: **World → Chapter → Level**.
 
-- A **world** teaches one concept (for example Sequences, Turns, Planning, Limits, Loops). It has a title, a short description, and an order.
+- A **world** teaches one concept (for example Basics, Routes, Loops; see the ladder in README_GAME_RULES.md). It has a title, a short description, and an order.
 - A **chapter** is a small group of levels inside a world, with a title and an order.
 - A **level** belongs to at most one chapter and has an order inside it. A level with no chapter is unassigned and never reaches players.
 - **Unlocking** is sequential across the flattened campaign order (world order, then chapter order, then level order). Moving a level changes the campaign only; it does not create a new level version.

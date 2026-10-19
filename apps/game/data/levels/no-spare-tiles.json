@@ -1,34 +1,35 @@
 {
   "goal": {
     "type": "reach_tile",
-    "position": [3, 2]
+    "position": [3, 1]
   },
-  "slug": "the-wall",
+  "slug": "no-spare-tiles",
   "board": {
     "walls": [
-      [1, 2],
-      [4, 2],
+      [5, 1],
       [2, 3],
-      [1, 4]
+      [3, 3],
+      [4, 3],
+      [5, 3]
     ],
-    "width": 5,
-    "height": 5
+    "width": 6,
+    "height": 6
   },
-  "hints": [],
-  "title": "The wall",
-  "levelId": "be92a4fd-f69c-4c10-8067-d0e5f4d39380",
+  "hints": ["The limit is exactly enough. Every tile counts."],
+  "title": "No spare tiles",
+  "levelId": "a9a411a5-e401-4f1f-8ca4-de7e193e6317",
   "requires": {
     "mechanics": []
   },
   "difficulty": "medium",
   "constraints": {
     "maxSteps": 100,
-    "maxCommands": 12
+    "maxCommands": 11
   },
   "description": "",
   "initialState": {
-    "position": [0, 4],
-    "direction": "north"
+    "position": [2, 5],
+    "direction": "east"
   },
   "levelVersion": 1,
   "schemaVersion": 1,

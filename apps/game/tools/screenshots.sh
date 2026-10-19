@@ -30,14 +30,15 @@ for size in 390x844 360x640 412x915; do
 		shot update-required update_required "$theme" "$size" --title="Level 14"
 		shot sign-in sign_in "$theme" "$size"
 		shot account account "$theme" "$size" --done=4 --account=you@example.com
-		shot play-tutorial play "$theme" "$size" --level=straight-ahead
-		shot play-hint play "$theme" "$size" --level=straight-ahead --overlay=hint
-		shot play-pause play "$theme" "$size" --level=the-wall --program=MMMRM --overlay=pause
-		# the-wall: start (0,4) facing north; MMMRMMMRM is its shortest solution.
-		shot play-ready play "$theme" "$size" --level=the-wall --program=MMMRM
-		shot play-running play "$theme" "$size" --level=the-wall --program=MMMRMMMRM --steps=5
-		shot play-failed play "$theme" "$size" --level=the-wall --program=MMRMMLMM --steps=-1
-		shot play-solved play "$theme" "$size" --level=the-wall --program=MMMRMMMRM --steps=-1
+		shot play-tutorial play "$theme" "$size" --level=first-step
+		shot play-hint play "$theme" "$size" --level=first-step --overlay=hint
+		# first-turn: start (0,4) facing north; MMMRMMM is its shortest solution.
+		shot play-pause play "$theme" "$size" --level=first-turn --program=MMMRM --overlay=pause
+		shot play-ready play "$theme" "$size" --level=first-turn --program=MMMRM
+		shot play-running play "$theme" "$size" --level=first-turn --program=MMMRMMM --steps=5
+		shot play-failed play "$theme" "$size" --level=first-turn --program=MMMMMM --steps=-1
+		shot play-solved play "$theme" "$size" --level=first-turn --program=MMMRMMM --steps=-1
+		shot play-big play "$theme" "$size" --level=gauntlet --program=MMMMMM
 	done
 done
 echo "Screenshots written to apps/game/$OUT"

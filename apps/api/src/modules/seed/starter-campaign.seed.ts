@@ -1,12 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common";
-import { solve, type Direction, type Level } from "@algomind/level-contract";
+import { solve, type CommandName, type Direction, type Level } from "@algomind/level-contract";
 import type { Prisma } from "../../generated/prisma/client.js";
 import { AppConfig } from "../../core/config/app-config.js";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
 import { analyzeLevel, contentHash } from "../levels/level-analysis.js";
 import type { ValidationSummary } from "../levels/levels.schemas.js";
+import { CAMPAIGN } from "./starter-campaign.data.js";
 
 /** The app version the registry row describes: this package's version, which `make version` keeps current. */
 const APP_VERSION: string = (
@@ -15,10 +16,15 @@ const APP_VERSION: string = (
   }
 ).version;
 
-const FACING: Record<string, Direction> = { "^": "north", ">": "east", v: "south", "<": "west" };
+export const FACING: Record<string, Direction> = {
+  "^": "north",
+  ">": "east",
+  v: "south",
+  "<": "west",
+};
 
 /** A board from text rows: `.` floor, `#` wall, `G` target, `^ > v <` the automaton and its facing. */
-function readBoard(rows: readonly string[]) {
+export function readBoard(rows: readonly string[]) {
   const walls: [number, number][] = [];
   let goal: [number, number] | undefined;
   let start: { position: [number, number]; direction: Direction } | undefined;
@@ -33,224 +39,18 @@ function readBoard(rows: readonly string[]) {
   return { width: rows[0]!.length, height: rows.length, walls, goal, start };
 }
 
-// The starter campaign: four worlds, five chapters, nineteen levels, in play order. Each limit is
-// at least the shortest possible program (the seed checks this with the solver and fails loudly
-// otherwise), shrinking world by world until the last world allows exactly the shortest program.
-const CAMPAIGN = [
-  {
-    title: "Sequences",
-    description: "Instructions run in order, one after another.",
-    chapters: [
-      {
-        title: "First steps",
-        levels: [
-          {
-            slug: "straight-ahead",
-            title: "Straight ahead",
-            difficulty: "easy",
-            maxCommands: 5,
-            rows: [".....", "G....", ".....", ".....", "^...."],
-            hints: ["Move forward until the automaton reaches the target."],
-          },
-          {
-            slug: "all-the-way",
-            title: "All the way",
-            difficulty: "easy",
-            maxCommands: 6,
-            rows: ["G....", ".....", ".....", ".....", "^...."],
-            hints: ["The target is straight ahead. How many cells away is it?"],
-          },
-          {
-            slug: "along-the-floor",
-            title: "Along the floor",
-            difficulty: "easy",
-            maxCommands: 6,
-            rows: [".....", ".....", ".....", ".....", ">...G"],
-            hints: ["The automaton faces east. Count the cells to the target."],
-          },
-          {
-            slug: "mind-the-gap",
-            title: "Mind the gap",
-            difficulty: "easy",
-            maxCommands: 6,
-            rows: ["G....", ".#...", ".#...", ".#...", "^...."],
-            hints: ["The walls are not in your way. Go straight."],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    title: "Turns",
-    description: "Turn before you move to change where you are going.",
-    chapters: [
-      {
-        title: "Corners",
-        levels: [
-          {
-            slug: "one-turn",
-            title: "One turn",
-            difficulty: "easy",
-            maxCommands: 8,
-            rows: [".....", ".....", "...G.", ".....", "^...."],
-            hints: ["Move up first, then turn toward the target."],
-          },
-          {
-            slug: "turn-left",
-            title: "Turn left",
-            difficulty: "easy",
-            maxCommands: 8,
-            rows: [".....", "..G..", ".....", ".....", ">...."],
-            hints: ["Turning left points the automaton up."],
-          },
-          {
-            slug: "up-and-across",
-            title: "Up and across",
-            difficulty: "easy",
-            maxCommands: 8,
-            rows: [".....", "..G..", ".....", ".....", "^...."],
-            hints: ["Move up to the target's row, then turn right."],
-          },
-          {
-            slug: "turn-around",
-            title: "Turn around",
-            difficulty: "easy",
-            maxCommands: 6,
-            rows: [".....", ".....", "..^..", ".....", "..G.."],
-            hints: ["The target is behind you. Turn twice, then move."],
-          },
-        ],
-      },
-      {
-        title: "Around walls",
-        levels: [
-          {
-            slug: "the-wall",
-            title: "The wall",
-            difficulty: "medium",
-            maxCommands: 12,
-            rows: [".....", ".....", ".#.G#", "..#..", "^#..."],
-            hints: ["Look for a route around the wall."],
-          },
-          {
-            slug: "two-walls",
-            title: "Two walls",
-            difficulty: "medium",
-            maxCommands: 8,
-            rows: [".....", ".#.#.", ".....", ".#.#.", "^...G"],
-            hints: ["The walls leave gaps. Plan the path before you run."],
-          },
-          {
-            slug: "the-detour",
-            title: "The detour",
-            difficulty: "medium",
-            maxCommands: 11,
-            rows: ["..#..", "..#G.", "..#..", "..#..", "^...."],
-            hints: ["Go around the wall. There is only one gap."],
-          },
-          {
-            slug: "long-way-round",
-            title: "Long way round",
-            difficulty: "hard",
-            maxCommands: 18,
-            rows: ["G....", "####.", ".....", ".####", "^...."],
-            hints: ["Follow the corridor. Each wall opens at an end."],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    title: "Planning",
-    description: "Look at the whole board first, then choose a route.",
-    chapters: [
-      {
-        title: "Routes",
-        levels: [
-          {
-            slug: "the-ring",
-            title: "The ring",
-            difficulty: "medium",
-            maxCommands: 7,
-            rows: [".....", ".#.#.", "..G..", ".#.#.", "^...."],
-            hints: ["The target is in the middle. Pick a side and go around."],
-          },
-          {
-            slug: "pick-a-side",
-            title: "Pick a side",
-            difficulty: "medium",
-            maxCommands: 9,
-            rows: ["..#..", ".....", "..#G.", ".....", "^.#.."],
-            hints: ["Two routes work. One needs fewer commands."],
-          },
-          {
-            slug: "switchback",
-            title: "Switchback",
-            difficulty: "hard",
-            maxCommands: 12,
-            rows: ["....G", "####.", ".....", ".####", "^...."],
-            hints: ["Zigzag along the corridors. Each wall opens at the opposite end."],
-          },
-          {
-            slug: "the-maze",
-            title: "The maze",
-            difficulty: "hard",
-            maxCommands: 18,
-            rows: ["..#G.", ".##..", "...#.", ".#...", "^.#.."],
-            hints: ["Work backward from the target to find the route."],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    title: "Limits",
-    description: "Solve it with exactly as many commands as it takes, no more.",
-    chapters: [
-      {
-        title: "Tight budgets",
-        levels: [
-          {
-            slug: "tight-corner",
-            title: "Tight corner",
-            difficulty: "medium",
-            maxCommands: 5,
-            rows: [".....", ".....", "..G..", ".....", ">...."],
-            hints: ["You have very few commands. Count the turns carefully."],
-          },
-          {
-            slug: "exactly-enough",
-            title: "Exactly enough",
-            difficulty: "hard",
-            maxCommands: 6,
-            rows: [".....", ".###.", ".#G#.", ".#.#.", "^...."],
-            hints: ["The limit equals the shortest program. Every command counts."],
-          },
-          {
-            slug: "no-wasted-moves",
-            title: "No wasted moves",
-            difficulty: "hard",
-            maxCommands: 11,
-            rows: ["..#.G", "..#..", "..#..", "....#", "^...."],
-            hints: ["Plan the whole route first. There are no spare commands."],
-          },
-        ],
-      },
-    ],
-  },
-] as const;
-
-type LevelDef = {
+export type LevelDef = {
   slug: string;
   title: string;
   difficulty: "easy" | "medium" | "hard";
+  commands: readonly CommandName[];
   maxCommands: number;
   rows: readonly string[];
   hints?: readonly string[];
 };
 
 /** Every level with its place in the campaign, in play order. */
-const LEVELS = CAMPAIGN.flatMap((world) =>
+export const LEVELS = CAMPAIGN.worlds.flatMap((world) =>
   world.chapters.flatMap((chapter) =>
     (chapter.levels as readonly LevelDef[]).map((def, orderInChapter) => ({
       def,
@@ -264,7 +64,7 @@ const LEVELS = CAMPAIGN.flatMap((world) =>
 /** The starter content failed the validator or solver: a bug in this file, never a data problem. */
 class SeedContentError extends Error {}
 
-function buildLevel(def: LevelDef, id: string): Level {
+export function buildLevel(def: LevelDef, id: string): Level {
   const board = readBoard(def.rows);
   return {
     schemaVersion: 1,
@@ -277,7 +77,7 @@ function buildLevel(def: LevelDef, id: string): Level {
     requires: { mechanics: [] },
     board: { width: board.width, height: board.height, walls: board.walls },
     initialState: board.start,
-    availableCommands: ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"],
+    availableCommands: [...def.commands],
     constraints: { maxCommands: def.maxCommands, maxSteps: 100 },
     goal: { type: "reach_tile", position: board.goal },
     hints: [...(def.hints ?? [])],
@@ -285,7 +85,7 @@ function buildLevel(def: LevelDef, id: string): Level {
 }
 
 /**
- * Creates the starter worlds, chapters, and nineteen published levels so a fresh install has a
+ * Creates the starter worlds, chapters, and published levels (see starter-campaign.data.ts) so a fresh install has a
  * playable campaign. Idempotent: anything that already exists (by slug, title) is left alone.
  * Controlled by SEED_STARTER_CAMPAIGN (default on outside production, off in production).
  */

@@ -4,35 +4,39 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 
 ## Now: step 1, worlds 1 and 2 (18 levels)
 
-**Level lab** (a script outside the shipped code, `scripts/level-lab/`)
+**Level lab** (`scripts/level-lab/`, see its README)
 
-- [ ] Candidate families: straight runs, corners, the U-turn, detours with a decoy route, tight budgets
-- [ ] A constrained maze generator (unique cheap route, dead ends, no accidental shortcuts)
-- [ ] Scoring from the real solver: par, flat par, decoy cost, turns, number of near-optimal routes
-- [ ] Rejection rules: shortcut found, par equals an earlier level, limit not forcing a decision
-- [ ] Contact-sheet renders in the house style, light and dark
+- [x] Candidate families for worlds 1 and 2: straight runs, turns, the U-turn, detours, tight budgets, decoy routes
+- [x] Scoring from the real solver: par, moves, turns, wall cost, decoy cost, number of shortest programs, dead ends
+- [x] Look-alike removal (rotations and mirrors) and a varied shortlist
+- [x] Contact-sheet renders in the house style, light and dark (SVG; convert to PNG to view)
+- [ ] A constrained maze generator (a unique cheap route and deliberate dead ends); today only random wall segments
+- [ ] Rejection rules across a set: par equal to an earlier level, a limit that does not force a decision
+- [ ] A better decoy builder: the random one finds few candidates and the decoy is small (1 to 2 commands)
 
 **Curriculum**
 
-- [ ] One-line idea for each of the 18 levels (world 1: Basics, 8; world 2: Routes, 10), in order
-- [ ] Shortlists per chapter (Moves, Turns, Detours, Budgets), reviewed with the owner
-- [ ] Titles, progressive hints (1 to 3, no spoilers), difficulty from measured numbers
-- [ ] Decide which of the current 19 levels, if any, are kept
+- [x] One-line idea for each of the 18 levels (world 1: Basics, 8; world 2: Routes, 10), in order
+- [x] Shortlists per chapter (Moves, Turns, Detours, Budgets); picked by the assistant on the owner's instruction ("just get it done")
+- [x] Titles, progressive hints (1 to 3, no spoilers), difficulty from measured numbers
+- [x] Decide which of the current 19 levels, if any, are kept (none: all replaced)
 
 **Seed and data**
 
-- [ ] New seed data file replacing the 19 starters; the seed still validates and solves every level at startup
-- [ ] Seed and campaign tests (every level solved, limits at or above par, unique slugs, order)
-- [ ] Update the docs that say "nineteen" (`README_ARCHITECTURE.md`, `DEPLOY.md`)
-- [ ] Reset the local database and reseed (`make db-reset`); reset Render's when deploying
-- [ ] Regenerate the game's bundled levels (`scripts/bundle-levels.mjs`)
+- [x] New seed data file (`starter-campaign.data.ts`) replacing the 19 starters; the seed still validates and solves every level at startup
+- [x] Seed and campaign tests (`apps/api/test/starter-campaign.test.ts`)
+- [x] Update the docs that say "nineteen" (`README_ARCHITECTURE.md`, `DEPLOY.md`)
+- [x] Reset the local database and reseed (`make db-reset`)
+- [ ] Reset Render's database when deploying
+- [x] Regenerate the game's bundled levels (`scripts/bundle-levels.mjs`)
 - [ ] Check that saved progress for removed slugs is dropped gracefully (game and API merge)
 
 **Verify**
 
-- [ ] `make check` green; game plays all 18 levels
+- [ ] `make check` green (lint, typecheck, API and game tests pass; the full run is not yet repeated)
+- [x] Game plays the new levels (screenshots checked: palette starts with Move only)
 - [ ] Dashboard lists the new levels; `/levels` and `/play` show them
-- [ ] Screenshots at 390x844, 360x640, 412x915 in both themes
+- [ ] Review all screenshots at 390x844, 360x640, 412x915 in both themes (captured by `make game-shots`; only 390x844 reviewed so far)
 
 ## Next: step 2, `REPEAT` in the editor and the dashboard
 
