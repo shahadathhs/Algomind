@@ -128,3 +128,44 @@ describe("change password", () => {
     expect(await failure(auth.login("a@example.com", password))).toMatchObject({ status: 401 });
   });
 });
+
+describe("a suspended account", () => {
+  async function suspended() {
+    const made = makeAuth();
+    const password = goodPassword();
+    const session = await made.auth.register("s@example.com", password);
+    (made.db.user.rows[0] as { status: string }).status = "SUSPENDED";
+    return { ...made, password, session };
+  }
+
+  it("cannot sign in, and is told so only with the right password", async () => {
+    const { auth, password } = await suspended();
+    expect(await failure(auth.login("s@example.com", password))).toMatchObject({
+      status: 403,
+      code: "ACCOUNT_SUSPENDED",
+    });
+    expect(await failure(auth.login("s@example.com", "wrong-password-here"))).toMatchObject({
+      status: 401,
+      code: "INVALID_CREDENTIALS",
+    });
+  });
+
+  it("cannot refresh a session it had before", async () => {
+    const { auth, session } = await suspended();
+    expect(await failure(auth.refresh(session.refreshToken))).toMatchObject({ status: 401 });
+  });
+});
+
+describe("last active", () => {
+  it("is recorded when a session starts", async () => {
+    const { auth, db } = makeAuth();
+    const password = goodPassword();
+    await auth.register("l@example.com", password);
+    const first = (db.user.rows[0] as { lastActiveAt?: Date }).lastActiveAt;
+    expect(first).toBeInstanceOf(Date);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await auth.login("l@example.com", password);
+    const second = (db.user.rows[0] as { lastActiveAt?: Date }).lastActiveAt!;
+    expect(second.getTime()).toBeGreaterThan(first!.getTime());
+  });
+});

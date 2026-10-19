@@ -1,3 +1,8 @@
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
 enum Role {
   ADMIN
   PLAYER
@@ -10,6 +15,10 @@ model User {
   passwordHash       String
   role               Role           @default(PLAYER)
   mustChangePassword Boolean        @default(false)
+  status             UserStatus     @default(ACTIVE)
+  /// The name shown on boards, if the player chose one (never the email). Cleared by an admin.
+  displayName        String?
+  lastActiveAt       DateTime?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   refreshTokens      RefreshToken[]

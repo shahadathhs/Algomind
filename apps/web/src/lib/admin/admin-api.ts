@@ -172,6 +172,18 @@ export type AuditEvent = {
   createdAt: string;
 };
 
+export type PointsRules = {
+  version: number;
+  base: { easy: number; medium: number; hard: number };
+  parFull: number;
+  parNear: number;
+  nearSlots: number;
+  stepsBonus: number;
+  firstClear: number;
+};
+export type PointsRulesInput = Omit<PointsRules, "version">;
+export type RuleSet = { version: number; rules: PointsRules; active: boolean; createdAt: string };
+
 export type LevelQuery = {
   q?: string;
   status?: LevelStatus;
@@ -238,6 +250,9 @@ export function adminApi(client: ApiClient) {
       client.patch<ClientVersion>(`admin/client-versions/${id}`, { isMinimum: true }),
     listAudit: (query: { action?: string; page?: number; pageSize?: number } = {}) =>
       client.get<Page<AuditEvent>>(`admin/audit${qs({ ...query })}`),
+
+    listPointsRules: () => client.get<{ items: RuleSet[] }>("admin/points-rules"),
+    createPointsRules: (body: PointsRulesInput) => client.post<RuleSet>("admin/points-rules", body),
 
     getCampaign: () => client.get<AdminCampaign>("admin/campaign"),
     createWorld: (body: { title: string; description?: string }) =>

@@ -15,6 +15,7 @@ const ACTIONS: { value: string; label: string }[] = [
   { value: "LEVEL_IMPORTED", label: "Level imported" },
   { value: "LEVEL_RESTORED", label: "Level restored" },
   { value: "CAMPAIGN_REORDERED", label: "Campaign reordered" },
+  { value: "POINTS_RULES_CHANGED", label: "Points rules changed" },
 ];
 
 function label(action: string): string {

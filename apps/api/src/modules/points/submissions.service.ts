@@ -55,6 +55,7 @@ export class SubmissionsService {
     return this.prisma.$transaction(async (tx) => {
       // One player's submissions take turns, so two devices cannot both award the same bonus.
       await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
+      await tx.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } });
       const earlier = await tx.submission.findUnique({
         where: {
           userId_levelVersionId_programHash: {

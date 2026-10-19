@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
   UnprocessableEntityException,
@@ -16,6 +17,8 @@ type UserRow = {
   email: string;
   role: "ADMIN" | "PLAYER";
   mustChangePassword: boolean;
+  /** Absent in rows made before suspension existed; those are active. */
+  status?: "ACTIVE" | "SUSPENDED";
 };
 
 export function toAuthUser(user: UserRow): AuthUser {
@@ -25,6 +28,13 @@ export function toAuthUser(user: UserRow): AuthUser {
     role: user.role,
     mustChangePassword: user.mustChangePassword,
   };
+}
+
+export function accountSuspended(): ForbiddenException {
+  return new ForbiddenException({
+    code: "ACCOUNT_SUSPENDED",
+    message: "This account is suspended.",
+  });
 }
 
 /** The same failure for an unknown email and a wrong password, so neither can be told apart. */
@@ -89,6 +99,8 @@ export class AuthService {
       throw invalidCredentials();
     }
     if (!(await this.passwords.verify(user.passwordHash, password))) throw invalidCredentials();
+    // Said only after the password is right, so it does not reveal which emails have accounts.
+    if (user.status === "SUSPENDED") throw accountSuspended();
     return this.startSession(user, randomUUID());
   }
 
@@ -106,7 +118,7 @@ export class AuthService {
     if (row.expiresAt <= now) throw invalidRefreshToken();
 
     const user = await this.prisma.user.findUnique({ where: { id: row.userId } });
-    if (!user) throw invalidRefreshToken();
+    if (!user || user.status === "SUSPENDED") throw invalidRefreshToken();
 
     const newToken = this.tokens.newRefreshToken();
     const newId = randomUUID();
@@ -127,6 +139,7 @@ export class AuthService {
       await this.revokeFamily(row.familyId);
       throw invalidRefreshToken();
     }
+    await this.touch(user.id);
     return this.session(user, newToken);
   }
 
@@ -199,7 +212,13 @@ export class AuthService {
     return toAuthUser(user);
   }
 
+  /** Records that the player was here, for the dashboard's "last active". */
+  private async touch(userId: string): Promise<void> {
+    await this.prisma.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } });
+  }
+
   private async startSession(user: UserRow, familyId: string): Promise<AuthSession> {
+    await this.touch(user.id);
     const refreshToken = this.tokens.newRefreshToken();
     await this.prisma.refreshToken.create({
       data: this.newRow(randomUUID(), user.id, familyId, refreshToken, new Date()),

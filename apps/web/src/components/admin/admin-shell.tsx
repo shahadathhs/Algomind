@@ -16,6 +16,7 @@ const NAV = [
   { href: "/admin/levels", label: "Levels" },
   { href: "/admin/campaign", label: "Campaign" },
   { href: "/admin/capabilities", label: "Capabilities" },
+  { href: "/admin/points", label: "Points" },
   { href: "/admin/import", label: "Import" },
   { href: "/admin/audit", label: "Audit log" },
   { href: "/admin/settings", label: "Settings" },

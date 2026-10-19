@@ -34,6 +34,7 @@ export class MeService {
       // Two syncs of one player (two devices, or a retry) take turns: the second reads what the
       // first wrote instead of merging from the same stale snapshot.
       await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
+      await tx.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } });
       const stored = new Map(
         (await tx.levelProgress.findMany({ where: { userId } })).map((row) => [row.levelSlug, row]),
       );
