@@ -46,7 +46,7 @@ Owns:
 - Client-side checks that fetched level data has the required shape.
 - Loading, retry, offline, and cache behavior.
 - Local settings and initial local progress.
-- The Android build. A web export hosted by the public site at `/play` is a later, optional addition.
+- The Android build. A web export hosted by the public site at `/play` (fetched from the release at site build time).
 
 Does not own:
 

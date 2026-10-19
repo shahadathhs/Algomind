@@ -37,3 +37,6 @@ apps/api/src/generated/
 
 # Local agent worktrees (never commit)
 .claude/
+
+# Browser build of the game, fetched or exported for the /play page
+apps/web/public/play-build/

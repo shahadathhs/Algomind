@@ -21,8 +21,11 @@ const METHODS := {
 
 
 ## The configured API base URL without a trailing slash, or "" when the game is offline-only.
+## The browser build is always offline-only: it is a try-out, so it never calls the API.
 ## Release builds accept only https. Debug builds may use plain http for a local API.
 static func base_url() -> String:
+	if OS.has_feature("web"):
+		return ""
 	var url := ""
 	if OS.is_debug_build():
 		url = OS.get_environment(ENV_OVERRIDE).strip_edges()

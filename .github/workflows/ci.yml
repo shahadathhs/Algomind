@@ -251,12 +251,21 @@ jobs:
       - name: Checksum
         run: cd apps/game/build && sha256sum "algomind-${VERSION}.apk" > "algomind-${VERSION}.apk.sha256"
 
+      # The browser build for the site's /play page. It is always offline-only (the game ignores
+      # the API URL on the web); the site fetches it at build time (apps/web/scripts/fetch-play-build.mjs).
+      - name: Export the browser build
+        run: |
+          make game-web
+          # The page is the site's own, so Godot's default HTML shell is left out.
+          tar -czf "apps/game/build/algomind-web-${VERSION}.tar.gz" --exclude=./algomind.html --exclude='*.import' -C apps/game/build/web .
+
       - uses: actions/upload-artifact@v7
         with:
           name: algomind-apk
           path: |
             apps/game/build/algomind-*.apk
             apps/game/build/algomind-*.apk.sha256
+            apps/game/build/algomind-web-*.tar.gz
           if-no-files-found: error
           retention-days: 30
 
@@ -279,7 +288,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete latest --repo "${GITHUB_REPOSITORY}" --cleanup-tag --yes || true
-          gh release create latest algomind-*.apk algomind-*.apk.sha256 --repo "${GITHUB_REPOSITORY}" \
+          gh release create latest algomind-*.apk algomind-*.apk.sha256 algomind-web-*.tar.gz --repo "${GITHUB_REPOSITORY}" \
             --title "Latest build (main@${GITHUB_SHA::7})" \
             --notes "Automatic build of commit ${GITHUB_SHA}. This is a rolling dev channel, not a versioned release; expect rough edges. Get versioned releases from the releases page." \
             --latest=false
@@ -306,7 +315,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.apk.outputs.version }}
         run: |
-          gh release create "v${VERSION}" algomind-*.apk algomind-*.apk.sha256 \
+          gh release create "v${VERSION}" algomind-*.apk algomind-*.apk.sha256 algomind-web-*.tar.gz \
             --repo "${GITHUB_REPOSITORY}" \
             --title "Algomind v${VERSION}" \
             --generate-notes --latest

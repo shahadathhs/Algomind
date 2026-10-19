@@ -6,7 +6,7 @@
   "description": "Algomind web app: the public site (download first) and the admin dashboard.",
   "scripts": {
     "dev": "pnpm contract && next dev",
-    "build": "pnpm contract && next build",
+    "build": "pnpm contract && node scripts/fetch-play-build.mjs && next build",
     "start": "next start",
     "typecheck": "pnpm contract && tsc --noEmit",
     "contract": "pnpm --filter @algomind/level-contract build"
