@@ -2,7 +2,7 @@
 
 > **Purpose:** Plan the public, user-facing part of `apps/web` (the `(public)` route group). The admin dashboard is covered in the architecture and visual-design docs.  
 > **Reference renders:** [design/web/](design/web/) holds the landing and download pages in light and dark, at desktop and mobile widths. Values in them (version, size, hash, release notes, QR) are placeholders.  
-> **Status:** The launch pages are built (landing, download, how to play, privacy, contact) and live at https://playalgomind.vercel.app. The level catalog, browser play, and the account page are not built. Deviations from this plan are noted where they apply.
+> **Status:** The launch pages are built (landing, download, how to play, privacy, contact) and live at https://playalgomind.vercel.app. The level catalog and browser play (`/play`) are built; level pages and the account page are not. Deviations from this plan are noted where they apply.
 
 ## 1. Goal
 
@@ -31,7 +31,7 @@
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/levels`        | **Built.** The catalog organised by world and chapter, with a board thumbnail, difficulty, and command limit for each level. It reads the published campaign from the API (`GET /v1/campaign`, then each level's board from `GET /v1/levels/:slug`, revalidated every minute) and says the levels could not be loaded when the API is unreachable; nothing is bundled. |
 | `/levels/[slug]` | Not built: spoiler-free level pages, with a generated share image per level                                                                                                                                                                                                                                                                                            |
-| `/play`          | Browser play through the game's web export, as a secondary "try it" link                                                                                                                                                                                                                                                                                               |
+| `/play`          | **Built.** Browser play through the game's web export, as a secondary "try it" link (footer). See section 7                                                                                                                                                                                                                                                            |
 | `/account`       | Sign in, sync status, delete account, only when sync ships                                                                                                                                                                                                                                                                                                             |
 
 ## 3. Landing page
@@ -88,12 +88,14 @@ The page must make sideloading feel safe and easy.
 - **Accessibility:** both themes pass contrast; every control is keyboard reachable with visible focus; headings are real headings; reduced-motion is respected; nothing loops.
 - **Analytics:** none at launch.
 
-## 7. Browser play (later, optional)
+## 7. Browser play
 
-If and when it is added, it uses the **same Godot project exported to the web**, never a separate web implementation (that would duplicate the simulator, editor, themes, and sync).
+**Built** as `/play`. It uses the **same Godot project exported to the web**, never a separate web implementation (that would duplicate the simulator, editor, themes, and sync).
 
 - **Measured on a comparable project:** the engine `.wasm` is about 39 MB raw and about 9.5 MB over the wire compressed; the game data about 0.5 MB. First visit is about 10 MB, then cached.
 - **Hosting:** keep the export out of git. CI attaches it to a GitHub release; the site fetches it at build time into a gitignored folder; a Vercel deploy hook rebuilds the site after a new export.
+- **How it is wired:** the game has a `Web` export preset (single-threaded, no extensions). `make game-web` exports it with the Godot container into `apps/web/public/play-build/`. CI exports it in the `apk` job (same version) and attaches `algomind-web-<version>.tar.gz` to the rolling `latest` release and to versioned releases. `pnpm --filter @algomind/web build` runs `scripts/fetch-play-build.mjs` first, which downloads that asset from the release tagged `PLAY_BUILD_TAG` (default `latest`) unless an export is already in `public/play-build`; a failed fetch never fails the build. A site built without an export shows "The browser version is not available right now."
+- **The page:** a server component checks for the export at build time. The client island (`play-frame.tsx`) loads nothing until Play is pressed, shows a percentage while loading, and has failure states (no WebAssembly, no WebGL 2, download error) with a retry. Without JavaScript the page says it needs it. The browser build is always offline-only (`ApiClient.base_url()` returns "" on the `web` feature): it uses the bundled levels, keeps progress in the browser, and never calls the API, so it needs no CORS entry.
 - **Free plan:** Vercel's free (Hobby) tier has bandwidth and use limits that must be checked against current terms before launch. A traffic spike is the risk.
 - **Web-build guards:** single-threaded export (no cross-origin isolation headers needed), non-fatal storage failures, audio unlocked by the Play gesture, keyboard controls, and real loading and failure states.
 - **Presentation:** a secondary "Try in your browser" link only. The download stays primary.

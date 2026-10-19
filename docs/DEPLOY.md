@@ -15,12 +15,12 @@ Checked on 2026-10-18: the API answers liveness and readiness with the database 
 
 ## Overview
 
-| Piece                | Host                                                                                                                     | Notes                                                                            |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| API (`apps/api`)     | Render web service, built from a Dockerfile                                                                              | One instance while rate limiting is in-process (login, refresh, change-password) |
-| Database             | Neon PostgreSQL                                                                                                          | Backups enabled; same region family as the API                                   |
-| Web app (`apps/web`) | Vercel                                                                                                                   | Public site and `/admin` in one project                                          |
-| Game                 | GitHub Releases hold the Android build (APK only, not on Google Play). A web export served at `/play` is a later option. |                                                                                  |
+| Piece                | Host                                                                                                                                                                                                                 | Notes                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| API (`apps/api`)     | Render web service, built from a Dockerfile                                                                                                                                                                          | One instance while rate limiting is in-process (login, refresh, change-password) |
+| Database             | Neon PostgreSQL                                                                                                                                                                                                      | Backups enabled; same region family as the API                                   |
+| Web app (`apps/web`) | Vercel                                                                                                                                                                                                               | Public site and `/admin` in one project                                          |
+| Game                 | GitHub Releases hold the Android build (APK only, not on Google Play). The browser build is attached to the same releases as `algomind-web-*.tar.gz` and served by the site at `/play` (fetched at site build time). |                                                                                  |
 
 > **Single instance only.** If rate limits live in the API's memory, a second instance would double the limits and split their counters. Move the limiter to a shared store before scaling out.
 

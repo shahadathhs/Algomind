@@ -13,6 +13,7 @@ export const PUBLIC_PATHS = [
   "/levels",
   "/download",
   "/how-to-play",
+  "/play",
   "/privacy",
   "/contact",
 ] as const;

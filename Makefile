@@ -20,7 +20,7 @@ GDPATHS   := $(GAME)/scripts $(GAME)/tests
         api-generate api-dev api-build api-start api-migrate api-migration \
         web-dev web-build web-start \
         game-fixtures game-import game-check game-test game-lint game-format game-run game-shots game-bundle \
-        game-docker-image game-docker-check game-docker-test game-apk android-key \
+        game-docker-image game-docker-check game-docker-test game-apk game-web android-key \
         up down build logs ps clean version release
 
 help: ## Show this help
@@ -172,6 +172,14 @@ game-apk: env ## Export a debug APK to apps/game/build/ (inside the Godot contai
 	@mkdir -p $(GAME)/build
 	$(COMPOSE) --profile tools run --rm godot bash -c 'android-setup && godot --headless --path . --import && godot --headless --path . --export-debug "Android" build/algomind-debug.apk'
 	@echo "Built $(GAME)/build/algomind-debug.apk"
+
+game-web: env ## Export the browser build to apps/web/public/play-build/ (inside the Godot container)
+	@mkdir -p $(GAME)/build/web
+	$(COMPOSE) --profile tools run --rm godot bash -c 'godot --headless --path . --import && godot --headless --path . --export-release "Web" build/web/algomind.html'
+	rm -rf apps/web/public/play-build && mkdir -p apps/web/public/play-build
+	cp $(GAME)/build/web/* apps/web/public/play-build/
+	rm -f apps/web/public/play-build/algomind.html apps/web/public/play-build/*.import
+	@echo "Built apps/web/public/play-build (the /play page serves it)"
 
 android-key: env ## Print a new debug signing key as base64 (the CI secret): make -s android-key | gh secret set ANDROID_DEBUG_KEYSTORE_BASE64
 	@$(COMPOSE) --profile tools run --rm -T godot bash -c 'keytool -genkeypair -keyalg RSA -alias androiddebugkey -keypass android -keystore /tmp/k.ks -storepass android -dname "CN=Algomind Debug" -validity 9999 -deststoretype pkcs12 >/dev/null 2>&1 && base64 -w0 /tmp/k.ks' 2>/dev/null | tr -d '\r\n'
