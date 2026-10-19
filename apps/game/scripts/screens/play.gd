@@ -10,6 +10,7 @@ const COMMANDS: Array[Dictionary] = [
 	{"op": "MOVE_FORWARD", "label": "MOVE", "icon": "move"},
 	{"op": "TURN_LEFT", "label": "LEFT", "icon": "left"},
 	{"op": "TURN_RIGHT", "label": "RIGHT", "icon": "right"},
+	{"op": "REPEAT", "label": "REPEAT", "icon": "repeat"},
 ]
 
 ## False in debug screenshots, which must not write progress.
@@ -43,6 +44,7 @@ var _tools: Array[TileButton] = []
 var _tape_view: TapeView
 var _commands_caption: Label
 var _command_buttons: Array[TileButton] = []
+var _repeat_button: TileButton
 var _stats: Array[_Stat] = []
 var _step: TileButton
 var _run: TileButton
@@ -110,7 +112,13 @@ func _build() -> void:
 	_program_caption = UiKit.label("PROGRAM", 14, Palette.MUTE, 3)
 	_program_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(_program_caption)
-	for tool in [["prev", "Move earlier"], ["next", "Move later"], ["x", "Remove"]]:
+	for tool in [
+		["minus", "Fewer rounds"],
+		["plus", "More rounds"],
+		["prev", "Move earlier"],
+		["next", "Move later"],
+		["x", "Remove"],
+	]:
 		var button := TileButton.make(TileButton.Kind.SECONDARY, "", tool[0])
 		button.accessibility_name = tool[1]
 		button.pressed.connect(_on_tool.bind(tool[0]))
@@ -124,15 +132,22 @@ func _build() -> void:
 
 	_commands_caption = UiKit.label("COMMANDS", 14, Palette.MUTE, 3)
 	add_child(_commands_caption)
+	var offered := 0
+	for command in COMMANDS:
+		if available.has(command["op"]):
+			offered += 1
 	for command in COMMANDS:
 		if not available.has(command["op"]):
 			continue
+		# Four tiles share a row, so their labels are a little smaller.
 		var button := TileButton.make(
-			TileButton.Kind.SECONDARY, command["label"], command["icon"], 20
+			TileButton.Kind.SECONDARY, command["label"], command["icon"], 20 if offered < 4 else 14
 		)
 		button.pressed.connect(_on_command.bind(command["op"]))
 		add_child(button)
 		_command_buttons.append(button)
+		if command["op"] == TapeModel.REPEAT:
+			_repeat_button = button
 
 	for caption in ["COMMANDS", "STEPS", "BEST"]:
 		var stat := _Stat.new()
@@ -236,11 +251,15 @@ func _layout() -> void:
 	var caption_h := 40.0 if compact else 44.0
 	_program_caption.position = Vector2(m, cursor - caption_h)
 	_program_caption.size = Vector2(width * 0.4, caption_h)
-	for i in _tools.size():
-		var tool_size := caption_h - 4.0
-		_tools[i].size = Vector2(tool_size, tool_size)
-		_tools[i].position = Vector2(
-			size.x - m - (3 - i) * (tool_size + 8.0) + 8.0, cursor - caption_h + 2.0
+	var tool_size := caption_h - 4.0
+	var shown: Array[TileButton] = []
+	for tool in _tools:
+		if tool.visible:
+			shown.append(tool)
+	for i in shown.size():
+		shown[i].size = Vector2(tool_size, tool_size)
+		shown[i].position = Vector2(
+			size.x - m - (shown.size() - i) * (tool_size + 8.0) + 8.0, cursor - caption_h + 2.0
 		)
 	cursor = _program_caption.position.y - 4.0
 
@@ -315,7 +334,8 @@ func _refresh() -> void:
 	for item: Array in plan:
 		(item[0] as TileButton).visible = true
 
-	var empty := _tape.size() == 0
+	# A loop with no command in it is not a program yet.
+	var empty := _tape.is_empty() or _tape.has_empty_loop()
 	_step.set_disabled(state == PlaySession.State.RUNNING or empty)
 	_reset.set_disabled(state == PlaySession.State.READY)
 	match state:
@@ -327,9 +347,21 @@ func _refresh() -> void:
 			_set_run_button("RUN", "play", empty)
 
 	var solved := state == PlaySession.State.SUCCEEDED
+	var running := state == PlaySession.State.RUNNING
 	for button in _command_buttons:
 		button.visible = not solved
-		button.set_disabled(state == PlaySession.State.RUNNING or _tape.is_full())
+		button.set_disabled(running or _tape.is_full() or _tape.open_loop_is_full())
+	if _repeat_button != null:
+		# While a loop is open the Repeat tile ends it (and needs a command inside first).
+		if _tape.open_loop() >= 0:
+			_repeat_button.label = "END LOOP"
+			_repeat_button.icon = "check"
+			_repeat_button.set_disabled(running or not _tape.can_end_loop())
+		else:
+			_repeat_button.label = "REPEAT"
+			_repeat_button.icon = "repeat"
+			_repeat_button.set_disabled(running or _tape.is_full())
+		_repeat_button.queue_redraw()
 	for stat in _stats:
 		stat.visible = solved
 	if solved:
@@ -339,26 +371,58 @@ func _refresh() -> void:
 
 	_badge.kind = "check" if solved else "x"
 	_message.text = _message_text()
-	_counter.text = "%d / %d COMMANDS" % [_tape.size(), _tape.limit]
+	_counter.text = "%d / %d COMMANDS" % [_tape.slots(), _tape.limit]
 	_counter.visible = not finished
 
-	for i in _tools.size():
-		_tools[i].visible = _tape.selected >= 0 and not _session.is_active()
-	_tools[0].set_disabled(_tape.selected <= 0)
-	_tools[1].set_disabled(_tape.selected < 0 or _tape.selected >= _tape.size() - 1)
+	_refresh_tools()
 
-	_tape_view.set_content(_tape.ops, _tape.limit, _tape.selected)
 	_tape_view.running = state != PlaySession.State.READY
-	_tape_view.failed_index = _session.failing_index()
-	_tape_view.current = (
-		_session.cursor - 1 if _session.cursor > 0 else (0 if _tape_view.running else -1)
+	_tape_view.set_content(
+		_tape.cells(), _tape.slots(), _tape.limit, _tape.selected, _tape.open_loop()
 	)
+	_tape_view.failed_index = _tape.cell_for_node(_session.failing_node())
+	_set_head(_session.current_entry())
 	_sync_tape_scroll()
 	_show_board()
 	_layout()
 	queue_redraw()
 	for node in [_badge, _tape_view]:
 		node.queue_redraw()
+
+
+## Shows the tools that apply to the selected cell: rounds only for a loop's count tile.
+func _refresh_tools() -> void:
+	var has_selection := _tape.selected >= 0 and not _session.is_active()
+	var is_count := _tape.selected_is_count()
+	# Order: minus, plus, earlier, later, remove.
+	_tools[0].visible = has_selection and is_count
+	_tools[1].visible = has_selection and is_count
+	for i in range(2, 5):
+		_tools[i].visible = has_selection
+	if not has_selection:
+		return
+	var path: Array = _tape.cells()[_tape.selected]["path"]
+	var siblings := (
+		_tape.nodes.size()
+		if path.size() == 1
+		else (_tape.nodes[int(path[0])]["body"] as Array).size()
+	)
+	var place := int(path[path.size() - 1])
+	_tools[2].set_disabled(place <= 0)
+	_tools[3].set_disabled(place >= siblings - 1)
+	var count := int(_tape.cells()[_tape.selected].get("count", 0))
+	_tools[0].set_disabled(count <= ContractLimits.REPEAT_COUNT_MIN)
+	_tools[1].set_disabled(count >= ContractLimits.REPEAT_COUNT_MAX)
+
+
+## Points the read-head at the cell the last shown event ran, and shows its loop round.
+func _set_head(entry: Dictionary) -> void:
+	if entry.is_empty():
+		_tape_view.current = 0 if _tape_view.running else -1
+		_tape_view.current_round = 0
+		return
+	_tape_view.current = _tape.cell_for_node(entry["node"])
+	_tape_view.current_round = int(entry["round"]) if entry["round"] != null else 0
 
 
 ## A wrapping label first measured at zero width keeps a huge minimum height, so it is sized
@@ -374,6 +438,9 @@ func _settle_message() -> void:
 func _sync_tape_scroll() -> void:
 	if _tape_view.running:
 		_tape_view.scroll = _tape_view.head_scroll(_tape_view.current)
+	elif _tape.selected >= 0:
+		# Keep the tile being edited in view; do not jump to the end of the program.
+		_tape_view.reveal(_tape.selected)
 	else:
 		_tape_view.scroll = _tape_view.edit_scroll()
 	_tape_view.queue_redraw()
@@ -392,12 +459,14 @@ func _message_text() -> String:
 		PlaySession.State.SUCCEEDED, PlaySession.State.FAILED:
 			return ResultMessages.for_result(_session.result).to_upper().trim_suffix(".")
 		_:
+			if _tape.has_empty_loop():
+				return "ADD A COMMAND TO THE LOOP"
 			return "REACH THE TARGET"
 
 
 func _update_stats() -> void:
 	var best := app.progress.best_commands(_entry["id"], int(_level["levelVersion"]))
-	var used := _tape.size()
+	var used := _tape.slots()
 	_stats[0].value = "%d / %d" % [used, _tape.limit]
 	_stats[1].value = str(int(_session.result.get("steps", 0)))
 	var par: Dictionary = _entry.get("par", {})
@@ -440,7 +509,10 @@ func _on_command(op: String) -> void:
 	if _session.state == PlaySession.State.RUNNING:
 		return
 	_begin_edit()
-	_tape.append(op)
+	if op == TapeModel.REPEAT and _tape.open_loop() >= 0:
+		_tape.end_loop()
+	else:
+		_tape.append(op)
 	app.sfx("tap")
 	_refresh()
 
@@ -459,6 +531,10 @@ func _on_tool(kind: String) -> void:
 			_tape.move_selected(-1)
 		"next":
 			_tape.move_selected(1)
+		"minus":
+			_tape.adjust_count(-1)
+		"plus":
+			_tape.adjust_count(1)
 		"x":
 			_tape.remove_selected()
 	_refresh()
@@ -501,7 +577,11 @@ func _on_next() -> void:
 
 func _start(next_state: PlaySession.State) -> bool:
 	_tape.clear_selection()
-	if _tape.size() == 0 or not _session.start(_tape.program(), next_state):
+	if (
+		_tape.is_empty()
+		or _tape.has_empty_loop()
+		or not _session.start(_tape.program(), next_state)
+	):
 		return false
 	_run_id += 1
 	_refresh()
@@ -521,7 +601,7 @@ func _update_coach(state: PlaySession.State) -> void:
 	_coach.visible = active
 	if not active:
 		return
-	if _tape.size() == 0:
+	if _tape.is_empty():
 		_coach.step_number = 1
 		_coach.text = "TAP MOVE TO ADD A COMMAND"
 	else:
@@ -602,7 +682,7 @@ func _animate_next_step() -> void:
 		return
 	_tape_view.running = true
 	_tape_view.failed_index = -1
-	_tape_view.current = int(entry["index"])
+	_set_head(entry)
 	_board.facing = entry["direction"]
 	var cell: Array = entry["position"]
 	var target := Vector2(int(cell[0]), int(cell[1]))
@@ -654,7 +734,7 @@ func _after_step() -> void:
 		if persist and int(_entry["number"]) == 1:
 			app.progress.settings.set_tutorial_done(true)
 		if persist:
-			app.progress.record_completion(_entry["id"], int(_level["levelVersion"]), _tape.size())
+			app.progress.record_completion(_entry["id"], int(_level["levelVersion"]), _tape.slots())
 			app.progress.save()
 			app.request_sync()
 	elif _session.state == PlaySession.State.FAILED:
@@ -670,14 +750,44 @@ func _after_step() -> void:
 func debug_show(program_text: String, steps: int) -> void:
 	persist = false
 	var letters := {"M": "MOVE_FORWARD", "L": "TURN_LEFT", "R": "TURN_RIGHT"}
-	for letter in program_text:
+	# Letters are commands; "3{MRML}" is a loop of three rounds over that body.
+	var i := 0
+	while i < program_text.length():
+		var letter := program_text[i]
+		if letter.is_valid_int():
+			var end := i
+			while end < program_text.length() and program_text[end].is_valid_int():
+				end += 1
+			var close := program_text.find("}", end)
+			var open_end := close < 0
+			if open_end:
+				close = program_text.length()
+			_tape.append(TapeModel.REPEAT)
+			_tape.adjust_count(
+				int(program_text.substr(i, end - i)) - ContractLimits.REPEAT_COUNT_MIN
+			)
+			for inner in program_text.substr(end + 1, close - end - 1):
+				_tape.append(letters.get(inner, "MOVE_FORWARD"))
+			# No closing brace leaves the loop open, as while the player is still building it.
+			if not open_end:
+				_tape.end_loop()
+			i = close + 1
+			continue
 		_tape.append(letters.get(letter, "MOVE_FORWARD"))
+		i += 1
+	_tape.clear_selection()
 	if steps != 0 and _session.start(_tape.program(), PlaySession.State.PAUSED):
 		var count := _session.trace().size() if steps < 0 else steps
-		for i in count:
+		for step in count:
 			_session.advance()
 		if _session.state == PlaySession.State.SUCCEEDED:
-			app.progress.record_completion(_entry["id"], int(_level["levelVersion"]), _tape.size())
+			app.progress.record_completion(_entry["id"], int(_level["levelVersion"]), _tape.slots())
+	_refresh()
+
+
+## Debug only: select a tape cell, to show its tools.
+func debug_select(index: int) -> void:
+	_tape.toggle_select(index)
 	_refresh()
 
 

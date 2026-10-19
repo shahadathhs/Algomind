@@ -129,6 +129,7 @@ If height runs out, the board shrinks last; the tape and commands compress first
 - A continuous strip. The read-head is fixed at its center (a yellow line with a downward triangle). The strip slides so the current instruction sits under the head.
 - **Tile states:** executed = solid ink; current = yellow; upcoming = outlined; empty slot = dashed. Step numbers sit under each tile.
 - **Ready (editing):** the strip is left-aligned with no head and a dashed plus slot at the end. Tap a command to append; tap a tile to select it for removal or reordering. Dragging is optional, never required.
+- **Loops:** a loop is a **count tile** (outlined, "x3") followed by its body tiles inside one 2 px ink bracket with the chamfered corner; the bracket is dashed while the loop is open and takes the next command. The count tile turns solid ink when selected, and while running it reads "round/count" ("2/6"). Tiles in a body are numbered like any others: one number per slot. Selecting a count tile shows minus and plus tools; Remove deletes the whole loop and moving it moves its body. The Repeat command tile uses a two-arrow icon and reads End loop (with a check) while a loop is open. With four commands in the row, labels drop to 14 px.
 - **Failure:** the failing tile shows an X; the wall that was hit turns yellow-striped; the message names what happened.
 - **Solved:** all tiles are executed; a result block shows commands used, steps, and best; Next is the one primary action.
 
