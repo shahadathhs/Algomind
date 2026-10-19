@@ -33,7 +33,7 @@ func _build() -> void:
 	add_child(_title)
 	_status = _StatusRow.new()
 	add_child(_status)
-	for caption in ["SOLVED", "LEVELS", "BEST CMDS"]:
+	for caption in ["SOLVED", "LEVELS", "POINTS"]:
 		var stat := _Stat.new()
 		stat.caption = caption
 		add_child(stat)
@@ -124,13 +124,10 @@ func _refresh() -> void:
 	_status.text = _status_text(state)
 	_status.queue_redraw()
 	var solved := app.progress.completions()
-	var best := 0
-	for item in solved:
-		var commands := int(item["bestCommands"])
-		best = commands if best == 0 else mini(best, commands)
 	_stats[0].value = "%02d" % solved.size()
 	_stats[1].value = "%02d" % app.campaign.entries.size()
-	_stats[2].value = str(best) if best > 0 else "-"
+	var total := app.progress.results.total
+	_stats[2].value = str(total) if total >= 0 else "-"
 	for stat in _stats:
 		stat.queue_redraw()
 	if sync != null and state in ["offline", "failed"] and not sync.message.is_empty():

@@ -5,7 +5,7 @@ import { ProseSection } from "@/components/public/prose-section";
 import { pageMetadata } from "@/lib/seo";
 
 const DESCRIPTION =
-  "What Algomind does and does not collect: the website sets no cookies and collects nothing, the app keeps progress on your device, and an optional account stores your email and progress.";
+  "What Algomind does and does not collect: the website sets no cookies and collects nothing, the app keeps progress on your device, and an optional account stores your email, progress, and the programs you solved levels with.";
 
 export const metadata: Metadata = pageMetadata({
   title: "Privacy",
@@ -49,18 +49,29 @@ export default function PrivacyPage() {
       </ProseSection>
 
       <ProseSection title="An optional account">
-        <p>
-          Accounts are optional and are not available yet. When they are, an account will store:
-        </p>
+        <p>Accounts are optional. An account stores:</p>
         <ul>
           <li>your email address;</li>
           <li>a hash of your password, never the password itself;</li>
-          <li>your progress, so it can sync between your devices.</li>
+          <li>your progress and the settings you sync, so they follow you between devices;</li>
+          <li>
+            the programs you solved levels with, which the server checks and re-runs to give your
+            stars and points, and the points you have earned;
+          </li>
+          <li>when you last used the app, and a record of your signed-in devices.</li>
         </ul>
         <p>
-          Progress is saved on your device first and is uploaded only while you are signed in. A
-          failed sync never changes what is saved on your device. Nothing is sold or shared for
-          advertising.
+          Progress is saved on your device first. It, and the programs of levels you solved, are
+          uploaded only while you are signed in. A failed sync never changes what is saved on your
+          device. The server never trusts a score from the app: it scores the program itself.
+          Nothing is sold or shared for advertising.
+        </p>
+        <p>
+          The person who runs Algomind can see these records in the dashboard, to help with support
+          and to keep the game fair. They can sign you out, reset your server-side progress, suspend
+          an account, set or clear a display name, export your data, or delete the account. Each of
+          these is written to a log. Algomind has no public leaderboards yet, so nothing about you
+          is shown to other players.
         </p>
       </ProseSection>
 
@@ -70,16 +81,17 @@ export default function PrivacyPage() {
           the app and it is gone.
         </p>
         <p>
-          With an account, you will be able to delete it from the account screen in the app, which
-          removes your email address and your synced progress. You can also ask for deletion by
-          writing to the address on the <Link href="/contact">contact page</Link>.
+          With an account, you can delete it from the account screen in the app, which removes your
+          email address, your synced progress, your solved programs, your points, and your sessions.
+          You can also ask for deletion, or for a copy of your data, by writing to the address on
+          the <Link href="/contact">contact page</Link>.
         </p>
       </ProseSection>
 
       <ProseSection title="Changes to this page">
         <p>
-          If what Algomind collects changes, this page changes first. Last updated: to be set when
-          the first release is published.
+          If what Algomind collects changes, this page changes first. Last updated: October 2026,
+          when verified results and points were added.
         </p>
       </ProseSection>
     </ProsePage>

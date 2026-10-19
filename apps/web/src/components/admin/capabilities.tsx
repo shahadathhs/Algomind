@@ -7,7 +7,7 @@ import type { ClientVersion } from "@/lib/admin/admin-api";
 import { Field, Notice, PageHeading, PrimaryAction } from "./ui";
 import { useAdminApi } from "./use-admin-api";
 
-const MECHANICS = ["move", "turn"];
+const MECHANICS = ["move", "turn", "repeat"];
 
 /** Which mechanics each released app version supports. Publishing checks the minimum version. */
 export function Capabilities() {
@@ -15,7 +15,7 @@ export function Capabilities() {
   const [items, setItems] = useState<ClientVersion[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState("");
-  const [mechanics, setMechanics] = useState<string[]>(["move", "turn"]);
+  const [mechanics, setMechanics] = useState<string[]>(["move", "turn", "repeat"]);
   const [minimum, setMinimum] = useState(false);
   const [busy, setBusy] = useState(false);
 

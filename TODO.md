@@ -72,7 +72,7 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 
 ## Later
 
-- [ ] Step 4: verified submissions, points ledger, stars, result screen, player management (see [docs/README_SOCIAL_PLAN.md](docs/README_SOCIAL_PLAN.md))
+- [x] Step 4: verified submissions, points ledger, stars, result screen, player management (see [docs/README_SOCIAL_PLAN.md](docs/README_SOCIAL_PLAN.md), section 6 for what is built and what is not)
 - [ ] Step 5: world 4 (`REPEAT UNTIL`), world 5 (`IF` sensors)
 - [ ] Step 6: leaderboards, daily challenge, sharing
 - [ ] Step 7: worlds 6 to 10

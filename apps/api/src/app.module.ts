@@ -9,6 +9,8 @@ import { ClientVersionsModule } from "./modules/client-versions/client-versions.
 import { HealthModule } from "./modules/health/health.module.js";
 import { LevelsModule } from "./modules/levels/levels.module.js";
 import { MeModule } from "./modules/me/me.module.js";
+import { PlayersModule } from "./modules/players/players.module.js";
+import { PointsModule } from "./modules/points/points.module.js";
 import { SeedModule } from "./modules/seed/seed.module.js";
 
 @Module({
@@ -23,6 +25,8 @@ import { SeedModule } from "./modules/seed/seed.module.js";
     CampaignModule,
     CatalogModule,
     MeModule,
+    PointsModule,
+    PlayersModule,
     SeedModule,
   ],
 })

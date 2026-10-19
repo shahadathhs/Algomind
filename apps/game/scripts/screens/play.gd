@@ -159,8 +159,8 @@ func _refresh() -> void:
 
 	_badge.kind = "check" if solved else "x"
 	_message.text = PlayView.message_text(self)
-	_counter.text = "%d / %d COMMANDS" % [_tape.slots(), _tape.limit]
-	_counter.visible = not finished
+	_counter.text = PlayView.counter_text(self)
+	_counter.visible = state != PlaySession.State.FAILED
 
 	PlayView.refresh_tools(self)
 
@@ -375,12 +375,8 @@ func _after_step() -> void:
 	if _session.state == PlaySession.State.SUCCEEDED:
 		app.sfx("success")
 		app.haptic(60)
-		if persist and int(_entry["number"]) == 1:
-			app.progress.settings.set_tutorial_done(true)
 		if persist:
-			app.progress.record_completion(_entry["id"], int(_level["levelVersion"]), _tape.slots())
-			app.progress.save()
-			app.request_sync()
+			PlayCompletion.save(self)
 	elif _session.state == PlaySession.State.FAILED:
 		app.sfx("fail")
 	_refresh()

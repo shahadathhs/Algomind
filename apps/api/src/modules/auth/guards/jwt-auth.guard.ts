@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { PrismaService } from "../../../core/prisma/prisma.service.js";
-import { toAuthUser } from "../auth.service.js";
+import { accountSuspended, toAuthUser } from "../auth.service.js";
 import type { AuthenticatedRequest } from "../auth.types.js";
 import { IS_PUBLIC } from "../decorators.js";
 import { TokenService } from "../token.service.js";
@@ -50,6 +50,7 @@ export class JwtAuthGuard implements CanActivate {
         message: "Authentication is required.",
       });
     }
+    if (user.status === "SUSPENDED") throw accountSuspended();
     request.user = toAuthUser(user);
     return true;
   }
