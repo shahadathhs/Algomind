@@ -1,5 +1,6 @@
 export type IconKind =
   | "move"
+  | "repeat"
   | "left"
   | "right"
   | "step"
@@ -35,6 +36,13 @@ export function CommandIcon({ kind, cx, cy, size, tone }: Props) {
   return (
     <g transform={transform} className={tone} aria-hidden="true">
       {kind === "move" && <path d="M12 3 20.5 12H14.5V21H9.5V12H3.5Z" strokeWidth={0} />}
+      {kind === "repeat" && (
+        <path
+          d="M4 8.5H17M13.5 5l3.5 3.5-3.5 3.5M20 15.5H7M10.5 12 7 15.5 10.5 19"
+          fill="none"
+          strokeWidth={2.4}
+        />
+      )}
       {kind === "right" && TURN_RIGHT}
       {(kind === "left" || kind === "reset") && (
         <g transform="translate(24 0) scale(-1 1)">{TURN_RIGHT}</g>

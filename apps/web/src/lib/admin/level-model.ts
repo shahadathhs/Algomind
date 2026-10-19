@@ -1,4 +1,5 @@
 import {
+  programSlots,
   simulate,
   validateAuthoringLevel,
   solve,
@@ -20,12 +21,25 @@ export const COMMANDS: { op: CommandName; command: Command; label: string }[] = 
   { op: "MOVE_FORWARD", command: "move", label: "Move forward" },
   { op: "TURN_LEFT", command: "left", label: "Turn left" },
   { op: "TURN_RIGHT", command: "right", label: "Turn right" },
+  { op: "REPEAT", command: "repeat", label: "Repeat" },
 ];
+
+/** The most instructions a loop body holds and the range of its count (the contract's limits). */
+export const REPEAT_LIMITS = { count: { min: 2, max: 11 }, body: { max: 8 } } as const;
 
 export const DIRECTIONS = ["north", "east", "south", "west"] as const;
 export type Direction = (typeof DIRECTIONS)[number];
 
 const DIR_LETTER: Record<Direction, Dir> = { north: "N", east: "E", south: "S", west: "W" };
+
+/** The tape tiles for a program: a loop is a Repeat tile followed by its body. One tile per slot. */
+export function tileCommands(program: Instruction[]): Command[] {
+  return program.flatMap((node) =>
+    node.op === "REPEAT"
+      ? ["repeat" as Command, ...(node.body ?? []).map((b) => commandOf(b.op))]
+      : [commandOf(node.op)],
+  );
+}
 
 export function commandOf(op: string): Command {
   return COMMANDS.find((c) => c.op === op)?.command ?? "move";
@@ -134,7 +148,12 @@ export function localCheck(content: LevelContent, referenceSolution: Instruction
 }
 
 export type { RunResult };
-export { simulate };
+export { programSlots, simulate };
+
+/** The slots a program uses (a loop is 1 plus its body), the number the command limit counts. */
+export function slotsOf(program: Instruction[]): number {
+  return programSlots(program as Program);
+}
 
 /** The unsaved-edit backup. It holds level content only, never tokens or credentials. */
 export type DraftBackup = {

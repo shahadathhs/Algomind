@@ -135,6 +135,24 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
     }
   }
 
+  // A level that offers REPEAT should need it: if the shortest program without loops already fits
+  // the limit, a loop is optional and the level does not teach loops. A warning, not an error:
+  // an introductory level may allow either.
+  if (level.availableCommands.includes("REPEAT") && best) {
+    const flat = solve({
+      ...level,
+      availableCommands: level.availableCommands.filter((c) => c !== "REPEAT"),
+    });
+    if (flat && flat.commands <= level.constraints.maxCommands) {
+      warnings.push({
+        gate: "par",
+        path: "constraints.maxCommands",
+        code: "LOOP_NOT_REQUIRED",
+        message: `The shortest program without REPEAT needs ${flat.commands} commands and the limit is ${level.constraints.maxCommands}, so a loop is optional here.`,
+      });
+    }
+  }
+
   const required = new Set<string>(level.requires.mechanics);
   for (const command of level.availableCommands) required.add(COMMAND_MECHANICS[command]);
 

@@ -21,13 +21,15 @@ import {
   BOARD_MIN,
   boardData,
   COMMANDS,
-  commandOf,
   DIRECTIONS,
   localCheck,
   MAX_COMMANDS,
   MAX_STEPS,
+  REPEAT_LIMITS,
   resizeBoard,
   simulate,
+  slotsOf,
+  tileCommands,
   type Direction,
   type Tool,
 } from "@/lib/admin/level-model";
@@ -276,6 +278,7 @@ function mechanicsFor(commands: string[]): string[] {
   const out: string[] = [];
   if (commands.includes("MOVE_FORWARD")) out.push("move");
   if (commands.includes("TURN_LEFT") || commands.includes("TURN_RIGHT")) out.push("turn");
+  if (commands.includes("REPEAT")) out.push("repeat");
   return out;
 }
 
@@ -357,31 +360,34 @@ function ProgramEditor({
   available: string[];
   idPrefix: string;
 }) {
-  const tiles = tapeFromProgram(
-    program.map((p) => commandOf(p.op)),
-    { emptySlot: "plus" },
-  );
-  const move = (from: number, to: number) => {
-    if (to < 0 || to >= program.length) return;
-    const next = program.slice();
+  const slots = slotsOf(program);
+  const tiles = tapeFromProgram(tileCommands(program), { emptySlot: "plus" });
+  const primitives = COMMANDS.filter((c) => c.op !== "REPEAT" && available.includes(c.op));
+  const canRepeat = available.includes("REPEAT");
+
+  const move = <T,>(list: T[], from: number, to: number): T[] => {
+    if (to < 0 || to >= list.length) return list;
+    const next = list.slice();
     const [item] = next.splice(from, 1);
     next.splice(to, 0, item!);
-    onChange(next);
+    return next;
   };
+  const setLoop = (i: number, change: Partial<Instruction>) =>
+    onChange(program.map((node, j) => (j === i ? { ...node, ...change } : node)));
+  const label = (op: string) => COMMANDS.find((c) => c.op === op)?.label ?? op;
+
   return (
     <div>
       <div className="mb-4 max-w-[560px]">
         <TapeView
           tiles={tiles}
           label={
-            program.length
-              ? `Program of ${program.length} commands.`
-              : "An empty program. Add a command."
+            program.length ? `Program of ${slots} commands.` : "An empty program. Add a command."
           }
         />
       </div>
       <div className="mb-4 flex flex-wrap gap-3" role="group" aria-label="Add a command">
-        {COMMANDS.filter((c) => available.includes(c.op)).map((c) => (
+        {primitives.map((c) => (
           <OutlineAction
             key={c.op}
             type="button"
@@ -390,40 +396,165 @@ function ProgramEditor({
             Add {c.label.toLowerCase()}
           </OutlineAction>
         ))}
+        {canRepeat && (
+          <OutlineAction
+            type="button"
+            onClick={() =>
+              onChange([...program, { op: "REPEAT", count: REPEAT_LIMITS.count.min, body: [] }])
+            }
+          >
+            Add repeat
+          </OutlineAction>
+        )}
       </div>
       {program.length > 0 && (
         <ol className="grid max-w-[560px] gap-1" aria-label={`${idPrefix} program`}>
           {program.map((p, i) => (
-            <li key={i} className="flex flex-wrap items-center gap-x-4 border-t-2 border-ink py-1">
-              <span className="w-8 text-sm tracking-[2px] tabular-nums">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="grow text-base tracking-[1px] uppercase">
-                {COMMANDS.find((c) => c.op === p.op)?.label ?? p.op}
-              </span>
-              <TextAction
-                disabled={i === 0}
-                onClick={() => move(i, i - 1)}
-                aria-label={`Move step ${i + 1} up`}
-              >
-                Up
-              </TextAction>
-              <TextAction
-                disabled={i === program.length - 1}
-                onClick={() => move(i, i + 1)}
-                aria-label={`Move step ${i + 1} down`}
-              >
-                Down
-              </TextAction>
-              <TextAction
-                onClick={() => onChange(program.filter((_, j) => j !== i))}
-                aria-label={`Remove step ${i + 1}`}
-              >
-                Remove
-              </TextAction>
+            <li key={i} className="border-t-2 border-ink py-1">
+              <div className="flex flex-wrap items-center gap-x-4">
+                <span className="w-8 text-sm tracking-[2px] tabular-nums">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="grow text-base tracking-[1px] uppercase">{label(p.op)}</span>
+                <TextAction
+                  disabled={i === 0}
+                  onClick={() => onChange(move(program, i, i - 1))}
+                  aria-label={`Move step ${i + 1} up`}
+                >
+                  Up
+                </TextAction>
+                <TextAction
+                  disabled={i === program.length - 1}
+                  onClick={() => onChange(move(program, i, i + 1))}
+                  aria-label={`Move step ${i + 1} down`}
+                >
+                  Down
+                </TextAction>
+                <TextAction
+                  onClick={() => onChange(program.filter((_, j) => j !== i))}
+                  aria-label={`Remove step ${i + 1}`}
+                >
+                  Remove
+                </TextAction>
+              </div>
+              {p.op === "REPEAT" && (
+                <LoopBody
+                  node={p}
+                  index={i}
+                  primitives={primitives}
+                  label={label}
+                  onCount={(count) => setLoop(i, { count })}
+                  onBody={(body) => setLoop(i, { body })}
+                  move={move}
+                />
+              )}
             </li>
           ))}
         </ol>
+      )}
+    </div>
+  );
+}
+
+/** The count and body of one loop, shown indented under its row. */
+function LoopBody({
+  node,
+  index,
+  primitives,
+  label,
+  onCount,
+  onBody,
+  move,
+}: {
+  node: Instruction;
+  index: number;
+  primitives: typeof COMMANDS;
+  label: (op: string) => string;
+  onCount: (count: number) => void;
+  onBody: (body: { op: string }[]) => void;
+  move: <T>(list: T[], from: number, to: number) => T[];
+}) {
+  const body = node.body ?? [];
+  const full = body.length >= REPEAT_LIMITS.body.max;
+  const id = `loop-${index}-count`;
+  return (
+    <div className="mt-2 mb-2 ml-8 grid gap-2 border-l-2 border-ink pl-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <label htmlFor={id} className="text-xs tracking-[2px] text-mute uppercase">
+          Rounds ({REPEAT_LIMITS.count.min} to {REPEAT_LIMITS.count.max})
+        </label>
+        <input
+          id={id}
+          type="number"
+          min={REPEAT_LIMITS.count.min}
+          max={REPEAT_LIMITS.count.max}
+          value={node.count ?? REPEAT_LIMITS.count.min}
+          onChange={(e) =>
+            onCount(
+              Math.min(
+                REPEAT_LIMITS.count.max,
+                Math.max(REPEAT_LIMITS.count.min, Math.round(Number(e.target.value)) || 2),
+              ),
+            )
+          }
+          className="h-11 w-20 border-2 border-ink bg-floor px-3 text-base text-ink"
+        />
+      </div>
+      {body.length === 0 && (
+        <p className="text-sm font-semibold text-mute">
+          This loop is empty. Add a command to it; an empty loop is not a valid program.
+        </p>
+      )}
+      <ol className="grid gap-1" aria-label={`Loop ${index + 1} body`}>
+        {body.map((b, j) => (
+          <li key={j} className="flex flex-wrap items-center gap-x-4 py-1">
+            <span className="w-8 text-sm tracking-[2px] tabular-nums">
+              {String(j + 1).padStart(2, "0")}
+            </span>
+            <span className="grow text-base tracking-[1px] uppercase">{label(b.op)}</span>
+            <TextAction
+              disabled={j === 0}
+              onClick={() => onBody(move(body, j, j - 1))}
+              aria-label={`Move command ${j + 1} of loop ${index + 1} up`}
+            >
+              Up
+            </TextAction>
+            <TextAction
+              disabled={j === body.length - 1}
+              onClick={() => onBody(move(body, j, j + 1))}
+              aria-label={`Move command ${j + 1} of loop ${index + 1} down`}
+            >
+              Down
+            </TextAction>
+            <TextAction
+              onClick={() => onBody(body.filter((_, k) => k !== j))}
+              aria-label={`Remove command ${j + 1} of loop ${index + 1}`}
+            >
+              Remove
+            </TextAction>
+          </li>
+        ))}
+      </ol>
+      <div
+        className="flex flex-wrap gap-3"
+        role="group"
+        aria-label={`Add a command to loop ${index + 1}`}
+      >
+        {primitives.map((c) => (
+          <OutlineAction
+            key={c.op}
+            type="button"
+            disabled={full}
+            onClick={() => onBody([...body, { op: c.op }])}
+          >
+            Add {c.label.toLowerCase()}
+          </OutlineAction>
+        ))}
+      </div>
+      {full && (
+        <p className="text-sm font-semibold text-mute">
+          A loop body holds at most {REPEAT_LIMITS.body.max} commands.
+        </p>
       )}
     </div>
   );
@@ -453,7 +584,7 @@ export function SolutionPanel({
       <div className="grid content-start gap-4">
         <Caption>Reference solution</Caption>
         <p className="text-base font-semibold">
-          {solution.length} {solution.length === 1 ? "command" : "commands"}
+          {slotsOf(solution)} {slotsOf(solution) === 1 ? "command" : "commands"}
           {par && `, par ${par.commands}`}
         </p>
         {!check.validation.ok ? (
@@ -465,7 +596,7 @@ export function SolutionPanel({
         ) : (
           <Notice>This solution does not reach the goal.</Notice>
         )}
-        {par && solution.length > par.commands && check.solved && (
+        {par && slotsOf(solution) > par.commands && check.solved && (
           <Notice kind="info">A shorter solution exists: {par.commands} commands.</Notice>
         )}
       </div>
