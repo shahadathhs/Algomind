@@ -26,4 +26,10 @@ A candidate is kept when its numbers match its family's profile (`families.mjs`)
 
 ## The `check` file
 
-A JSON list of `{ slug, title, rows, commands, maxCommands, hints, difficulty }`. Rows use `.` floor, `#` wall, `G` goal, and `^ > v <` for the automaton and its facing. `check` reports invalid levels, unreachable goals, a limit below par, and a limit far above par.
+A JSON list of `{ slug, title, rows, commands, maxCommands, hints, difficulty, chapter?, budget? }`. Rows use `.` floor, `#` wall, `G` goal, and `^ > v <` for the automaton and its facing. `check` reports invalid levels, unreachable goals, a limit below par, and a limit far above par.
+
+Set rules, checked across the whole file in order: a level whose par equals an earlier level's par in the same `chapter` is flagged (levels in a chapter should differ); a level that offers `REPEAT` is flagged when a plain program already fits its limit (the loop is optional); a level marked `"budget": true` is flagged when its limit is above par (a worse program would pass, so the limit decides nothing).
+
+## Carved boards
+
+`carve.mjs` builds boards from solid wall instead of scattering wall pieces: `maze` (a spanning tree with start and goal at two far ends, so there is one route and every other branch is a dead end) and `decoy` (a staircase with the fewest moves beside a long way round that is the cheaper program). Families `budget-tree-maze` and `budget-carved-decoy` use them. On seed 1 they give 128 and 164 distinct candidates; the older random `budget-decoy` family gives 22.

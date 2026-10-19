@@ -1,6 +1,7 @@
 // Candidate families for worlds 1 and 2. A family builds a board from a seeded generator and says
 // which measured numbers make it a good level of its kind. The solver is the judge, not the author.
 import { DELTA, GLYPH, emptyGrid, gridToRows } from "./board.mjs";
+import { decoy, maze } from "./carve.mjs";
 import { DIRECTIONS } from "./directions.mjs";
 
 const MOVE = ["MOVE_FORWARD"];
@@ -259,6 +260,21 @@ export const FAMILIES = {
     build: (r) =>
       walled(r, { width: 8, height: 8, segments: [3, 5], length: [3, 6], commands: ALL }),
     accept: (m) => m.deadEnds >= 2 && m.par >= 16 && m.par <= 26,
+  },
+  // Carved boards: the route shapes are designed, then the solver confirms them.
+  "budget-tree-maze": {
+    world: 2,
+    chapter: "Budgets",
+    idea: "A maze with one route and deliberate dead ends; the limit is par.",
+    build: (r) => maze(r, { width: 9, height: 9, commands: ALL }),
+    accept: (m) => m.deadEnds >= 3 && m.par >= 16 && m.par <= 28 && m.optimalPrograms <= 2,
+  },
+  "budget-carved-decoy": {
+    world: 2,
+    chapter: "Budgets",
+    idea: "The staircase has the fewest moves; the long way round is the cheaper program.",
+    build: (r) => decoy(r, { size: 8, steps: r.int(3, 4), extra: r.int(2, 4), commands: ALL }),
+    accept: (m) => m.decoy >= 2 && m.par >= 10 && m.par <= 22,
   },
 };
 

@@ -10,9 +10,9 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [x] Scoring from the real solver: par, moves, turns, wall cost, decoy cost, number of shortest programs, dead ends
 - [x] Look-alike removal (rotations and mirrors) and a varied shortlist
 - [x] Contact-sheet renders in the house style, light and dark (SVG; convert to PNG to view)
-- [ ] A constrained maze generator (a unique cheap route and deliberate dead ends); today only random wall segments
-- [ ] Rejection rules across a set: par equal to an earlier level, a limit that does not force a decision
-- [ ] A better decoy builder: the random one finds few candidates and the decoy is small (1 to 2 commands)
+- [x] A constrained maze generator (a unique cheap route and deliberate dead ends); today only random wall segments (`carve.mjs`: `maze`, family `budget-tree-maze`)
+- [x] Rejection rules across a set: par equal to an earlier level, a limit that does not force a decision (`check`: equal par in a chapter, a loop that is optional, slack on a budget level)
+- [x] A better decoy builder: the random one finds few candidates and the decoy is small (1 to 2 commands) (`carve.mjs`: `decoy`, family `budget-carved-decoy`; 164 candidates on seed 1 against 22)
 
 **Curriculum**
 
@@ -33,7 +33,7 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 
 **Verify**
 
-- [ ] `make check` green (lint, typecheck, API and game tests pass; the full run is not yet repeated)
+- [x] `make check` green (lint, typecheck, API and game tests pass; the full run is not yet repeated) (green on `dev` after the refactor)
 - [x] Game plays the new levels (screenshots checked: palette starts with Move only)
 - [ ] Dashboard lists the new levels; `/levels` and `/play` show them
 - [x] Screenshots reviewed at 360x640 and 412x915 (play ready, running, failed, solved, big board; pause; worlds; world; home; settings; account; how-to-play): the pause scrim is now opaque. Not every one of the 102 was looked at by eye; the rest were checked identical before and after the `play.gd` split
@@ -59,16 +59,16 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [x] Import and export of loop levels (the contract validator and the API pass loop nodes through; no change needed)
 - [x] Dashboard validation panel and diff texts mention loops (checked in the live editor; the publish review diff gained a Solution row with slots and loops)
 - [x] Client registry and the game both list the `repeat` mechanic (the seed's registry row and `Campaign.SUPPORTED_MECHANICS`)
-- [ ] Bump the game version when loops ship in a release
+- [x] Bump the game version when loops ship in a release (0.1.0; the release itself is the owner's call)
 - [x] Web test for the publish flow (`make web-smoke`: Playwright driving Chrome; local, needs a running API and web app, not in CI)
 - [x] How-to-play page and the browser build teach loops (the browser build uses the game screen)
 
 ## Then: step 3, world 3 (Loops)
 
-- [ ] Pattern families: stairs, wide steps, run and climb, ridge, crossing, rooms
-- [ ] Gate: flat par above the limit; loop par at or below the limit
+- [x] Pattern families: stairs, wide steps, run and climb, ridge, crossing, rooms
+- [x] Gate: flat par above the limit; loop par at or below the limit (`starter-campaign.test.ts`: every Loops level needs a loop)
 - [ ] 8 to 10 levels chosen, titled, hinted, and playtested by real people
-- [ ] Seed, bundle, and screenshots
+- [x] Seed, bundle, and screenshots
 
 ## Later
 

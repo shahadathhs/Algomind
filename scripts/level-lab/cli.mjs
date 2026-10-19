@@ -78,6 +78,7 @@ if (command === "families") {
 } else if (command === "check") {
   const defs = JSON.parse(readFileSync(args[1], "utf8"));
   let problems = 0;
+  const parsByChapter = new Map();
   for (const def of defs) {
     const level = levelFromRows(def.rows, def);
     const valid = validateLevel(level);
@@ -90,6 +91,21 @@ if (command === "families") {
       if (def.maxCommands < m.par) issues.push(`limit ${def.maxCommands} is below par ${m.par}`);
       if (def.maxCommands > m.par + 4)
         issues.push(`limit ${def.maxCommands} is far above par ${m.par}`);
+      // Set rules: what makes this level different from the others, and a limit that matters.
+      const group = def.chapter ?? "";
+      const earlier = parsByChapter.get(group) ?? new Map();
+      if (earlier.has(m.par))
+        issues.push(`par ${m.par} equals the par of ${earlier.get(m.par)} in the same chapter`);
+      earlier.set(m.par, def.slug);
+      parsByChapter.set(group, earlier);
+      if (m.loops && m.flatPar !== null && m.flatPar <= def.maxCommands)
+        issues.push(
+          `a plain program of ${m.flatPar} fits the limit ${def.maxCommands}: no loop needed`,
+        );
+      if (def.budget && def.maxCommands > m.par)
+        issues.push(
+          `budget level with limit ${def.maxCommands} above par ${m.par}: slack lets a worse program pass`,
+        );
     }
     problems += issues.length;
     console.log(
