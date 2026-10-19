@@ -375,19 +375,8 @@ func _after_step() -> void:
 	if _session.state == PlaySession.State.SUCCEEDED:
 		app.sfx("success")
 		app.haptic(60)
-		if persist and int(_entry["number"]) == 1:
-			app.progress.settings.set_tutorial_done(true)
 		if persist:
-			app.progress.record_completion(_entry["id"], int(_level["levelVersion"]), _tape.slots())
-			app.progress.results.queue_result(
-				str(_entry["id"]),
-				int(_level["levelVersion"]),
-				_tape.program().duplicate(true),
-				_tape.slots()
-			)
-			app.progress.save()
-			app.progress.results.save()
-			app.request_sync()
+			PlayCompletion.save(self)
 	elif _session.state == PlaySession.State.FAILED:
 		app.sfx("fail")
 	_refresh()
