@@ -15,7 +15,7 @@ GDFORMAT  := uvx --from $(GDTOOLKIT) gdformat
 GDPATHS   := $(GAME)/scripts $(GAME)/tests
 
 .DEFAULT_GOAL := help
-.PHONY: help setup env install lint format typecheck test check tokens tokens-check colors-check \
+.PHONY: help setup env install lint format typecheck test check tokens tokens-check colors-check size-check \
         db-up db-down db-reset db-psql \
         api-generate api-dev api-build api-start api-migrate api-migration \
         web-dev web-build web-start \
@@ -67,7 +67,7 @@ typecheck: ## Type-check every TypeScript package (tsc)
 test: ## Run every TypeScript package's tests
 	pnpm test
 
-check: tokens-check colors-check lint typecheck test game-lint game-check game-test ## Everything CI runs
+check: tokens-check colors-check size-check lint typecheck test game-lint game-check game-test ## Everything CI runs
 
 tokens: ## Regenerate the Godot palette and web CSS from design tokens
 	pnpm tokens
@@ -77,6 +77,9 @@ tokens-check: ## Fail if generated token files are out of date
 
 colors-check: ## Fail if a color is hand-written outside the design tokens
 	pnpm colors:check
+
+size-check: ## Fail if a source file is over 450 lines (lists files over 300)
+	pnpm size:check
 
 # ── Database (Docker Compose) ─────────────────────────────────────────
 

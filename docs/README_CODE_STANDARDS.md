@@ -56,7 +56,7 @@ Extract into a shared module when **any** trigger fires — do not copy:
 | The same API call shape in two components                                               | one typed client function in `lib/admin/admin-api.ts`                                     |
 | Message/error mapping repeated per file                                                 | one `messages.ts` helper                                                                  |
 
-Known duplications to collapse (found in review, to be removed, not re-copied): `TextAction` and `swap`/`move` (`campaign-manager.tsx` ≡ `editor-panels.tsx`), `messageOf`/`errorText` re-implemented in six admin files.
+Duplications found in review and since removed (do not re-copy): `TextAction` and `swap`/`move` now live in `components/admin/text-action.tsx` and `lib/admin/list-ops.ts`; the per-file `messageOf` helpers are one `apiMessage` in `lib/admin/messages.ts`.
 
 ## 5. Naming and placement
 
@@ -90,23 +90,24 @@ Known duplications to collapse (found in review, to be removed, not re-copied): 
 
 ## 9. Refactor backlog (current state, measured 2026-10-19)
 
-Files over the hard ceiling, hand-written only. Split the section you touch; full splits can ride the next feature work:
+The splits listed in the first review are done: the editor panels, campaign manager, level list, level editor and game screen on the web; `levels.service.ts` in the API (reads, drafts, publishing, playtests, transfer); `play.gd` in the game. Behavior was unchanged: tests stayed green and the 102 debug screenshots were byte-identical before and after.
 
-| File                                                 | Lines | Contents                                  | Suggested split                                                                         |
-| ---------------------------------------------------- | ----- | ----------------------------------------- | --------------------------------------------------------------------------------------- |
-| `apps/web/src/components/admin/editor-panels.tsx`    | 955   | 11 components                             | one file per panel + a composing parent; hooks out                                      |
-| `apps/game/scripts/screens/play.gd`                  | 857   | board + tape + result + run loop          | split by overlay/section; keep the `_run_id` guard in the parent                        |
-| `apps/api/src/modules/levels/levels.service.ts`      | 825   | drafts, publish, playtests, import/export | `levels-publish.service.ts`, `levels-playtest.service.ts`, `levels-transfer.service.ts` |
-| `apps/game/scripts/contract/level_validator.gd`      | 654   | contract mirror                           | exempt (parity); revisit only together with `validate.ts`                               |
-| `packages/level-contract/src/validate.ts`            | 598   | contract mirror                           | exempt (parity)                                                                         |
-| `apps/web/src/components/admin/campaign-manager.tsx` | 575   | 5 components                              | `world-form.tsx`, `chapter-form.tsx`, tree editor, page                                 |
-| `apps/web/src/components/admin/levels-list.tsx`      | 496   | 3 components                              | list, row, filters                                                                      |
-| `apps/web/src/components/admin/level-editor.tsx`     | 430   | 2 components                              | editor + tab strip                                                                      |
-| `apps/web/src/components/public/game-screen.tsx`     | 322   | 8 components                              | one file per screen graphic                                                             |
+Files still over the soft limit (300), all under the ceiling. Split the part you touch when you next edit them:
+
+| File                                                     | Lines | Note                                                     |
+| -------------------------------------------------------- | ----- | -------------------------------------------------------- |
+| `apps/game/scripts/screens/play.gd`                      | 408   | state-to-view and player actions; split on the next edit |
+| `apps/web/src/lib/admin/session-manager.ts`              | 366   | refresh, locks and broadcast; split by concern           |
+| `apps/api/src/modules/campaign/campaign.service.ts`      | 350   | worlds, chapters and order                               |
+| `apps/api/src/modules/levels/admin-levels.controller.ts` | 326   | route declarations with Swagger metadata                 |
+| `apps/api/src/modules/levels/levels.service.ts`          | 320   | drafts                                                   |
+| `apps/web/src/lib/admin/bff.ts`                          | 306   | proxy request shaping                                    |
+
+Exempt (section 8): `starter-campaign.data.ts`, `level_validator.gd`, `validate.ts`.
 
 ## 10. Enforcement
 
 - Review-time until automated: reject new files over the hard ceiling and new multi-component `.tsx` files. AI agents must run the measurement command before claiming a file is small.
 - The boy-scout rule applies: any edit to a file over the soft limit splits or extracts at least the part being touched. Do not grow an oversized file.
-- A `max-lines` / file-size check in `make lint` is the follow-up; until it exists, section 9 is the checklist.
+- `make size-check` (`scripts/check-file-size.mjs`, run by `make check` and CI) fails a file over 450 lines and lists files over 300. Exemptions live in that script and in section 8; keep the two in step.
 - Extraction must not change behavior: move code, keep the tests green (`make test`, `make game-test`), and update `docs/` only if a documented contract changed.

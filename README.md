@@ -136,6 +136,7 @@ make test               # TypeScript tests
 make game-test          # GDScript tests (GUT, includes the contract fixtures); make game-docker-test runs them in a container
 make tokens-check       # fail if generated design-token files are out of date
 make colors-check       # fail if a color is hand-written outside the design tokens
+make size-check         # fail if a source file is over 450 lines (lists files over 300)
 make db-reset           # throw away the local database and start fresh
 make game-apk           # build a debug APK (in the Godot container)
 make version v=0.2.0    # bump the version everywhere (no git); make release also commits and pushes

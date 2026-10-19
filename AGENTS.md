@@ -33,6 +33,7 @@ make test           # TypeScript tests (no database needed)
 make game-test      # GDScript tests (GUT, includes the contract fixtures); make game-docker-test runs them in a container
 make tokens         # regenerate the Godot palette and web CSS from design tokens
 make tokens-check   # fail if generated token files are out of date
+make size-check     # fail if a source file is over 450 lines (lists files over 300)
 make api-dev        # API at :8000 (starts the database)
 make web-dev        # web at :3000
 make up / make down # everything in containers

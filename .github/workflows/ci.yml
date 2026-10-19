@@ -36,6 +36,8 @@ jobs:
         run: pnpm tokens:check
       - name: No hand-written colors
         run: pnpm colors:check
+      - name: Source file sizes
+        run: pnpm size:check
       - name: Lint and format check
         run: pnpm lint
       - name: Type-check

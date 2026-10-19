@@ -175,3 +175,12 @@ Clean. `build.mjs` has a `--check` mode wired to `make tokens-check`; token test
 4. Web: add security headers + de-`x-forwarded-host` the origin check (one small PR).
 5. API: guard `asPar(...)!` in the catalog; add user-row locking to sync.
 6. Repo: reconcile `TODO.md` with the branch before merging to `dev`.
+
+---
+
+## Status (branch `chore/review-fixes-and-standards`)
+
+- **Fixed and tested:** the game's storage, token refresh and sync findings (shared `AtomicFile`, single-flight refresh, no dropped sync requests, save failures reported); the API's catalog, sync and header findings (unusable par rows are skipped and logged, sync takes a per-user row lock, security headers); the web admin's proxy, session and header findings.
+- **Refactored under the code standards** (behavior unchanged; see `docs/README_CODE_STANDARDS.md`, section 9): editor panels, campaign manager, level list, level editor, game screen, `levels.service.ts`, `play.gd`. The campaign create and rename forms now close only when the request succeeded, and deleting a world or chapter asks first.
+- **Verified:** `make lint`, `make typecheck`, `make test`, `make game-test` (201 tests), `make game-lint`, a web build, an API boot against a local Postgres (all routes mapped, guard returns 401), and 102 debug screenshots identical before and after the `play.gd` split.
+- **Not verified:** the per-user row lock in `me.service.ts` against concurrent real requests; the web admin flows in a browser after the refactor; a device.
