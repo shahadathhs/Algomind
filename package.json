@@ -17,7 +17,8 @@
     "tokens": "pnpm --filter @algomind/design-tokens build",
     "tokens:check": "pnpm --filter @algomind/design-tokens check",
     "colors:check": "node scripts/check-colors.mjs",
-    "size:check": "node scripts/check-file-size.mjs"
+    "size:check": "node scripts/check-file-size.mjs",
+    "smoke:web": "node scripts/web-smoke.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
@@ -28,6 +29,7 @@
     "lint-staged": "^17.6.0",
     "oxlint": "^1.88.0",
     "oxlint-tsgolint": "^7.0.2004",
+    "playwright-core": "1.49.1",
     "prettier": "^3.9.10",
     "typescript": "^7.0.2"
   },

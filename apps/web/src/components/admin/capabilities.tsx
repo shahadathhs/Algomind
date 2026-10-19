@@ -104,7 +104,14 @@ export function Capabilities() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => void makeMinimum(v.id)}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Make ${v.version} the minimum? Publishing checks every level against this version from now on.`,
+                      )
+                    )
+                      void makeMinimum(v.id);
+                  }}
                   className="inline-flex min-h-11 items-center text-[13px] font-bold tracking-[2px] uppercase underline decoration-2 underline-offset-[6px]"
                 >
                   Make minimum

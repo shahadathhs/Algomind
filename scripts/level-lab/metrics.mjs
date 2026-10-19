@@ -141,6 +141,8 @@ export function measure(level) {
     excess: open ? solved.commands - open.commands : 0,
     // Commands the fewest-moves route costs above par. Above zero means the obvious route is not cheapest.
     decoy: obvious ? obvious.moves + obvious.turns - solved.commands : 0,
+    // What the fewest-moves route costs as a program (null when the goal cannot be reached).
+    obviousCost: obvious ? obvious.moves + obvious.turns : null,
     optimalPrograms: countShortest(level),
     deadEnds: deadEnds(level),
     walls: level.board.walls.length,

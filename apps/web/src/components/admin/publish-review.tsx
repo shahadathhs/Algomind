@@ -6,42 +6,11 @@ import { useCallback, useEffect, useState } from "react";
 import { BoardView } from "@/components/ui/board-view";
 import { Caption } from "@/components/ui/caption";
 import { ApiError, SessionEndedError } from "@/lib/api/errors";
-import type { CheckIssue, LevelContent, LevelView, ValidateResult } from "@/lib/admin/admin-api";
+import type { CheckIssue, LevelView, ValidateResult } from "@/lib/admin/admin-api";
 import { boardData } from "@/lib/admin/level-model";
+import { diff } from "@/lib/admin/publish-diff";
 import { Notice, OutlineAction, PageHeading, PrimaryAction } from "./ui";
 import { useAdminApi } from "./use-admin-api";
-
-type Change = { field: string; from: string; to: string };
-
-function describe(content: LevelContent | null): Record<string, string> {
-  if (!content) return {};
-  return {
-    Title: content.title,
-    Description: content.description || "None",
-    Difficulty: content.difficulty,
-    "Board size": `${content.board.width} by ${content.board.height}`,
-    Walls: String(content.board.walls.length),
-    Start: `${content.initialState.position.join(", ")} facing ${content.initialState.direction}`,
-    Goal: content.goal.position.join(", "),
-    Commands: content.availableCommands.join(", "),
-    "Max commands": String(content.constraints.maxCommands),
-    "Max steps": String(content.constraints.maxSteps),
-    Hints: content.hints.length ? content.hints.join(" / ") : "None",
-  };
-}
-
-/** The field-by-field differences between the live version and the draft. */
-function diff(live: LevelContent | null, draft: LevelContent): Change[] {
-  const before = describe(live);
-  const after = describe(draft);
-  const changes: Change[] = [];
-  for (const field of Object.keys(after)) {
-    const from = before[field] ?? "Not published";
-    const to = after[field]!;
-    if (from !== to) changes.push({ field, from, to });
-  }
-  return changes;
-}
 
 /** The publish review: the gates, what changes against the live version, and a confirmation. */
 export function PublishReview({ levelId }: { levelId: string }) {
@@ -138,7 +107,7 @@ export function PublishReview({ levelId }: { levelId: string }) {
 
   const draft = level.draft;
   const live = level.published;
-  const changes = diff(live?.content ?? null, draft.content);
+  const changes = diff(live ?? null, draft);
   const failed = result?.publish.failedGates ?? [];
   const ready = result?.publish.ready === true;
 

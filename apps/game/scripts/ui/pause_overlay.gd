@@ -39,9 +39,7 @@ func _add_button(kind: TileButton.Kind, text: String, font_px: int, action: Sign
 
 
 func _draw() -> void:
-	var dim := Palette.GROUND
-	dim.a = 0.94
-	draw_rect(Rect2(Vector2.ZERO, size), dim)
+	draw_rect(Rect2(Vector2.ZERO, size), Palette.GROUND)
 
 
 func _place() -> void:
