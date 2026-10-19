@@ -86,7 +86,7 @@ You cannot judge a design you have not seen. For UI work, capture screenshots at
 ## Quality
 
 - Lint is **oxlint** plus prettier. There is no ESLint (TypeScript 7 has no JS compiler API for typescript-eslint).
-- The API is an ES module project built with **SWC**; the Nest CLI is not used (it needs the TypeScript compiler API). The API has focused Vitest tests (`pnpm --filter @algomind/api test`, run by `make test`; no database needed): publish gates, authorization, sessions, and the progress merge. The web app has no automated tests for now. The contract (`packages/level-contract`), the design tokens, and the game's GDScript tests also remain. Prisma's generated client is not committed; `make api-generate` creates it.
+- The API is an ES module project built with **SWC**; the Nest CLI is not used (it needs the TypeScript compiler API). The API has focused Vitest tests (`pnpm --filter @algomind/api test`, run by `make test`; no database needed): publish gates, authorization, sessions, and the progress merge. The web app has no unit tests; `make web-smoke` drives the dashboard publish flow in Chrome against a running API and web app (local only, not part of `make check`). The contract (`packages/level-contract`), the design tokens, and the game's GDScript tests also remain. Prisma's generated client is not committed; `make api-generate` creates it.
 - Type checking uses the native `tsc` (TypeScript 7).
 - Tests for logic you add; the simulator, validator, solver, and publish gates are the highest-risk areas.
 - A feature is done when it meets the "definition of done" in `docs/README_IMPLEMENTATION_PLAN.md`.

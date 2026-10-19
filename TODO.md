@@ -57,10 +57,10 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [x] Solution editor and preview support `REPEAT` (loop rows with a rounds field and a body; checked in a browser on a temporary page)
 - [x] Publish gates: par from the loop solver (already), budget against par in slots, and a `LOOP_NOT_REQUIRED` warning when flat par fits the limit (`apps/api/test/loops.test.ts`)
 - [x] Import and export of loop levels (the contract validator and the API pass loop nodes through; no change needed)
-- [ ] Dashboard validation panel and diff texts mention loops (not yet checked in the live editor)
+- [x] Dashboard validation panel and diff texts mention loops (checked in the live editor; the publish review diff gained a Solution row with slots and loops)
 - [x] Client registry and the game both list the `repeat` mechanic (the seed's registry row and `Campaign.SUPPORTED_MECHANICS`)
 - [ ] Bump the game version when loops ship in a release
-- [ ] Web tests for the publish flow (Playwright or equivalent)
+- [x] Web test for the publish flow (`make web-smoke`: Playwright driving Chrome; local, needs a running API and web app, not in CI)
 - [x] How-to-play page and the browser build teach loops (the browser build uses the game screen)
 
 ## Then: step 3, world 3 (Loops)
