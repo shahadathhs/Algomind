@@ -23,18 +23,24 @@ func load_data() -> void:
 	email = ""
 	refresh_token = ""
 	last_sync_at = 0.0
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		return
-	var parser := JSON.new()
-	if parser.parse(file.get_as_text()) != OK or typeof(parser.data) != TYPE_DICTIONARY:
-		return
-	var data: Dictionary = parser.data
-	if typeof(data.get("email")) == TYPE_STRING and typeof(data.get("refreshToken")) == TYPE_STRING:
-		email = data["email"]
-		refresh_token = data["refreshToken"]
+	# The file, or the last good copy when the file is damaged.
+	for candidate in [path, path + ".bak"]:
+		if _apply(AtomicFile.read_json(candidate)):
+			return
+
+
+## Takes the fields of a parsed account file. False when it is not a usable account.
+func _apply(parsed: Variant) -> bool:
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return false
+	var data: Dictionary = parsed
+	if typeof(data.get("email")) != TYPE_STRING or typeof(data.get("refreshToken")) != TYPE_STRING:
+		return false
+	email = data["email"]
+	refresh_token = data["refreshToken"]
 	if typeof(data.get("lastSyncAt")) == TYPE_FLOAT:
 		last_sync_at = float(data["lastSyncAt"])
+	return true
 
 
 ## Remembers a new session (sign-in or registration).
@@ -47,19 +53,8 @@ func start(account_email: String, token: String) -> void:
 
 ## Atomic write: a temporary file, then a rename, so a crash never leaves a half-written file.
 func save() -> bool:
-	var tmp := path + ".tmp"
-	var file := FileAccess.open(tmp, FileAccess.WRITE)
-	if file == null:
-		return false
-	file.store_string(
-		JSON.stringify({"email": email, "refreshToken": refresh_token, "lastSyncAt": last_sync_at})
-	)
-	file.flush()
-	file.close()
-	if DirAccess.rename_absolute(tmp, path) != OK:
-		DirAccess.remove_absolute(path)
-		return DirAccess.rename_absolute(tmp, path) == OK
-	return true
+	var data := {"email": email, "refreshToken": refresh_token, "lastSyncAt": last_sync_at}
+	return AtomicFile.write_json(path, data, true)
 
 
 ## Signs out on this device: forgets the session. Local progress is not touched.

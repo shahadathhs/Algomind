@@ -150,3 +150,16 @@ func test_a_rejected_session_ends_the_account_but_keeps_progress() -> void:
 	assert_eq(result["status"], "signed_out")
 	assert_false(_account.signed_in())
 	assert_true(_progress.is_completed("a"), "local progress is never touched")
+
+
+func test_a_sync_that_cannot_be_saved_does_not_claim_success() -> void:
+	_sign_in()
+	var unwritable := ProgressStore.new("/dev/null/progress.json")
+	unwritable.record_completion("a", 1, 4)
+	_server.on(
+		"POST",
+		"me/progress/sync",
+		_answer([{"levelSlug": "a", "levelVersion": 1, "bestCommands": 4, "completedAt": 100.0}])
+	)
+	var result := await ProgressSync.run(_client, unwritable)
+	assert_eq(result["status"], "failed", "the merged state could not be written to the device")

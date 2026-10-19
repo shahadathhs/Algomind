@@ -77,28 +77,8 @@ static func _is_safe_name(name: String) -> bool:
 
 
 func _write(path: String, value: Dictionary) -> bool:
-	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
-	var tmp := path + ".tmp"
-	var file := FileAccess.open(tmp, FileAccess.WRITE)
-	if file == null:
-		return false
-	file.store_string(JSON.stringify(value))
-	file.flush()
-	file.close()
-	if _read(tmp) == null:
-		DirAccess.remove_absolute(tmp)
-		return false
-	if DirAccess.rename_absolute(tmp, path) != OK:
-		DirAccess.remove_absolute(path)
-		return DirAccess.rename_absolute(tmp, path) == OK
-	return true
+	return AtomicFile.write_json(path, value)
 
 
 func _read(path: String) -> Variant:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		return null
-	var parser := JSON.new()
-	if parser.parse(file.get_as_text()) != OK:
-		return null
-	return parser.data
+	return AtomicFile.read_json(path)

@@ -23,9 +23,11 @@ static func run(client: AccountClient, progress: ProgressStore) -> Dictionary:
 	var merged := _apply(progress, response["json"])
 	if not merged:
 		return {"status": "failed", "message": "THE SERVER SENT SOMETHING UNREADABLE"}
-	progress.save()
+	var kept := progress.save()
 	client.account.last_sync_at = Time.get_unix_time_from_system()
-	client.account.save()
+	if not (client.account.save() and kept):
+		# The merged result exists only in memory; do not claim the device is up to date.
+		return {"status": "failed", "message": "COULD NOT SAVE ON THIS DEVICE"}
 	return {"status": "synced", "message": ""}
 
 

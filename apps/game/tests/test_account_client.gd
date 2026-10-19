@@ -77,6 +77,32 @@ func test_an_expired_access_token_is_refreshed_and_the_refresh_token_rotates() -
 	assert_eq(again.refresh_token, "ref2", "and it is on disk")
 
 
+func _call_into(results: Array, index: int) -> void:
+	results[index] = await _client.call_authed("GET", "me/progress")
+
+
+func test_overlapping_calls_share_one_refresh_and_the_session_survives() -> void:
+	_account.start("a@example.com", "ref1")
+	var slow := AccountFixtures.session("a@example.com", "acc2", "ref2")
+	slow["delay_frames"] = 3
+	_server.on("POST", "auth/refresh", slow)
+	_server.on("GET", "me/progress", AccountFixtures.ok({"completed": []}))
+	# Both calls start in the same frame, so they overlap.
+	var results: Array = [null, null]
+	call_deferred("_call_into", results, 0)
+	call_deferred("_call_into", results, 1)
+	for i in 60:
+		if results[0] != null and results[1] != null:
+			break
+		await get_tree().process_frame
+	var one: Dictionary = results[0]
+	var two: Dictionary = results[1]
+	assert_true(one["ok"] and two["ok"], "both calls succeed")
+	assert_eq(_server.count("auth/refresh"), 1, "the refresh token was spent exactly once")
+	assert_true(_account.signed_in(), "the session was not destroyed by a second refresh")
+	assert_eq(_account.refresh_token, "ref2")
+
+
 func test_a_refresh_the_server_rejects_ends_the_session_here() -> void:
 	_account.start("a@example.com", "ref1")
 	_server.on("POST", "auth/refresh", AccountFixtures.fail(401, "INVALID_REFRESH_TOKEN"))
