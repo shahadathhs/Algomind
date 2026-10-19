@@ -1,21 +1,14 @@
 "use client";
 
+import { apiMessage } from "@/lib/admin/messages";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, SessionEndedError } from "@/lib/api/errors";
+import { SessionEndedError } from "@/lib/api/errors";
 import type { LevelView, VersionSummary } from "@/lib/admin/admin-api";
 import { Notice, OutlineAction, PageHeading } from "./ui";
 import { useAdminApi } from "./use-admin-api";
 
 const STATE_LABEL = { DRAFT: "Draft", PUBLISHED: "Live", SUPERSEDED: "Superseded" } as const;
-
-function messageOf(err: unknown): string {
-  if (err instanceof ApiError) {
-    if (err.code === "DRAFT_EXISTS") return "A draft already exists. Open it or discard it first.";
-    return err.message;
-  }
-  return "The server could not be reached.";
-}
 
 /** Every version of one level, with export and restore-as-draft. Published versions never change. */
 export function LevelHistory({ levelId }: { levelId: string }) {
@@ -31,7 +24,7 @@ export function LevelHistory({ levelId }: { levelId: string }) {
       setLevel(l);
       setVersions(v.items);
     } catch (err) {
-      if (!(err instanceof SessionEndedError)) setError(messageOf(err));
+      if (!(err instanceof SessionEndedError)) setError(apiMessage(err));
     }
   }, [api, levelId]);
 
@@ -53,7 +46,7 @@ export function LevelHistory({ levelId }: { levelId: string }) {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      if (!(err instanceof SessionEndedError)) setError(messageOf(err));
+      if (!(err instanceof SessionEndedError)) setError(apiMessage(err));
     }
   }
 
@@ -65,7 +58,7 @@ export function LevelHistory({ levelId }: { levelId: string }) {
       setNotice("Restored as the new draft.");
       await load();
     } catch (err) {
-      if (!(err instanceof SessionEndedError)) setError(messageOf(err));
+      if (!(err instanceof SessionEndedError)) setError(apiMessage(err));
     }
   }
 
