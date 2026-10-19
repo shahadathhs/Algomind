@@ -80,13 +80,36 @@ Coordinates are `[x, y]`, x grows right, y grows down. Programs are lists of `{ 
 - `expected` is either `null` (the goal cannot be reached; `solve` must return nothing/null) or an object. Compare `commands`, `steps`, `fitsConstraints`, and the **exact** `program` (same ops in the same order). Different programs of the same length are a failure: the tie-breaking rule in "The solver" in `../README.md` makes the program unique.
 - `fitsConstraints` is `commands <= constraints.maxCommands && steps <= constraints.maxSteps`.
 
+## `scoring/*.json`
+
+```json
+{
+  "description": "...",
+  "rules": {
+    "version": 1,
+    "base": { "easy": 10, "medium": 20, "hard": 30 },
+    "parFull": 10,
+    "parNear": 5,
+    "nearSlots": 2,
+    "stepsBonus": 5,
+    "firstClear": 10
+  },
+  "input": { "difficulty": "easy", "par": { "commands": 5, "steps": 5 }, "slots": 5, "steps": 5 },
+  "expected": { "stars": 3, "points": 25, "levelScore": 35 }
+}
+```
+
+- `expected` is the exact result of `scoreResult(rules, input)`: stars (3 at par slots or better, 2 within `nearSlots`, otherwise 1), `points` (base by difficulty plus the par bonus plus the steps bonus) and `levelScore` (`points` plus `firstClear`).
+- The game mirrors it in `scripts/contract/scoring.gd` for the provisional score shown offline.
+
 ## Pass criteria for an implementation
 
 1. Every `levels/valid` file validates with no issues in its `mode`.
 2. Every `levels/invalid` file fails with exactly its `expectedIssues`.
 3. Every `runs` file gives exactly its `programIssues` and `expected`.
 4. Every `solver` file gives exactly its `expected`.
+5. Every `scoring` file gives exactly its `expected`.
 
-The GDScript implementation (`apps/game/scripts/contract/`) satisfies criteria 1 to 3 and deliberately skips 4: the game gets par from the server and has no solver. It reads these files through `make game-fixtures`, which copies this directory into `apps/game/tests/contract_fixtures/` (git-ignored) before the game's checks and tests run.
+The GDScript implementation (`apps/game/scripts/contract/`) satisfies criteria 1 to 3 and 5 and deliberately skips 4: the game gets par from the server and has no solver. It reads these files through `make game-fixtures`, which copies this directory into `apps/game/tests/contract_fixtures/` (git-ignored) before the game's checks and tests run.
 
 The two implementations also share the rule that **the fixtures win**: if an implementation disagrees with a fixture, fix the implementation (or, if the rule itself is wrong, change the README, the fixture, and both implementations together).
