@@ -188,7 +188,9 @@ export function LevelEditor({ levelId }: { levelId: string }) {
                 onSolution={(s) => edit(content, s)}
               />
             )}
-            {tab === "preview" && <PreviewPanel content={content} solution={solution} />}
+            {tab === "preview" && (
+              <PreviewPanel key={JSON.stringify(solution)} content={content} solution={solution} />
+            )}
             {tab === "playtest" && (
               <PlaytestPanel
                 key={playtestKey}

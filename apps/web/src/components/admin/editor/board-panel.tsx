@@ -54,17 +54,30 @@ export function BoardPanel({ content, onChange }: ContentProps) {
       );
     }
   }
+  /** Arrow keys move between the tools, as in any radio group. */
+  function moveTool(e: React.KeyboardEvent<HTMLButtonElement>, index: number) {
+    const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+    if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(e.key)) return;
+    e.preventDefault();
+    const next = TOOLS[(index + step + TOOLS.length) % TOOLS.length]!;
+    setTool(next.id);
+    (
+      e.currentTarget.parentElement?.children[TOOLS.indexOf(next)] as HTMLElement | undefined
+    )?.focus();
+  }
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div>
         <div role="radiogroup" aria-label="Board tool" className="mb-4 flex flex-wrap gap-3">
-          {TOOLS.map((t) => (
+          {TOOLS.map((t, i) => (
             <button
               key={t.id}
               type="button"
               role="radio"
               aria-checked={tool === t.id}
+              tabIndex={tool === t.id ? 0 : -1}
               onClick={() => setTool(t.id)}
+              onKeyDown={(e) => moveTool(e, i)}
               className={`tile inline-flex h-11 items-center px-5 text-[13px] tracking-[2px] uppercase ${
                 tool === t.id ? "bg-ink text-on-ink" : "bg-strip text-ink"
               }`}
