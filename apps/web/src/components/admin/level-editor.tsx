@@ -4,16 +4,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, SessionEndedError } from "@/lib/api/errors";
 import type { Instruction, LevelContent, LevelView } from "@/lib/admin/admin-api";
+import { apiMessage } from "@/lib/admin/messages";
 import { clearBackup, readBackup, writeBackup } from "@/lib/admin/level-model";
-import {
-  BoardPanel,
-  ChecksPanel,
-  DetailsPanel,
-  LimitsPanel,
-  PlaytestPanel,
-  PreviewPanel,
-  SolutionPanel,
-} from "./editor-panels";
+import { BoardPanel } from "./editor/board-panel";
+import { ChecksPanel } from "./editor/checks-panel";
+import { DetailsPanel } from "./editor/details-panel";
+import { LimitsPanel } from "./editor/limits-panel";
+import { PlaytestPanel } from "./editor/playtest-panel";
+import { PreviewPanel } from "./editor/preview-panel";
+import { SolutionPanel } from "./editor/solution-panel";
 import { Notice, OutlineAction, PrimaryAction, StatusTile } from "./ui";
 import { useAdminApi } from "./use-admin-api";
 
@@ -37,10 +36,6 @@ const SAVE_LABEL: Record<SaveState, string> = {
 };
 
 type Load = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready" };
-
-function errorText(err: unknown): string {
-  return err instanceof ApiError ? err.message : "The server could not be reached.";
-}
 
 /** The level editor: tabs over one draft, an explicit Save draft, and edits that survive a reload. */
 export function LevelEditor({ levelId }: { levelId: string }) {
@@ -87,7 +82,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
       setLoad({ kind: "ready" });
     } catch (err) {
       if (err instanceof SessionEndedError) return;
-      setLoad({ kind: "error", message: errorText(err) });
+      setLoad({ kind: "error", message: apiMessage(err) });
     }
   }, [api, levelId, adopt]);
 
@@ -150,7 +145,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
           text: "A newer version of this draft was saved elsewhere. Nothing was overwritten.",
         });
       } else {
-        setNotice({ kind: "error", text: errorText(err) });
+        setNotice({ kind: "error", text: apiMessage(err) });
       }
     }
   }
@@ -160,7 +155,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
     try {
       adopt(await api.startDraft(levelId));
     } catch (err) {
-      if (!(err instanceof SessionEndedError)) setNotice({ kind: "error", text: errorText(err) });
+      if (!(err instanceof SessionEndedError)) setNotice({ kind: "error", text: apiMessage(err) });
     }
   }
 
@@ -176,7 +171,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
           : "The level is no longer offered to players.",
       });
     } catch (err) {
-      if (!(err instanceof SessionEndedError)) setNotice({ kind: "error", text: errorText(err) });
+      if (!(err instanceof SessionEndedError)) setNotice({ kind: "error", text: apiMessage(err) });
     }
   }
 
@@ -186,7 +181,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
       clearBackup(levelId);
       adopt(await api.discardDraft(levelId));
     } catch (err) {
-      if (!(err instanceof SessionEndedError)) setNotice({ kind: "error", text: errorText(err) });
+      if (!(err instanceof SessionEndedError)) setNotice({ kind: "error", text: apiMessage(err) });
     }
   }
 
