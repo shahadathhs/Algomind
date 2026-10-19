@@ -175,6 +175,7 @@ scripts/           Version bump and repository checks
 - [Gameplay and features](docs/README_GAMEPLAY_FEATURES.md)
 - [Visual design](docs/README_VISUAL_DESIGN.md) and [screens](docs/design/SCREENS.md)
 - [Architecture](docs/README_ARCHITECTURE.md)
+- [Code standards](docs/README_CODE_STANDARDS.md): file size, module structure, reuse rules
 - [Public website plan](docs/README_WEB_PLAN.md) and [admin dashboard plan](docs/README_DASHBOARD_PLAN.md)
 - [Roadmap](docs/README_ROADMAP.md) and [TODO](TODO.md)
 - [Points, leaderboards, daily challenge, and sharing plan](docs/README_SOCIAL_PLAN.md)

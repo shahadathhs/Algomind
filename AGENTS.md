@@ -54,6 +54,15 @@ After any change run the targets that cover it. Docs in `docs/` must match the c
 - **Local-first progress.** Signed-out play uploads nothing. Sync is the only code allowed to upload progress, and a failed sync never touches local data.
 - **No tracking, third-party scripts, cookies, or runtime third-party fonts** on the public site.
 
+## Code shape rules
+
+File size, module structure, and reuse are specified in `docs/README_CODE_STANDARDS.md`. When writing code:
+
+- Hand-written source files stay under 300 lines (450 is the review-reject ceiling).
+- One exported React component per `.tsx` file; the file is named after the component.
+- Extract shared helpers, hooks, and components on the second copy; never paste between files.
+- Any edit to an oversized file splits or extracts the part being touched; do not grow it.
+
 ## Visual rules (the house style)
 
 The design system is **Instruction Tape**; the full rules are in `docs/README_VISUAL_DESIGN.md`. When touching UI:
