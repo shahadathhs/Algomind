@@ -261,3 +261,125 @@ export const FAMILIES = {
     accept: (m) => m.deadEnds >= 2 && m.par >= 16 && m.par <= 26,
   },
 };
+
+// ---- Loop families (world 3). A corridor carved from a repeating pattern: the only route is the
+// pattern, so a loop is what fits a tight limit. The solver proves the corridor has no shortcut. ----
+
+const WITH_REPEAT = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT"];
+const BODIES = {
+  stairs: ["M", "R", "M", "L"],
+  "stairs-left": ["M", "L", "M", "R"],
+  wide: ["M", "M", "R", "M", "M", "L"],
+  steep: ["M", "M", "M", "R", "M", "L"],
+  "long-step": ["M", "R", "M", "M", "L"],
+  hook: ["M", "M", "R", "M", "R", "M", "M", "L"],
+};
+
+/** Carves a corridor along `moves` (letters M, L, R) from the origin facing `dir`. */
+function carve(moves, dir) {
+  const cells = [[0, 0]];
+  let [x, y] = [0, 0];
+  let facing = dir;
+  for (const m of moves) {
+    if (m === "L") facing = turnLeft(facing);
+    else if (m === "R") facing = turnRight(facing);
+    else {
+      const [dx, dy] = DELTA[facing];
+      x += dx;
+      y += dy;
+      cells.push([x, y]);
+    }
+  }
+  // A route that crosses itself would put the goal on the start or make a shortcut.
+  if (new Set(cells.map((c) => c.join(","))).size !== cells.length) return null;
+  const xs = cells.map((c) => c[0]);
+  const ys = cells.map((c) => c[1]);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const width = Math.max(3, Math.max(...xs) - minX + 1);
+  const height = Math.max(3, Math.max(...ys) - minY + 1);
+  if (width > 12 || height > 12) return null;
+  const grid = Array.from({ length: height }, () => Array(width).fill("#"));
+  for (const [cx, cy] of cells) grid[cy - minY][cx - minX] = ".";
+  const start = [cells[0][0] - minX, cells[0][1] - minY];
+  const goal = [x - minX, y - minY];
+  grid[start[1]][start[0]] = GLYPH[dir];
+  grid[goal[1]][goal[0]] = "G";
+  return gridToRows(grid);
+}
+
+/** A run, then a repeating body, then a run. `meta.flatLength` is the length of the carved route. */
+function patterned(r, { bodies, rounds, runs, commands }) {
+  const name = r.pick(bodies);
+  const body = BODIES[name];
+  const count = r.int(rounds[0], rounds[1]);
+  const before = r.int(runs[0], runs[1]);
+  const after = r.int(runs[0], runs[1]);
+  const moves = [
+    ...Array(before).fill("M"),
+    ...(before > 0 && r.next() < 0.5 ? [r.next() < 0.5 ? "L" : "R"] : []),
+    ...Array(count).fill(body).flat(),
+    ...Array(after).fill("M"),
+  ];
+  // A turn after the last move is never needed: the run ends on entering the goal.
+  while (moves.length > 0 && moves[moves.length - 1] !== "M") moves.pop();
+  const dir = r.pick(DIRECTIONS);
+  const rows = carve(moves, dir);
+  if (!rows) return null;
+  return { rows, commands, meta: { body: name, count, flatLength: moves.length } };
+}
+
+const loopLevel = (m, meta) =>
+  m.loops && m.flatPar === meta.flatLength && m.flatPar >= m.par + 5 && m.deadEnds === 0;
+
+FAMILIES["loop-stairs"] = {
+  tries: 150,
+  world: 3,
+  chapter: "Repeat",
+  idea: "One small pattern, repeated. A loop says it once.",
+  build: (r) =>
+    patterned(r, {
+      bodies: ["stairs", "stairs-left"],
+      rounds: [4, 6],
+      runs: [0, 0],
+      commands: WITH_REPEAT,
+    }),
+  accept: loopLevel,
+};
+FAMILIES["loop-steps"] = {
+  tries: 150,
+  world: 3,
+  chapter: "Patterns",
+  idea: "A longer pattern, repeated.",
+  build: (r) =>
+    patterned(r, {
+      bodies: ["wide", "steep", "long-step"],
+      rounds: [3, 5],
+      runs: [0, 0],
+      commands: WITH_REPEAT,
+    }),
+  accept: loopLevel,
+};
+FAMILIES["loop-glue"] = {
+  tries: 150,
+  world: 3,
+  chapter: "Patterns",
+  idea: "A run, a pattern, a run: loops and the moves between them.",
+  build: (r) =>
+    patterned(r, {
+      bodies: ["stairs", "wide", "steep", "stairs-left"],
+      rounds: [3, 4],
+      runs: [2, 4],
+      commands: WITH_REPEAT,
+    }),
+  accept: (m, meta) => loopLevel(m, meta) && m.par >= 9,
+};
+FAMILIES["loop-hook"] = {
+  tries: 150,
+  world: 3,
+  chapter: "Patterns",
+  idea: "A hook pattern that doubles back, repeated.",
+  build: (r) =>
+    patterned(r, { bodies: ["hook"], rounds: [2, 3], runs: [0, 1], commands: WITH_REPEAT }),
+  accept: loopLevel,
+};

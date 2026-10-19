@@ -33,6 +33,7 @@ make test           # TypeScript tests (no database needed)
 make game-test      # GDScript tests (GUT, includes the contract fixtures); make game-docker-test runs them in a container
 make tokens         # regenerate the Godot palette and web CSS from design tokens
 make tokens-check   # fail if generated token files are out of date
+make size-check     # fail if a source file is over 450 lines (lists files over 300)
 make api-dev        # API at :8000 (starts the database)
 make web-dev        # web at :3000
 make up / make down # everything in containers
@@ -53,6 +54,15 @@ After any change run the targets that cover it. Docs in `docs/` must match the c
 - **Colors come only from `packages/design-tokens`.** A grep for hex colors or `Color(` outside the generated files and the token source must find nothing.
 - **Local-first progress.** Signed-out play uploads nothing. Sync is the only code allowed to upload progress, and a failed sync never touches local data.
 - **No tracking, third-party scripts, cookies, or runtime third-party fonts** on the public site.
+
+## Code shape rules
+
+File size, module structure, and reuse are specified in `docs/README_CODE_STANDARDS.md`. When writing code:
+
+- Hand-written source files stay under 300 lines (450 is the review-reject ceiling).
+- One exported React component per `.tsx` file; the file is named after the component.
+- Extract shared helpers, hooks, and components on the second copy; never paste between files.
+- Any edit to an oversized file splits or extracts the part being touched; do not grow it.
 
 ## Visual rules (the house style)
 

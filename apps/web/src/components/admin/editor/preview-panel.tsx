@@ -1,0 +1,99 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { BoardView } from "@/components/ui/board-view";
+import { Caption } from "@/components/ui/caption";
+import type { Instruction, LevelContent } from "@/lib/admin/admin-api";
+import { boardData, simulate } from "@/lib/admin/level-model";
+import { explainResult, type Level, type Program } from "@algomind/level-contract";
+import { OutlineAction } from "../ui";
+import { ProgramEditor } from "./program-editor";
+
+export function PreviewPanel({
+  content,
+  solution,
+}: {
+  content: LevelContent;
+  solution: Instruction[];
+}) {
+  const [program, setProgram] = useState<Instruction[]>(solution);
+  const [step, setStep] = useState(0);
+  const result = useMemo(() => {
+    try {
+      return simulate(content as unknown as Level, program as unknown as Program);
+    } catch {
+      return null;
+    }
+  }, [content, program]);
+
+  const total = result?.trace.length ?? 0;
+  const shown = Math.min(step, total);
+  const entry = shown > 0 ? result?.trace[shown - 1] : undefined;
+  const trace = result?.trace.slice(0, shown) ?? [];
+  const [sx, sy] = content.initialState.position;
+  const position = entry ? entry.position : ([sx, sy] as [number, number]);
+  const direction = entry ? entry.direction : content.initialState.direction;
+  const finished = result !== null && shown >= total;
+  const blocked = finished && result?.blockedCell ? result.blockedCell : undefined;
+
+  const board = boardData(content, {
+    automaton: { x: position[0], y: position[1], dir: direction },
+    trail: trace.map((t) => t.position),
+    hit: blocked && blocked[0] >= 0 && blocked[1] >= 0 ? blocked : undefined,
+  });
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div>
+        <Caption className="mb-3">Program to try</Caption>
+        <ProgramEditor
+          program={program}
+          onChange={(next) => {
+            setProgram(next);
+            setStep(0);
+          }}
+          available={content.availableCommands}
+          idPrefix="Preview"
+        />
+        <div className="mt-4 flex flex-wrap gap-3">
+          <OutlineAction
+            type="button"
+            onClick={() => setStep((s) => Math.min(total, s + 1))}
+            disabled={!result || shown >= total}
+          >
+            Step
+          </OutlineAction>
+          <OutlineAction
+            type="button"
+            onClick={() => setStep(total)}
+            disabled={!result || shown >= total}
+          >
+            Run
+          </OutlineAction>
+          <OutlineAction type="button" onClick={() => setStep(0)} disabled={shown === 0}>
+            Reset
+          </OutlineAction>
+          <OutlineAction
+            type="button"
+            onClick={() => {
+              setProgram(solution);
+              setStep(0);
+            }}
+          >
+            Use reference solution
+          </OutlineAction>
+        </div>
+      </div>
+      <div>
+        <BoardView board={board} label={`Board after ${shown} of ${total} steps.`} />
+        <p role="status" className="mt-3 text-base font-semibold">
+          {result === null
+            ? "This level cannot be simulated yet. Check the Checks tab."
+            : finished
+              ? `${explainResult(result)} ${total} ${total === 1 ? "step" : "steps"}.`
+              : `Step ${shown} of ${total}.`}
+        </p>
+      </div>
+    </div>
+  );
+}

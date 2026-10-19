@@ -48,6 +48,7 @@ func _build() -> void:
 	_list.add_child(_caption("LOOK"))
 	_list.add_child(_segment_row("THEME", THEME_NAMES, settings.theme(), _set_theme))
 
+	_restore_scroll.call_deferred()
 	if not OS.has_feature("web"):
 		_privacy = TileButton.make(TileButton.Kind.TERTIARY, "PRIVACY", "", 16)
 		_privacy.align = HORIZONTAL_ALIGNMENT_LEFT
@@ -140,6 +141,8 @@ func _segment_row(
 func _changed() -> void:
 	app.progress.save()
 	app.request_sync()
+	# The screen is rebuilt (the theme needs it); keep the scroll position.
+	args["scroll"] = _scroll.scroll_vertical
 	if app.feedback != null:
 		app.feedback.apply_music()
 	app.apply_theme()
@@ -176,3 +179,9 @@ func _set_speed(option: String) -> void:
 func _set_theme(option: String) -> void:
 	app.progress.settings.set_theme(option)
 	_changed()
+
+
+func _restore_scroll() -> void:
+	var wanted := int(args.get("scroll", 0))
+	if wanted > 0 and is_inside_tree():
+		_scroll.scroll_vertical = wanted

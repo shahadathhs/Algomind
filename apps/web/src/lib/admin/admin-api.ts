@@ -45,7 +45,8 @@ export type LevelSummary = {
   updatedAt: string;
 };
 
-export type Instruction = { op: string };
+/** One program node: a primitive, or a REPEAT with a count and a body of primitives. */
+export type Instruction = { op: string; count?: number; body?: { op: string }[] };
 
 export type LevelContent = {
   schemaVersion: number;

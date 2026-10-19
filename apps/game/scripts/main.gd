@@ -109,6 +109,11 @@ func _debug_screenshot(options: Dictionary) -> void:
 	var packed: PackedScene = load(SCREENS[target])
 	var screen: ScreenBase = packed.instantiate()
 	var level_id := String(options.get("level", _state.campaign.entries[0]["id"]))
+	if options.has("loops"):
+		# Debug only: let this level offer REPEAT (no loop level is published yet), with a roomier limit.
+		var level: Dictionary = _state.campaign.entry_by_id(level_id)["level"]
+		level["availableCommands"].append("REPEAT")
+		level["constraints"]["maxCommands"] = 12
 	var screen_args := {
 		"level_id": level_id,
 		"world": int(options.get("world", "0")),
@@ -121,6 +126,8 @@ func _debug_screenshot(options: Dictionary) -> void:
 	await get_tree().process_frame
 	if target == "play" and options.has("program"):
 		screen.debug_show(String(options["program"]), int(options.get("steps", "0")))
+	if target == "play" and options.has("select"):
+		screen.debug_select(int(options["select"]))
 	if target == "play" and options.has("overlay"):
 		screen.debug_overlay(String(options["overlay"]))
 	# Controls settle their size over a few frames; wait before capturing.

@@ -1,4 +1,4 @@
-// The starter campaign: two worlds, four chapters, eighteen levels, in play order.
+// The starter campaign: three worlds, six chapters, twenty-eight levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
@@ -6,6 +6,8 @@
 // Every limit is at least the shortest program (the seed checks this with the solver and fails
 // loudly otherwise). World 1 teaches one idea per level and adds commands as it goes; chapter
 // "Detours" leaves a little slack; chapter "Budgets" allows exactly the shortest program.
+// World 3 offers REPEAT, and every limit equals the loop par: the plain program is longer than the
+// limit, so each level needs a loop (a test checks this).
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -429,6 +431,280 @@ export const CAMPAIGN = {
               ],
               "hints": [
                 "Work backward from the target."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Loops",
+      "description": "Say a pattern once and repeat it.",
+      "chapters": [
+        {
+          "title": "Repeat",
+          "levels": [
+            {
+              "slug": "say-it-once",
+              "title": "Say it once",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "REPEAT"
+              ],
+              "maxCommands": 2,
+              "rows": [
+                ".....",
+                "..G..",
+                ".....",
+                ".....",
+                ".....",
+                ".....",
+                ".....",
+                ".....",
+                "..^.."
+              ],
+              "hints": [
+                "Repeat runs the tiles inside it again and again.",
+                "Put Move inside the loop, then set the rounds with plus and minus."
+              ]
+            },
+            {
+              "slug": "run-turn-run",
+              "title": "Run, turn, run",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_RIGHT",
+                "REPEAT"
+              ],
+              "maxCommands": 5,
+              "rows": [
+                ".......",
+                ".....G.",
+                ".......",
+                ".......",
+                ".......",
+                ".......",
+                "^......"
+              ],
+              "hints": [
+                "A loop can sit between other tiles.",
+                "Tap End loop to go back to adding single tiles."
+              ]
+            },
+            {
+              "slug": "stairs",
+              "title": "Stairs",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT"
+              ],
+              "maxCommands": 5,
+              "rows": [
+                "#####G",
+                "####..",
+                "###..#",
+                "##..##",
+                "#..###",
+                ">.####"
+              ],
+              "hints": [
+                "Look for the part that repeats over and over."
+              ]
+            },
+            {
+              "slug": "wide-steps",
+              "title": "Wide steps",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT"
+              ],
+              "maxCommands": 6,
+              "rows": [
+                ">.###",
+                "#.###",
+                "#..##",
+                "##.##",
+                "##..#",
+                "###.#",
+                "###..",
+                "####.",
+                "####G"
+              ],
+              "hints": [
+                "The pattern is longer now. Find where it starts again."
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Patterns",
+          "levels": [
+            {
+              "slug": "sideways-steps",
+              "title": "Sideways steps",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT"
+              ],
+              "maxCommands": 6,
+              "rows": [
+                "######v",
+                "####...",
+                "##...##",
+                "G..####"
+              ],
+              "hints": [
+                "Follow the corridor and find the part that repeats."
+              ]
+            },
+            {
+              "slug": "grand-staircase",
+              "title": "Grand staircase",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT"
+              ],
+              "maxCommands": 7,
+              "rows": [
+                "##########v",
+                "##########.",
+                "########...",
+                "########.##",
+                "######...##",
+                "######.####",
+                "####...####",
+                "####.######",
+                "##...######",
+                "##.########",
+                "G..########"
+              ],
+              "hints": [
+                "A big board and a small pattern. Count the rounds."
+              ]
+            },
+            {
+              "slug": "run-and-climb",
+              "title": "Run and climb",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT"
+              ],
+              "maxCommands": 9,
+              "rows": [
+                "####v",
+                "####.",
+                "####.",
+                "###..",
+                "##..#",
+                "#..##",
+                "..###",
+                ".####",
+                ".####",
+                ".####",
+                "G####"
+              ],
+              "hints": [
+                "Some moves come before the pattern. Add them before or after the loop."
+              ]
+            },
+            {
+              "slug": "climb-and-run",
+              "title": "Climb and run",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT"
+              ],
+              "maxCommands": 10,
+              "rows": [
+                "v#########",
+                ".#########",
+                ".#########",
+                "...#######",
+                "##.#######",
+                "##...#####",
+                "####.#####",
+                "####...###",
+                "######.###",
+                "######...G"
+              ],
+              "hints": [
+                "A loop needs only one pass of the pattern. The rounds do the rest."
+              ]
+            },
+            {
+              "slug": "long-way-up",
+              "title": "Long way up",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT"
+              ],
+              "maxCommands": 10,
+              "rows": [
+                "######G",
+                "######.",
+                "######.",
+                "####...",
+                "####.##",
+                "##...##",
+                "##.####",
+                "...####",
+                ".######",
+                ".######",
+                ".######",
+                "^######"
+              ],
+              "hints": [
+                "Work out the pattern first, then count how many times it repeats."
+              ]
+            },
+            {
+              "slug": "final-climb",
+              "title": "Final climb",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT"
+              ],
+              "maxCommands": 12,
+              "rows": [
+                "###>...",
+                "######.",
+                "####...",
+                "####.##",
+                "##...##",
+                "##.####",
+                "...####",
+                ".######",
+                ".######",
+                "G######"
+              ],
+              "hints": [
+                "Find the pattern, the rounds, and what comes after."
               ]
             }
           ]

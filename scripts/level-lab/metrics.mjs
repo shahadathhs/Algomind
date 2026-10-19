@@ -120,12 +120,21 @@ function deadEnds(level) {
 export function measure(level) {
   const solved = solve(level);
   if (!solved) return null;
+  const loops = level.availableCommands.includes("REPEAT");
+  // Without REPEAT the shortest program is the flat one; with it, flat par is searched separately.
+  const flat = loops
+    ? solve({ ...level, availableCommands: level.availableCommands.filter((c) => c !== "REPEAT") })
+    : solved;
   const moves = solved.program.filter((n) => n.op === "MOVE_FORWARD").length;
-  const open = solve({ ...level, board: { ...level.board, walls: [] } });
+  // Wall cost is a flat-program idea; the loop solver is slower and the number is not needed.
+  const open = loops ? null : solve({ ...level, board: { ...level.board, walls: [] } });
   const obvious = fewestMovesRoute(level);
   const floor = level.board.width * level.board.height - level.board.walls.length;
   return {
     par: solved.commands,
+    // The shortest program that does not use REPEAT, and how many times longer it is than par.
+    flatPar: flat ? flat.commands : null,
+    loops,
     moves,
     turns: solved.commands - moves,
     // Commands lost to walls: par here against par on the same board with no walls.

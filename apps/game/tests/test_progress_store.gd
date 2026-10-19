@@ -237,3 +237,19 @@ func test_level_to_play_prefers_the_last_played_unlocked_level() -> void:
 	assert_eq(store.level_to_play(_campaign), 0)
 	store.set_last_level("c")
 	assert_eq(store.level_to_play(_campaign), 1, "a locked last level is not used")
+
+
+func test_progress_for_a_removed_level_is_kept_and_ignored() -> void:
+	var store := ProgressStore.new(PATH)
+	store.record_completion("a", 1, 3)
+	store.record_completion("removed-level", 1, 4)
+	store.set_last_level("removed-level")
+	assert_true(store.save())
+	var again := ProgressStore.new(PATH)
+	again.load_data()
+	assert_true(again.is_completed("removed-level"), "kept in case the level returns")
+	assert_eq(again.first_unfinished_index(_campaign), 1)
+	assert_eq(again.level_state(_campaign, 0), "done")
+	assert_eq(again.level_state(_campaign, 1), "current")
+	assert_eq(again.level_state(_campaign, 2), "locked")
+	assert_eq(again.level_to_play(_campaign), 1, "a last level that is gone falls back")

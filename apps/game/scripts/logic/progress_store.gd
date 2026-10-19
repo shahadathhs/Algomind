@@ -66,22 +66,7 @@ func load_data() -> void:
 ## Writes the data atomically. Returns false when the write failed; the previous save is then
 ## still in place.
 func save() -> bool:
-	var tmp := path + ".tmp"
-	var file := FileAccess.open(tmp, FileAccess.WRITE)
-	if file == null:
-		return false
-	file.store_string(JSON.stringify(data))
-	file.flush()
-	file.close()
-	if _read(tmp) == null:
-		DirAccess.remove_absolute(tmp)
-		return false
-	if _read(path) != null:
-		DirAccess.copy_absolute(path, path + ".bak")
-	if DirAccess.rename_absolute(tmp, path) != OK:
-		DirAccess.remove_absolute(path)
-		return DirAccess.rename_absolute(tmp, path) == OK
-	return true
+	return AtomicFile.write_json(path, data, true)
 
 
 func is_completed(level_id: String) -> bool:
@@ -213,13 +198,7 @@ func level_to_play(campaign: Campaign) -> int:
 ## Parsed, sanitized data from a file; null when the file is missing, unreadable, or from a
 ## newer version than this build understands.
 func _read(file_path: String) -> Variant:
-	var file := FileAccess.open(file_path, FileAccess.READ)
-	if file == null:
-		return null
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK:
-		return null
-	return _sanitize(json.data)
+	return _sanitize(AtomicFile.read_json(file_path))
 
 
 ## Keeps only well-formed parts. Bad entries are dropped one by one instead of failing the file.

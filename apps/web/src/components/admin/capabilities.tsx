@@ -1,16 +1,13 @@
 "use client";
 
+import { apiMessage } from "@/lib/admin/messages";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ApiError, SessionEndedError } from "@/lib/api/errors";
+import { SessionEndedError } from "@/lib/api/errors";
 import type { ClientVersion } from "@/lib/admin/admin-api";
 import { Field, Notice, PageHeading, PrimaryAction } from "./ui";
 import { useAdminApi } from "./use-admin-api";
 
 const MECHANICS = ["move", "turn"];
-
-function messageOf(err: unknown): string {
-  return err instanceof ApiError ? err.message : "The server could not be reached.";
-}
 
 /** Which mechanics each released app version supports. Publishing checks the minimum version. */
 export function Capabilities() {
@@ -26,7 +23,7 @@ export function Capabilities() {
     try {
       setItems((await api.listClientVersions()).items);
     } catch (err) {
-      if (!(err instanceof SessionEndedError)) setError(messageOf(err));
+      if (!(err instanceof SessionEndedError)) setError(apiMessage(err));
     }
   }, [api]);
 
@@ -50,7 +47,7 @@ export function Capabilities() {
       setMinimum(false);
       await load();
     } catch (err) {
-      if (!(err instanceof SessionEndedError)) setError(messageOf(err));
+      if (!(err instanceof SessionEndedError)) setError(apiMessage(err));
     } finally {
       setBusy(false);
     }
@@ -62,7 +59,7 @@ export function Capabilities() {
       await api.setMinimumClientVersion(id);
       await load();
     } catch (err) {
-      if (!(err instanceof SessionEndedError)) setError(messageOf(err));
+      if (!(err instanceof SessionEndedError)) setError(apiMessage(err));
     }
   }
 

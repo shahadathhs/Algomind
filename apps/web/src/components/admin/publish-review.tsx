@@ -1,5 +1,6 @@
 "use client";
 
+import { apiMessage } from "@/lib/admin/messages";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { BoardView } from "@/components/ui/board-view";
@@ -42,10 +43,6 @@ function diff(live: LevelContent | null, draft: LevelContent): Change[] {
   return changes;
 }
 
-function messageOf(err: unknown): string {
-  return err instanceof ApiError ? err.message : "The server could not be reached.";
-}
-
 /** The publish review: the gates, what changes against the live version, and a confirmation. */
 export function PublishReview({ levelId }: { levelId: string }) {
   const api = useAdminApi();
@@ -63,7 +60,7 @@ export function PublishReview({ levelId }: { levelId: string }) {
       setLevel(view);
       if (view.draft) setResult(await api.validateLevel(levelId));
     } catch (err) {
-      if (!(err instanceof SessionEndedError)) setError(messageOf(err));
+      if (!(err instanceof SessionEndedError)) setError(apiMessage(err));
     }
   }, [api, levelId]);
 
@@ -85,7 +82,7 @@ export function PublishReview({ levelId }: { levelId: string }) {
       if (err instanceof ApiError && err.code === "PUBLISH_BLOCKED" && Array.isArray(err.issues)) {
         setBlocked(err.issues as CheckIssue[]);
         setError("Publishing is blocked. Fix the issues below.");
-      } else setError(messageOf(err));
+      } else setError(apiMessage(err));
     } finally {
       setBusy(false);
     }

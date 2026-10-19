@@ -180,6 +180,33 @@ static func icon(canvas: CanvasItem, kind: String, c: Vector2, s: float, color: 
 		"plus":
 			canvas.draw_rect(Rect2(c.x - s * 0.3, c.y - w / 2.0, s * 0.6, w), color)
 			canvas.draw_rect(Rect2(c.x - w / 2.0, c.y - s * 0.3, w, s * 0.6), color)
+		"minus":
+			canvas.draw_rect(Rect2(c.x - s * 0.3, c.y - w / 2.0, s * 0.6, w), color)
+		"repeat":
+			# Two arrows chasing each other: one to the right above, one to the left below.
+			var rise := s * 0.2
+			canvas.draw_line(
+				Vector2(c.x - s * 0.36, c.y - rise), Vector2(c.x + s * 0.16, c.y - rise), color, w
+			)
+			_triangle(
+				canvas,
+				Vector2(c.x + s * 0.42, c.y - rise),
+				Vector2(-1, 0),
+				s * 0.34,
+				s * 0.36,
+				color
+			)
+			canvas.draw_line(
+				Vector2(c.x + s * 0.36, c.y + rise), Vector2(c.x - s * 0.16, c.y + rise), color, w
+			)
+			_triangle(
+				canvas,
+				Vector2(c.x - s * 0.42, c.y + rise),
+				Vector2(1, 0),
+				s * 0.34,
+				s * 0.36,
+				color
+			)
 		"x":
 			canvas.draw_line(
 				c + Vector2(-s * 0.3, -s * 0.3), c + Vector2(s * 0.3, s * 0.3), color, w

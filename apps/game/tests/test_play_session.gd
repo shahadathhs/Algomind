@@ -57,7 +57,7 @@ func test_blocked_move_fails_and_names_the_wall_and_tile() -> void:
 	assert_eq(session.state, PlaySession.State.FAILED)
 	assert_eq(session.result["reason"], "BLOCKED_BY_WALL")
 	assert_eq(session.blocked_cell(), Vector2i(0, 2))
-	assert_eq(session.failing_index(), 1)
+	assert_eq(session.failing_node(), [1])
 
 
 func test_blocked_cell_is_hidden_until_the_run_has_ended() -> void:
@@ -73,7 +73,7 @@ func test_program_ending_early_has_no_failing_tile() -> void:
 	session.advance()
 	assert_eq(session.state, PlaySession.State.FAILED)
 	assert_eq(session.result["reason"], "PROGRAM_ENDED")
-	assert_eq(session.failing_index(), -1)
+	assert_eq(session.failing_node(), [])
 
 
 func test_empty_program_fails_at_once() -> void:
@@ -146,3 +146,16 @@ func test_trail_lists_each_visited_cell_once() -> void:
 	while session.state == PlaySession.State.RUNNING:
 		session.advance()
 	assert_eq(session.trail(), [Vector2i(0, 4), Vector2i(1, 4), Vector2i(2, 4)] as Array[Vector2i])
+
+
+func test_a_failure_inside_a_loop_names_the_node_and_the_round() -> void:
+	var level := _level()
+	level["availableCommands"] = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT"]
+	var session := PlaySession.new(level)
+	var loop := {"op": "REPEAT", "count": 3, "body": [{"op": "MOVE_FORWARD"}]}
+	assert_true(session.start([loop]))
+	while session.state == PlaySession.State.RUNNING:
+		session.advance()
+	assert_eq(session.state, PlaySession.State.FAILED)
+	assert_eq(session.failing_node(), [0, 0])
+	assert_eq(session.current_entry()["round"], 2)
