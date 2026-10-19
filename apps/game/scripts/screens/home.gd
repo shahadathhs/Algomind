@@ -33,15 +33,20 @@ func _build() -> void:
 
 	_settings = TileButton.make(TileButton.Kind.TERTIARY, "SETTINGS", "", 18)
 	_settings.pressed.connect(func() -> void: navigate.emit("settings", {}))
-	_settings.align = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_settings)
 
-	_account = TileButton.make(TileButton.Kind.TERTIARY, "ACCOUNT", "", 18)
-	_account.pressed.connect(
-		func() -> void: navigate.emit("account" if app.signed_in() else "sign_in", {"back": "home"})
+	# The browser build is offline-only, so it has no account to sign in to.
+	if not OS.has_feature("web"):
+		_account = TileButton.make(TileButton.Kind.TERTIARY, "ACCOUNT", "", 18)
+		_account.pressed.connect(
+			func() -> void:
+				navigate.emit("account" if app.signed_in() else "sign_in", {"back": "home"})
+		)
+		_account.align = HORIZONTAL_ALIGNMENT_RIGHT
+		add_child(_account)
+	_settings.align = (
+		HORIZONTAL_ALIGNMENT_CENTER if _account != null else HORIZONTAL_ALIGNMENT_RIGHT
 	)
-	_account.align = HORIZONTAL_ALIGNMENT_RIGHT
-	add_child(_account)
 
 	if app.campaign.entries.is_empty():
 		_notice = UiKit.label("THE LEVELS COULD NOT LOAD", 18, Palette.INK, 1)
@@ -65,13 +70,14 @@ func _layout() -> void:
 	var bottom := size.y - inset_bottom() - m
 	var link_h := 48.0
 	var play_h := 64.0 if size.y >= 700.0 else 56.0
-	var link_w := floorf(width / 3.0)
+	var link_w := floorf(width / (3.0 if _account != null else 2.0))
 	_levels.position = Vector2(m, bottom - link_h)
 	_levels.size = Vector2(link_w, link_h)
 	_settings.position = Vector2(m + link_w, bottom - link_h)
-	_settings.size = Vector2(link_w, link_h)
-	_account.position = Vector2(m + 2.0 * link_w, bottom - link_h)
-	_account.size = Vector2(width - 2.0 * link_w, link_h)
+	_settings.size = Vector2(link_w if _account != null else width - link_w, link_h)
+	if _account != null:
+		_account.position = Vector2(m + 2.0 * link_w, bottom - link_h)
+		_account.size = Vector2(width - 2.0 * link_w, link_h)
 	_play.position = Vector2(m, bottom - link_h - 12.0 - play_h)
 	_play.size = Vector2(width, play_h)
 

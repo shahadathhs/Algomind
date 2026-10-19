@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/ui/wordmark";
 const NAV: readonly NavItem[] = [
   { href: "/levels", label: "Levels" },
   { href: "/how-to-play", label: "How to play" },
+  { href: "/play", label: "Play" },
   { href: "/download", label: "Download" },
 ];
 

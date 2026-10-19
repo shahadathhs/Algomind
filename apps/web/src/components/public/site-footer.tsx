@@ -3,7 +3,6 @@ import { Container } from "@/components/ui/container";
 import { Rule } from "@/components/ui/rule";
 
 const LINKS = [
-  { href: "/play", label: "Play in browser" },
   { href: "/privacy", label: "Privacy" },
   { href: "/contact", label: "Contact" },
 ];
