@@ -30,6 +30,29 @@ static func refresh_tools(p: PlayScreen) -> void:
 	tools[1].set_disabled(count >= ContractLimits.REPEAT_COUNT_MAX)
 
 
+## The text at the right of the objective row: commands used while building, and the stars and
+## points of a solved level (a provisional score; the server's total wins at the next sync).
+static func counter_text(p: PlayScreen) -> String:
+	if p._session.state != PlaySession.State.SUCCEEDED:
+		return "%d / %d COMMANDS" % [p._tape.slots(), p._tape.limit]
+	var par: Dictionary = p._entry.get("par", {})
+	if not par.has("commands") or not par.has("steps"):
+		return "SOLVED"
+	var score := (
+		Scoring
+		. score_result(
+			Scoring.DEFAULT_RULES,
+			{
+				"difficulty": p._level["difficulty"],
+				"par": par,
+				"slots": p._tape.slots(),
+				"steps": int(p._session.result.get("steps", 0)),
+			}
+		)
+	)
+	return "%d / 3 STARS\n%d POINTS" % [score["stars"], score["levelScore"]]
+
+
 static func message_text(p: PlayScreen) -> String:
 	match p._session.state:
 		PlaySession.State.SUCCEEDED, PlaySession.State.FAILED:

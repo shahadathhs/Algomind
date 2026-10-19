@@ -58,5 +58,119 @@
         }
       ]
     }
-  ]
+  ],
+  "par": {
+    "first-step": {
+      "commands": 2,
+      "steps": 2
+    },
+    "count-the-cells": {
+      "commands": 4,
+      "steps": 4
+    },
+    "beside-the-wall": {
+      "commands": 4,
+      "steps": 4
+    },
+    "long-run": {
+      "commands": 6,
+      "steps": 6
+    },
+    "first-turn": {
+      "commands": 7,
+      "steps": 7
+    },
+    "left-turn": {
+      "commands": 6,
+      "steps": 6
+    },
+    "turn-around": {
+      "commands": 5,
+      "steps": 5
+    },
+    "two-corners": {
+      "commands": 10,
+      "steps": 10
+    },
+    "around-the-wall": {
+      "commands": 10,
+      "steps": 10
+    },
+    "find-the-gap": {
+      "commands": 12,
+      "steps": 12
+    },
+    "dead-end": {
+      "commands": 14,
+      "steps": 14
+    },
+    "two-ways": {
+      "commands": 14,
+      "steps": 14
+    },
+    "the-long-wall": {
+      "commands": 17,
+      "steps": 17
+    },
+    "no-spare-tiles": {
+      "commands": 11,
+      "steps": 11
+    },
+    "fewer-turns": {
+      "commands": 12,
+      "steps": 12
+    },
+    "count-the-turns": {
+      "commands": 14,
+      "steps": 14
+    },
+    "one-route": {
+      "commands": 16,
+      "steps": 16
+    },
+    "gauntlet": {
+      "commands": 19,
+      "steps": 19
+    },
+    "say-it-once": {
+      "commands": 2,
+      "steps": 7
+    },
+    "run-turn-run": {
+      "commands": 5,
+      "steps": 11
+    },
+    "stairs": {
+      "commands": 5,
+      "steps": 19
+    },
+    "wide-steps": {
+      "commands": 6,
+      "steps": 19
+    },
+    "sideways-steps": {
+      "commands": 6,
+      "steps": 14
+    },
+    "grand-staircase": {
+      "commands": 7,
+      "steps": 29
+    },
+    "run-and-climb": {
+      "commands": 9,
+      "steps": 22
+    },
+    "climb-and-run": {
+      "commands": 10,
+      "steps": 27
+    },
+    "long-way-up": {
+      "commands": 10,
+      "steps": 23
+    },
+    "final-climb": {
+      "commands": 12,
+      "steps": 25
+    }
+  }
 }

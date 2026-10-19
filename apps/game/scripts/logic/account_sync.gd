@@ -78,6 +78,10 @@ func sync_now() -> void:
 
 ## Forget the state after signing out or deleting the account.
 func reset() -> void:
+	if _progress != null:
+		# The points were the old account's; programs still waiting stay for the next sign-in.
+		_progress.results.clear_points()
+		_progress.results.save()
 	status = "signed_out"
 	message = ""
 	_wait = FIRST_RETRY_SECONDS

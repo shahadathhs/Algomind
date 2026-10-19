@@ -16,6 +16,8 @@ var path: String
 var data: Dictionary = default_data()
 ## Typed access to data["settings"].
 var settings := Settings.new(self)
+## Programs waiting to be verified by the server and its answers; a separate small file.
+var results: PlayerResults
 ## True when the main file was unreadable and the backup was used.
 var recovered_from_backup := false
 ## True when neither file was usable (or none existed) and the data is the defaults.
@@ -24,6 +26,7 @@ var started_fresh := true
 
 func _init(save_path: String = "user://progress.json") -> void:
 	path = save_path
+	results = PlayerResults.new(save_path.get_basename() + "_results.json")
 
 
 static func default_data() -> Dictionary:
@@ -46,6 +49,7 @@ static func default_data() -> Dictionary:
 
 
 func load_data() -> void:
+	results.load_data()
 	recovered_from_backup = false
 	started_fresh = true
 	data = default_data()

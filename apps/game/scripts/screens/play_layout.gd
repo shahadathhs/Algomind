@@ -50,7 +50,8 @@ static func _header(p: PlayScreen, m: float, y: float, width: float, compact: bo
 static func _objective(p: PlayScreen, m: float, y: float, width: float, compact: bool) -> float:
 	var objective_h := 52.0 if compact else 54.0
 	var finished := p._session.is_finished()
-	var counter_w := 0.0 if finished else 150.0
+	# The counter shows the commands, then the stars and points of a solved level.
+	var counter_w := 0.0 if p._session.state == PlaySession.State.FAILED else 150.0
 	var badge_w := 40.0 if finished else 0.0
 	p._badge.visible = finished
 	p._badge.position = Vector2(m, y + (objective_h - 28.0) / 2.0)

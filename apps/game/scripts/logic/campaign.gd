@@ -34,7 +34,13 @@ static func load_bundled() -> Campaign:
 static func from_files(campaign_path: String, levels_dir: String) -> Campaign:
 	var loader := func(level_id: String) -> Variant:
 		return _read_json("%s/%s.json" % [levels_dir, level_id])
-	return from_data(_read_json(campaign_path), loader)
+	var placement: Variant = _read_json(campaign_path)
+	var campaign := from_data(placement, loader)
+	# The bundled file carries each level's par, so stars work before any download.
+	if typeof(placement) == TYPE_DICTIONARY and typeof(placement.get("par")) == TYPE_DICTIONARY:
+		for entry in campaign.entries:
+			entry["par"] = placement["par"].get(entry["id"], {})
+	return campaign
 
 
 ## Builds the campaign from parsed placement data and a loader Callable(level_id) -> Variant
