@@ -32,7 +32,12 @@ const COMMANDS: { command: Command; name: string; text: string }[] = [
   {
     command: "until",
     name: "Repeat until",
-    text: "Start a loop that runs until a wall or the edge of the board is straight ahead.",
+    text: "Start a loop that runs until a wall or the edge of the board is straight ahead, or until the goal is reached.",
+  },
+  {
+    command: "if",
+    name: "If",
+    text: "Look at the cell on one side. Run the commands under then if it is open, and the commands under else if it is not.",
   },
 ];
 
@@ -103,6 +108,20 @@ export default function HowToPlayPage() {
           If that cell is a wall or off the board, the loop ends. Otherwise the commands inside run
           once more. A loop that starts facing a wall runs none of them. It uses the same slots as
           any other loop, and it works for a corridor of any length.
+        </p>
+      </ProseSection>
+
+      <ProseSection title="If and sensors">
+        <p>
+          An if block makes a decision. It has a sensor: clear ahead, clear left or clear right. The
+          sensor is true when the cell on that side is on the board and is not a wall. Reading it
+          costs no step. If it is true, the commands under then run. If it is not, the commands
+          under else run, and else may be empty.
+        </p>
+        <p>
+          An if block uses one slot, plus one for each command in then and in else. It can stand on
+          its own or inside a loop, but not inside another if block. A repeat until loop can also
+          wait for the goal, which keeps a program with decisions going until it arrives.
         </p>
       </ProseSection>
 

@@ -22,7 +22,8 @@ export const COMMANDS: { op: CommandName; command: Command; label: string }[] = 
   { op: "TURN_LEFT", command: "left", label: "Turn left" },
   { op: "TURN_RIGHT", command: "right", label: "Turn right" },
   { op: "REPEAT", command: "repeat", label: "Repeat" },
-  { op: "REPEAT_UNTIL", command: "until", label: "Repeat until blocked" },
+  { op: "REPEAT_UNTIL", command: "until", label: "Repeat until" },
+  { op: "IF", command: "if", label: "If" },
 ];
 
 /** The most instructions a loop body holds and the range of its count (the contract's limits). */
@@ -35,19 +36,14 @@ export function isLoop(node: { op: string }): boolean {
   return LOOP_OPS.includes(node.op);
 }
 
+export function isIf(node: { op: string }): boolean {
+  return node.op === "IF";
+}
+
 export const DIRECTIONS = ["north", "east", "south", "west"] as const;
 export type Direction = (typeof DIRECTIONS)[number];
 
 const DIR_LETTER: Record<Direction, Dir> = { north: "N", east: "E", south: "S", west: "W" };
-
-/** The tape tiles for a program: a loop is its own tile followed by its body. One tile per slot. */
-export function tileCommands(program: Instruction[]): Command[] {
-  return program.flatMap((node) =>
-    isLoop(node)
-      ? [commandOf(node.op), ...(node.body ?? []).map((b) => commandOf(b.op))]
-      : [commandOf(node.op)],
-  );
-}
 
 export function commandOf(op: string): Command {
   return COMMANDS.find((c) => c.op === op)?.command ?? "move";
@@ -139,19 +135,35 @@ export function resizeBoard(content: LevelContent, width: number, height: number
   };
 }
 
+/** True when the level lets players use IF. */
+export function offersIf(content: { availableCommands: string[] }): boolean {
+  return content.availableCommands.includes("IF");
+}
+
 /** What the browser can tell an author before the server is asked (the server stays the authority). */
 export function localCheck(content: LevelContent, referenceSolution: Instruction[]) {
   const authoring = { ...content, referenceSolution } as unknown as AuthoringLevel;
   const validation = validateAuthoringLevel(authoring);
   if (!validation.ok)
-    return { validation, solved: null, par: null as null | { commands: number; steps: number } };
+    return {
+      validation,
+      solved: null,
+      par: null as null | { commands: number; steps: number },
+      parIsReference: false,
+    };
   const level = content as unknown as Level;
   const run = simulate(level, referenceSolution as Program);
-  const best = solve(level);
+  const solved = run.status === "SUCCEEDED";
+  // The exact solver ignores IF, so a level that offers IF has its reference solution as par.
+  const referencePar = offersIf(content)
+    ? { commands: slotsOf(referenceSolution), steps: run.steps }
+    : null;
+  const best = referencePar ? null : solve(level);
   return {
     validation,
-    solved: run.status === "SUCCEEDED",
-    par: best ? { commands: best.commands, steps: best.steps } : null,
+    solved,
+    par: referencePar ?? (best ? { commands: best.commands, steps: best.steps } : null),
+    parIsReference: referencePar !== null,
   };
 }
 
@@ -196,4 +208,9 @@ export function clearBackup(levelId: string): void {
   } catch {
     // Nothing to clear.
   }
+}
+
+/** What "par" means for this level: the fewest slots, or the reference solution's when IF is offered. */
+export function parName(content: { availableCommands: string[] }): string {
+  return offersIf(content) ? "Reference solution" : "Par";
 }

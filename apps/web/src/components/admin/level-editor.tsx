@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { BoardPanel } from "./editor/board-panel";
 import { ChecksPanel } from "./editor/checks-panel";
+import { offersIf } from "@/lib/admin/level-model";
 import { DetailsPanel } from "./editor/details-panel";
 import { EditorTabs, type TabId } from "./editor/editor-tabs";
 import { LimitsPanel } from "./editor/limits-panel";
@@ -200,7 +201,14 @@ export function LevelEditor({ levelId }: { levelId: string }) {
                 onRecorded={() => setPlaytestKey((n) => n + 1)}
               />
             )}
-            {tab === "checks" && <ChecksPanel levelId={levelId} dirty={dirty} hasDraft />}
+            {tab === "checks" && (
+              <ChecksPanel
+                levelId={levelId}
+                dirty={dirty}
+                hasDraft
+                offersIf={content !== null && offersIf(content)}
+              />
+            )}
           </div>
           {level.publishedVersion !== null && (
             <div className="mt-10">

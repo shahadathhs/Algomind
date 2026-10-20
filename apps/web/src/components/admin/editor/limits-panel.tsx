@@ -10,6 +10,7 @@ function mechanicsFor(commands: string[]): string[] {
   if (commands.includes("TURN_LEFT") || commands.includes("TURN_RIGHT")) out.push("turn");
   if (commands.includes("REPEAT")) out.push("repeat");
   if (commands.includes("REPEAT_UNTIL")) out.push("repeat_until");
+  if (commands.includes("IF")) out.push("if");
   return out;
 }
 

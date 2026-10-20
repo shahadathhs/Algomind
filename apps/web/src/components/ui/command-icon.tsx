@@ -2,6 +2,7 @@ export type IconKind =
   | "move"
   | "repeat"
   | "until"
+  | "if"
   | "left"
   | "right"
   | "step"
@@ -49,6 +50,13 @@ export function CommandIcon({ kind, cx, cy, size, tone }: Props) {
           <path d="M3 12H12.5M9 8l3.5 4-3.5 4" fill="none" strokeWidth={2.4} />
           <rect x={16} y={4} width={4} height={16} strokeWidth={0} />
         </>
+      )}
+      {kind === "if" && (
+        <path
+          d="M3 12H9M9 12 20 5M9 12 20 19M16 3 21 5 19 10M16 21 21 19 19 14"
+          fill="none"
+          strokeWidth={2.4}
+        />
       )}
       {kind === "right" && TURN_RIGHT}
       {(kind === "left" || kind === "reset") && (

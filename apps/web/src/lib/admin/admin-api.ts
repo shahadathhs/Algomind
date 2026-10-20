@@ -45,11 +45,25 @@ export type LevelSummary = {
   updatedAt: string;
 };
 
+/** A move or a turn. */
+export type Primitive = { op: string };
+/** An IF: a sensor, a `then` branch of primitives and an `else` branch (possibly empty). */
+export type IfNode = { op: "IF"; when: string; then: Primitive[]; else: Primitive[] };
+/** An item of a loop body: a primitive or an IF. */
+export type BodyNode = Primitive | IfNode;
 /**
- * One program node: a primitive, a REPEAT with a count, or a REPEAT_UNTIL with a condition (and no
- * count). Both loops hold a body of primitives.
+ * One program node: a primitive, an IF, a REPEAT with a count, or a REPEAT_UNTIL with a condition (and
+ * no count). Both loops hold a body of primitives and IFs. Fields are optional so one type covers all.
  */
-export type Instruction = { op: string; count?: number; until?: string; body?: { op: string }[] };
+export type Instruction = {
+  op: string;
+  count?: number;
+  until?: string;
+  body?: BodyNode[];
+  when?: string;
+  then?: Primitive[];
+  else?: Primitive[];
+};
 
 export type LevelContent = {
   schemaVersion: number;

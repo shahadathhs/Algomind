@@ -3,9 +3,11 @@
 import { TapeView } from "@/components/ui/tape-view";
 import { tapeFromProgram } from "@/lib/tape";
 import type { Instruction } from "@/lib/admin/admin-api";
-import { COMMANDS, REPEAT_LIMITS, isLoop, slotsOf, tileCommands } from "@/lib/admin/level-model";
+import { COMMANDS, REPEAT_LIMITS, isIf, isLoop, slotsOf } from "@/lib/admin/level-model";
+import { asIf, newIf, nodeLabel, tileCommands } from "@/lib/admin/program-model";
 import { OutlineAction } from "../ui";
 import { moveItem } from "@/lib/admin/list-ops";
+import { IfBranches } from "./if-branches";
 import { LoopBody } from "./loop-body";
 import { TextAction } from "../text-action";
 
@@ -22,13 +24,13 @@ export function ProgramEditor({
 }) {
   const slots = slotsOf(program);
   const tiles = tapeFromProgram(tileCommands(program), { emptySlot: "plus" });
-  const primitives = COMMANDS.filter((c) => !isLoop(c) && available.includes(c.op));
+  const primitives = COMMANDS.filter((c) => !isLoop(c) && !isIf(c) && available.includes(c.op));
   const canRepeat = available.includes("REPEAT");
   const canRepeatUntil = available.includes("REPEAT_UNTIL");
+  const canIf = available.includes("IF");
 
   const setLoop = (i: number, change: Partial<Instruction>) =>
     onChange(program.map((node, j) => (j === i ? { ...node, ...change } : node)));
-  const label = (op: string) => COMMANDS.find((c) => c.op === op)?.label ?? op;
 
   return (
     <div>
@@ -67,7 +69,12 @@ export function ProgramEditor({
               onChange([...program, { op: "REPEAT_UNTIL", until: "BLOCKED", body: [] }])
             }
           >
-            Add repeat until blocked
+            Add repeat until
+          </OutlineAction>
+        )}
+        {canIf && (
+          <OutlineAction type="button" onClick={() => onChange([...program, newIf()])}>
+            Add if
           </OutlineAction>
         )}
       </div>
@@ -79,7 +86,7 @@ export function ProgramEditor({
                 <span className="w-8 text-sm tracking-[2px] tabular-nums">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <span className="grow text-base tracking-[1px] uppercase">{label(p.op)}</span>
+                <span className="grow text-base tracking-[1px] uppercase">{nodeLabel(p)}</span>
                 <TextAction
                   disabled={i === 0}
                   onClick={() => onChange(moveItem(program, i, i - 1))}
@@ -106,9 +113,19 @@ export function ProgramEditor({
                   node={p}
                   index={i}
                   primitives={primitives}
-                  label={label}
+                  canIf={canIf}
                   onCount={(count) => setLoop(i, { count })}
+                  onUntil={(until) => setLoop(i, { until })}
                   onBody={(body) => setLoop(i, { body })}
+                />
+              )}
+              {isIf(p) && (
+                <IfBranches
+                  node={asIf(p)}
+                  where={`step ${i + 1}`}
+                  idPrefix={`${idPrefix}-if-${i}`}
+                  primitives={primitives}
+                  onChange={(next) => onChange(program.map((node, j) => (j === i ? next : node)))}
                 />
               )}
             </li>
