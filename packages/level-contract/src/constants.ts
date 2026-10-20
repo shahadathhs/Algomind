@@ -7,8 +7,14 @@ export const PRIMITIVE_COMMANDS = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"] as
 /** The loop instruction: a count and a body of primitives. */
 export const REPEAT_OP = "REPEAT";
 
+/** The conditional loop: it runs its body while the way ahead is open. */
+export const REPEAT_UNTIL_OP = "REPEAT_UNTIL";
+
+/** The conditions a REPEAT_UNTIL can wait for. BLOCKED: a wall or the board edge is straight ahead. */
+export const UNTIL_CONDITIONS = ["BLOCKED"] as const;
+
 /** Every command a level can offer, in the canonical order. */
-export const COMMAND_NAMES = [...PRIMITIVE_COMMANDS, REPEAT_OP] as const;
+export const COMMAND_NAMES = [...PRIMITIVE_COMMANDS, REPEAT_OP, REPEAT_UNTIL_OP] as const;
 
 /** Directions in clockwise order starting at north. */
 export const DIRECTIONS = ["north", "east", "south", "west"] as const;

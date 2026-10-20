@@ -4,13 +4,14 @@ import {
   LIMITS,
   PRIMITIVE_COMMANDS,
   REPEAT_OP,
+  REPEAT_UNTIL_OP,
 } from "./constants.js";
 import type { Level, PrimitiveName, Program, SolveResult } from "./types.js";
 
 /**
- * The shortest program (par) for a level that offers REPEAT.
+ * The shortest program (par) for a level that offers REPEAT or REPEAT_UNTIL.
  *
- * Par counts slots: a primitive is 1, a REPEAT is 1 plus its body. The search is exact over programs whose
+ * Par counts slots: a primitive is 1, a REPEAT or REPEAT_UNTIL is 1 plus its body. The search is exact over programs whose
  * loop bodies hold at most `LIMITS.repeatBody.max` primitives, which is also the most a body may hold.
  *
  * Method (any language can reproduce the exact program, not only its size):
@@ -20,8 +21,9 @@ import type { Level, PrimitiveName, Program, SolveResult } from "./types.js";
  *     order; length k+1 extends each body of length k, in order, by each available primitive in canonical
  *     order. A body whose behaviour equals that of an earlier one is skipped.
  *  3. The edges are every available primitive (cost 1 slot), then, by body length and body order, every
- *     REPEAT(n, body) for n from 2 to `LIMITS.repeatCount.max` (cost 1 + body length). Edges with the same
- *     behaviour and cost as an earlier edge are skipped.
+ *     REPEAT(n, body) for n from 2 to `LIMITS.repeatCount.max` when REPEAT is offered, and then the
+ *     REPEAT_UNTIL(BLOCKED, body) of that body when REPEAT_UNTIL is offered (each costs 1 + body length).
+ *     Edges with the same behaviour and cost as an earlier edge are skipped.
  *  4. A shortest-path search from the start state, with cost (slots, steps) compared in that order, taking
  *     the lowest state index first and updating only on a strictly lower cost. The first edge to reach the
  *     goal at the lowest cost wins, which makes the program unique.
@@ -102,6 +104,42 @@ export function solveWithRepeat(level: Level): SolveResult | null {
     return { end, steps };
   };
 
+  /** True where a wall or the board edge is straight ahead of the state. */
+  const blockedAhead = new Uint8Array(size);
+  for (let s = 0; s < size; s += 1) {
+    const cell = s >> 2;
+    const x = cell % width;
+    const y = (cell - x) / width;
+    const [dx, dy] = DIRECTION_DELTAS[DIRECTIONS[s & 3]!];
+    const nx = x + dx;
+    const ny = y + dy;
+    blockedAhead[s] =
+      nx < 0 || ny < 0 || nx >= width || ny >= height || walls[ny * width + nx]! ? 1 : 0;
+  }
+
+  /** Runs the body while the way ahead is open. A run that never gets blocked is a failure (step limit). */
+  const repeatedUntilBlocked = (body: Behaviour): Behaviour => {
+    const end = new Int16Array(size);
+    const steps = new Uint16Array(size);
+    for (let s = 0; s < size; s += 1) {
+      let at = s;
+      let total = 0;
+      let rounds = 0;
+      while (at >= 0 && !blockedAhead[at]) {
+        if (rounds > size) {
+          at = FAIL;
+          break;
+        }
+        rounds += 1;
+        total = Math.min(STEP_CAP, total + body.steps[at]!);
+        at = body.end[at]!;
+      }
+      end[s] = at;
+      steps[s] = total;
+    }
+    return { end, steps };
+  };
+
   /** Skips behaviours already seen; a hash picks the bucket and the arrays are compared in full. */
   const unseen = (() => {
     const buckets = new Map<string, Behaviour[]>();
@@ -167,13 +205,24 @@ export function solveWithRepeat(level: Level): SolveResult | null {
   }
   for (let length = 1; length <= LIMITS.repeatBody.max; length += 1) {
     for (const body of bodies[length]!) {
-      for (let count = LIMITS.repeatCount.min; count <= LIMITS.repeatCount.max; count += 1) {
-        const behaviour = repeated(body.behaviour, count);
+      if (level.availableCommands.includes(REPEAT_OP)) {
+        for (let count = LIMITS.repeatCount.min; count <= LIMITS.repeatCount.max; count += 1) {
+          const behaviour = repeated(body.behaviour, count);
+          if (!unseen(behaviour, `edge${1 + length}`)) continue;
+          edges.push({
+            behaviour,
+            slots: 1 + length,
+            node: { op: REPEAT_OP, count, body: body.ops.map((op) => ({ op })) },
+          });
+        }
+      }
+      if (level.availableCommands.includes(REPEAT_UNTIL_OP)) {
+        const behaviour = repeatedUntilBlocked(body.behaviour);
         if (!unseen(behaviour, `edge${1 + length}`)) continue;
         edges.push({
           behaviour,
           slots: 1 + length,
-          node: { op: REPEAT_OP, count, body: body.ops.map((op) => ({ op })) },
+          node: { op: REPEAT_UNTIL_OP, until: "BLOCKED", body: body.ops.map((op) => ({ op })) },
         });
       }
     }

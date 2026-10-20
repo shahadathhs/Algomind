@@ -1,7 +1,14 @@
-import type { COMMAND_NAMES, DIFFICULTIES, DIRECTIONS, PRIMITIVE_COMMANDS } from "./constants.js";
+import type {
+  COMMAND_NAMES,
+  DIFFICULTIES,
+  DIRECTIONS,
+  PRIMITIVE_COMMANDS,
+  UNTIL_CONDITIONS,
+} from "./constants.js";
 
 export type PrimitiveName = (typeof PRIMITIVE_COMMANDS)[number];
 export type CommandName = (typeof COMMAND_NAMES)[number];
+export type UntilCondition = (typeof UNTIL_CONDITIONS)[number];
 export type Direction = (typeof DIRECTIONS)[number];
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
@@ -18,8 +25,18 @@ export interface RepeatInstruction {
   count: number;
   body: PrimitiveInstruction[];
 }
+/**
+ * A conditional loop: before each round it checks the condition, and the body runs again only while the
+ * condition is false. `BLOCKED` is true when a wall or the board edge is straight ahead. The body holds
+ * primitives only; a run that never meets the condition ends at the step limit.
+ */
+export interface RepeatUntilInstruction {
+  op: "REPEAT_UNTIL";
+  until: UntilCondition;
+  body: PrimitiveInstruction[];
+}
 /** One node of a program. Nodes (not bare strings) so a loop can hold a body. */
-export type Instruction = PrimitiveInstruction | RepeatInstruction;
+export type Instruction = PrimitiveInstruction | RepeatInstruction | RepeatUntilInstruction;
 export type Program = Instruction[];
 
 /** The public level definition served to the game. Never contains the reference solution. */

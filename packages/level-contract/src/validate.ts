@@ -1,6 +1,8 @@
 import {
   COMMAND_NAMES,
   REPEAT_OP,
+  REPEAT_UNTIL_OP,
+  UNTIL_CONDITIONS,
   DIFFICULTIES,
   DIRECTIONS,
   GOAL_TYPES,
@@ -481,7 +483,7 @@ function checkProgram(
     c.add(base, "INVALID_TYPE", `${base} must be an array of instructions.`);
     return;
   }
-  // Slots: a primitive is 1; a REPEAT is 1 plus the instructions in its body.
+  // Slots: a primitive is 1; a REPEAT or REPEAT_UNTIL is 1 plus the instructions in its body.
   let slots = 0;
   const checkOp = (node: Obj, path: string, inBody: boolean): CommandName | null => {
     const opPath = `${path}.op`;
@@ -498,7 +500,7 @@ function checkProgram(
       c.add(opPath, "UNKNOWN_COMMAND", `${opPath} is not a known command.`);
       return null;
     }
-    if (inBody && op === REPEAT_OP) {
+    if (inBody && (op === REPEAT_OP || op === REPEAT_UNTIL_OP)) {
       c.add(opPath, "NESTED_REPEAT", `${opPath}: a loop cannot contain a loop.`);
       return null;
     }
@@ -516,22 +518,46 @@ function checkProgram(
       return;
     }
     const op = typeof node["op"] === "string" ? node["op"] : null;
-    rejectUnknown(c, node, path, op === REPEAT_OP ? ["op", "count", "body"] : ["op"]);
+    rejectUnknown(
+      c,
+      node,
+      path,
+      op === REPEAT_OP
+        ? ["op", "count", "body"]
+        : op === REPEAT_UNTIL_OP
+          ? ["op", "until", "body"]
+          : ["op"],
+    );
     const known = checkOp(node, path, false);
     slots += 1;
-    if (known !== REPEAT_OP) return;
+    if (known !== REPEAT_OP && known !== REPEAT_UNTIL_OP) return;
 
-    const countPath = `${path}.count`;
-    if (!has(node, "count")) {
-      c.add(countPath, "REQUIRED", `${countPath} is required.`);
-    } else if (!isInt(node["count"])) {
-      c.add(countPath, "INVALID_TYPE", `${countPath} must be an integer.`);
-    } else if (node["count"] < LIMITS.repeatCount.min || node["count"] > LIMITS.repeatCount.max) {
-      c.add(
-        countPath,
-        "OUT_OF_RANGE",
-        `${countPath} must be from ${LIMITS.repeatCount.min} to ${LIMITS.repeatCount.max}.`,
-      );
+    if (known === REPEAT_OP) {
+      const countPath = `${path}.count`;
+      if (!has(node, "count")) {
+        c.add(countPath, "REQUIRED", `${countPath} is required.`);
+      } else if (!isInt(node["count"])) {
+        c.add(countPath, "INVALID_TYPE", `${countPath} must be an integer.`);
+      } else if (node["count"] < LIMITS.repeatCount.min || node["count"] > LIMITS.repeatCount.max) {
+        c.add(
+          countPath,
+          "OUT_OF_RANGE",
+          `${countPath} must be from ${LIMITS.repeatCount.min} to ${LIMITS.repeatCount.max}.`,
+        );
+      }
+    } else {
+      const untilPath = `${path}.until`;
+      if (!has(node, "until")) {
+        c.add(untilPath, "REQUIRED", `${untilPath} is required.`);
+      } else if (typeof node["until"] !== "string") {
+        c.add(untilPath, "INVALID_TYPE", `${untilPath} must be a string.`);
+      } else if (!(UNTIL_CONDITIONS as readonly string[]).includes(node["until"])) {
+        c.add(
+          untilPath,
+          "INVALID_VALUE",
+          `${untilPath} must be one of ${UNTIL_CONDITIONS.join(", ")}.`,
+        );
+      }
     }
 
     const bodyPath = `${path}.body`;
@@ -559,7 +585,9 @@ function checkProgram(
         return;
       }
       // A nested loop is reported once, as NESTED_REPEAT, not field by field.
-      if (inner["op"] !== REPEAT_OP) rejectUnknown(c, inner, innerPath, ["op"]);
+      if (inner["op"] !== REPEAT_OP && inner["op"] !== REPEAT_UNTIL_OP) {
+        rejectUnknown(c, inner, innerPath, ["op"]);
+      }
       checkOp(inner, innerPath, true);
     });
   });

@@ -4,6 +4,8 @@ import {
   LIMITS,
   PRIMITIVE_COMMANDS,
   REPEAT_OP,
+  REPEAT_UNTIL_OP,
+  UNTIL_CONDITIONS,
 } from "./constants.js";
 import type {
   Direction,
@@ -13,6 +15,7 @@ import type {
   PrimitiveName,
   Program,
   RepeatInstruction,
+  RepeatUntilInstruction,
   RunResult,
   TraceEntry,
 } from "./types.js";
@@ -68,6 +71,27 @@ function isRunnableRepeat(node: unknown): node is RepeatInstruction {
   );
 }
 
+function isRunnableBody(body: unknown): boolean {
+  return (
+    Array.isArray(body) &&
+    body.length >= LIMITS.repeatBody.min &&
+    body.length <= LIMITS.repeatBody.max &&
+    body.every(isPrimitiveNode)
+  );
+}
+
+/** A conditional loop the simulator can run: a known condition and a body of 1 to 8 primitives. */
+function isRunnableRepeatUntil(node: unknown): node is RepeatUntilInstruction {
+  if (typeof node !== "object" || node === null) return false;
+  const n = node as { op?: unknown; until?: unknown; body?: unknown };
+  return (
+    n.op === REPEAT_UNTIL_OP &&
+    typeof n.until === "string" &&
+    (UNTIL_CONDITIONS as readonly string[]).includes(n.until) &&
+    isRunnableBody(n.body)
+  );
+}
+
 /**
  * Runs `program` on `level`. Deterministic and pure: the inputs are not modified.
  *
@@ -75,7 +99,9 @@ function isRunnableRepeat(node: unknown): node is RepeatInstruction {
  * call `validateProgram` first. An instruction that is not a known primitive or a well-formed REPEAT stops
  * the run with INVALID_INSTRUCTION (it is never skipped). `program` must be an array.
  *
- * Every executed primitive is one step; a REPEAT itself costs none. The step limit is checked before each
+ * Every executed primitive is one step; a REPEAT or REPEAT_UNTIL itself costs none. A REPEAT_UNTIL checks
+ * its condition before every round, so a loop whose way ahead is already blocked runs its body zero times; the
+ * check is free and the loop ends only through the condition, the goal, a failure, or the step limit. The step limit is checked before each
  * node and before each primitive inside a loop. The run succeeds the moment the goal cell is entered, even
  * in the middle of a loop.
  */
@@ -147,6 +173,18 @@ export function simulate(level: Level, program: Program): RunResult {
     if (isPrimitiveNode(node)) {
       const result = step(node.op, [i], null);
       if (result) return result;
+      continue;
+    }
+    if (isRunnableRepeatUntil(node)) {
+      for (let round = 1; ; round += 1) {
+        const ahead = cellAhead(position, direction);
+        if (!isInsideBoard(level, ahead) || isWall(level, ahead)) break;
+        for (let j = 0; j < node.body.length; j += 1) {
+          if (atLimit()) return finish("FAILED", "STEP_LIMIT", null);
+          const result = step(node.body[j]!.op, [i, j], round);
+          if (result) return result;
+        }
+      }
       continue;
     }
     if (!isRunnableRepeat(node)) return finish("FAILED", "INVALID_INSTRUCTION", null);

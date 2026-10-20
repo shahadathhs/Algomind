@@ -27,7 +27,7 @@ const flag = (name, fallback) => {
 function describe(m) {
   return [
     m.loops
-      ? `par ${m.par} slots, ${m.flatPar} without REPEAT`
+      ? `par ${m.par} slots, ${m.flatPar} without loops`
       : `par ${m.par} (${m.moves} moves, ${m.turns} turns)`,
     `walls cost ${m.excess}, decoy ${m.decoy}, dead ends ${m.deadEnds}`,
     `${m.optimalPrograms} shortest program${m.optimalPrograms === 1 ? "" : "s"}, ${m.size}`,

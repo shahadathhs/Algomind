@@ -1,4 +1,4 @@
-import { DIRECTIONS, PRIMITIVE_COMMANDS, REPEAT_OP } from "./constants.js";
+import { DIRECTIONS, PRIMITIVE_COMMANDS, REPEAT_OP, REPEAT_UNTIL_OP } from "./constants.js";
 import { cellAhead, isInsideBoard, isWall, turn } from "./simulate.js";
 import type { Direction, Level, Position, PrimitiveName, Program, SolveResult } from "./types.js";
 import { solveWithRepeat } from "./solve-repeat.js";
@@ -27,7 +27,12 @@ interface Node {
  * ignores both. Expects a level that passed `validateLevel`.
  */
 export function solve(level: Level): SolveResult | null {
-  if (level.availableCommands.includes(REPEAT_OP)) return solveWithRepeat(level);
+  if (
+    level.availableCommands.includes(REPEAT_OP) ||
+    level.availableCommands.includes(REPEAT_UNTIL_OP)
+  ) {
+    return solveWithRepeat(level);
+  }
   const available = PRIMITIVE_COMMANDS.filter((c) => level.availableCommands.includes(c));
   const goal = level.goal.position;
   const { width, height } = level.board;
