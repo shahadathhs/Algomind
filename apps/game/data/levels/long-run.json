@@ -26,7 +26,7 @@
   },
   "hints": ["Six cells. Count before you add tiles."],
   "title": "Long run",
-  "levelId": "0db3b156-ac0c-43af-bae6-21248bf89cb1",
+  "levelId": "5c54ea34-7d97-4265-bd9f-30331fb3eadb",
   "requires": {
     "mechanics": []
   },
@@ -42,5 +42,5 @@
   },
   "levelVersion": 1,
   "schemaVersion": 1,
-  "availableCommands": ["MOVE_FORWARD"]
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
 }

@@ -11,7 +11,7 @@
   },
   "hints": ["Turn left to face the other way.", "Move up to the target's row first."],
   "title": "Turn left",
-  "levelId": "2bda61c9-1c8f-4980-a0b0-ccc52291f7ca",
+  "levelId": "751051fa-92fa-4962-8fcf-174ab49088f6",
   "requires": {
     "mechanics": []
   },
@@ -27,5 +27,5 @@
   },
   "levelVersion": 1,
   "schemaVersion": 1,
-  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT"]
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
 }

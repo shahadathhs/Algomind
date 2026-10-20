@@ -52,7 +52,7 @@
   },
   "hints": ["Some moves come before the pattern. Add them before or after the loop."],
   "title": "Run and climb",
-  "levelId": "d04f9ce5-e248-461a-ae4e-dc94a1b2e99c",
+  "levelId": "1ee92520-0dd9-4b23-8327-947590dee827",
   "requires": {
     "mechanics": []
   },

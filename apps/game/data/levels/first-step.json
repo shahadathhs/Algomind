@@ -11,7 +11,7 @@
   },
   "hints": ["Tap Move twice, then Run."],
   "title": "First step",
-  "levelId": "80787065-9441-4fa9-9411-352c0cb69685",
+  "levelId": "43c72c52-ff5a-4b5e-aa3c-9c0a85396a27",
   "requires": {
     "mechanics": []
   },
@@ -27,5 +27,5 @@
   },
   "levelVersion": 1,
   "schemaVersion": 1,
-  "availableCommands": ["MOVE_FORWARD"]
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
 }

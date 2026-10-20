@@ -14,7 +14,7 @@
     "Tap End loop to go back to adding single tiles."
   ],
   "title": "Run, turn, run",
-  "levelId": "ad6d6fb2-cf54-48b2-bb2c-18a4423c4def",
+  "levelId": "966b8802-0c8c-42a6-8801-0ae3e53f9232",
   "requires": {
     "mechanics": []
   },
@@ -30,5 +30,5 @@
   },
   "levelVersion": 1,
   "schemaVersion": 1,
-  "availableCommands": ["MOVE_FORWARD", "TURN_RIGHT", "REPEAT"]
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT"]
 }

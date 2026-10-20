@@ -4,10 +4,10 @@
 // it stays plain JSON: prettier must not reformat it.
 //
 // Every limit is at least the shortest program (the seed checks this with the solver and fails
-// loudly otherwise). World 1 teaches one idea per level and adds commands as it goes; chapter
-// "Detours" leaves a little slack; chapter "Budgets" allows exactly the shortest program.
-// World 3 offers REPEAT, and every limit equals the loop par: the plain program is longer than the
-// limit, so each level needs a loop (a test checks this).
+// loudly otherwise). Every level offers all the movement commands (Move, Left, Right), and world 3
+// adds Repeat. World 1 and chapter "Budgets" allow exactly the shortest program; chapter "Detours"
+// leaves a little slack. In world 3 every limit equals the loop par: the plain program is longer
+// than the limit, so each level needs a loop (a test checks this).
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -24,7 +24,9 @@ export const CAMPAIGN = {
               "title": "First step",
               "difficulty": "easy",
               "commands": [
-                "MOVE_FORWARD"
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
               ],
               "maxCommands": 2,
               "rows": [
@@ -43,7 +45,9 @@ export const CAMPAIGN = {
               "title": "Count the cells",
               "difficulty": "easy",
               "commands": [
-                "MOVE_FORWARD"
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
               ],
               "maxCommands": 4,
               "rows": [
@@ -62,7 +66,9 @@ export const CAMPAIGN = {
               "title": "Beside the wall",
               "difficulty": "easy",
               "commands": [
-                "MOVE_FORWARD"
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
               ],
               "maxCommands": 4,
               "rows": [
@@ -81,7 +87,9 @@ export const CAMPAIGN = {
               "title": "Long run",
               "difficulty": "easy",
               "commands": [
-                "MOVE_FORWARD"
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
               ],
               "maxCommands": 6,
               "rows": [
@@ -108,6 +116,7 @@ export const CAMPAIGN = {
               "difficulty": "easy",
               "commands": [
                 "MOVE_FORWARD",
+                "TURN_LEFT",
                 "TURN_RIGHT"
               ],
               "maxCommands": 7,
@@ -129,7 +138,8 @@ export const CAMPAIGN = {
               "difficulty": "easy",
               "commands": [
                 "MOVE_FORWARD",
-                "TURN_LEFT"
+                "TURN_LEFT",
+                "TURN_RIGHT"
               ],
               "maxCommands": 6,
               "rows": [
@@ -450,6 +460,8 @@ export const CAMPAIGN = {
               "difficulty": "easy",
               "commands": [
                 "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
                 "REPEAT"
               ],
               "maxCommands": 2,
@@ -475,6 +487,7 @@ export const CAMPAIGN = {
               "difficulty": "easy",
               "commands": [
                 "MOVE_FORWARD",
+                "TURN_LEFT",
                 "TURN_RIGHT",
                 "REPEAT"
               ],

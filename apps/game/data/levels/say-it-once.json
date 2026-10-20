@@ -14,7 +14,7 @@
     "Put Move inside the loop, then set the rounds with plus and minus."
   ],
   "title": "Say it once",
-  "levelId": "24b03e0a-360f-426c-a898-4895cacfe2ef",
+  "levelId": "61d39118-81c6-4791-8728-58f28d533c5c",
   "requires": {
     "mechanics": []
   },
@@ -30,5 +30,5 @@
   },
   "levelVersion": 1,
   "schemaVersion": 1,
-  "availableCommands": ["MOVE_FORWARD", "REPEAT"]
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT"]
 }

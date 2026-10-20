@@ -18,7 +18,7 @@
   },
   "hints": ["The walls on both sides are not in your way. Keep moving."],
   "title": "Beside the wall",
-  "levelId": "3ce17ac2-8c99-4082-9386-cb9ab4ef86ba",
+  "levelId": "4699dd10-1897-4f15-9888-1f81b3b461e9",
   "requires": {
     "mechanics": []
   },
@@ -34,5 +34,5 @@
   },
   "levelVersion": 1,
   "schemaVersion": 1,
-  "availableCommands": ["MOVE_FORWARD"]
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
 }

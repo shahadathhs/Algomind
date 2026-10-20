@@ -60,13 +60,12 @@ describe("the starter campaign", () => {
     },
   );
 
-  it("teaches in order: Move alone first, then one turn at a time, then both", () => {
-    const first = built[0]!.def.commands;
-    expect(first).toEqual(["MOVE_FORWARD"]);
-    const offers = (slug: string) => built.find((b) => b.def.slug === slug)!.def.commands;
-    expect(offers("first-turn")).toEqual(["MOVE_FORWARD", "TURN_RIGHT"]);
-    expect(offers("left-turn")).toEqual(["MOVE_FORWARD", "TURN_LEFT"]);
-    expect(offers("turn-around")).toHaveLength(3);
+  it("offers every movement command from the first level, and Repeat only in the Loops world", () => {
+    const movement = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"];
+    for (const entry of built) {
+      const expected = entry.world.title === "Loops" ? [...movement, "REPEAT"] : movement;
+      expect(entry.def.commands, entry.def.slug).toEqual(expected);
+    }
   });
 
   it("gives the Budgets chapter, Basics, and Loops exactly the shortest program", () => {
@@ -96,13 +95,6 @@ describe("the starter campaign", () => {
       // A loop is not a marginal gain: the plain program is at least twice as long.
       expect(plain.commands, entry.def.slug).toBeGreaterThanOrEqual(2 * entry.def.maxCommands);
     }
-  });
-
-  it("introduces loops with Move alone first, then adds a turn, then everything", () => {
-    const offers = (slug: string) => built.find((b) => b.def.slug === slug)!.def.commands;
-    expect(offers("say-it-once")).toEqual(["MOVE_FORWARD", "REPEAT"]);
-    expect(offers("run-turn-run")).toEqual(["MOVE_FORWARD", "TURN_RIGHT", "REPEAT"]);
-    expect(offers("stairs")).toHaveLength(4);
   });
 
   it("solves every Loops level with a program that uses a loop", () => {
