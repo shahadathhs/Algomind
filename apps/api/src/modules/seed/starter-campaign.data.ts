@@ -1,4 +1,4 @@
-// The starter campaign: four worlds, eight chapters, thirty-six levels, in play order.
+// The starter campaign: five worlds, ten chapters, forty-four levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
@@ -8,7 +8,9 @@
 // adds Repeat, and world 4 offers Repeat until in its place. World 1 and chapter "Budgets" allow
 // exactly the shortest program; chapter "Detours" leaves a little slack. In worlds 3 and 4 every
 // limit equals the loop par: the plain program is longer than the limit, so each level needs its
-// loop (a test checks this).
+// loop (a test checks this). World 5 offers Repeat until and If; its levels carry the reference
+// `solution` (the exact solver does not search If), the limit is that solution's slots, and the
+// best program without If is at least 1.5 times the limit.
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -935,6 +937,486 @@ export const CAMPAIGN = {
               "hints": [
                 "Every side of the spiral is a run to a wall.",
                 "Five runs, with a turn at each corner."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Decisions",
+      "description": "Choose by what you sense.",
+      "chapters": [
+        {
+          "title": "Look",
+          "levels": [
+            {
+              "slug": "look-ahead",
+              "title": "Look ahead",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 4,
+              "maxSteps": 100,
+              "rows": [
+                ".......",
+                ".#####.",
+                ".#..G#.",
+                ".#.###.",
+                ".#.###.",
+                ".#.###.",
+                "^#....."
+              ],
+              "hints": [
+                "If asks a question about the cell ahead. Move when it is clear, turn when it is not.",
+                "Put the whole decision inside Repeat until goal."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "the-other-way",
+              "title": "The other way",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 4,
+              "maxSteps": 100,
+              "rows": [
+                ".......",
+                ".#####.",
+                ".#G..#.",
+                ".###.#.",
+                ".###.#.",
+                ".###.#.",
+                ".....#^"
+              ],
+              "hints": [
+                "Same question, other answer: this hall bends left.",
+                "Else holds what to do when the way ahead is blocked."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "both-ways",
+              "title": "Both ways",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 100,
+              "rows": [
+                "##......G##",
+                "##.########",
+                "##.....####",
+                "######.####",
+                "#......####",
+                "#.#########",
+                "#....######",
+                "####.######",
+                ".....######",
+                ".##########",
+                "^##########"
+              ],
+              "hints": [
+                "The bends go both ways. Ask about the right side first, then about the way ahead.",
+                "Turn right when the right side is clear. Otherwise move, or turn left."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Follow the wall",
+          "levels": [
+            {
+              "slug": "small-maze",
+              "title": "Small maze",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 110,
+              "rows": [
+                "G..#...",
+                "##.#.#.",
+                "...#.#.",
+                ".#####.",
+                ".#.....",
+                ".#.###.",
+                "...#>.."
+              ],
+              "hints": [
+                "Keep a hand on the right wall and walk. It finds the way out of any maze like this.",
+                "The two decisions from the last level are all you need."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "wide-maze",
+              "title": "Wide maze",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 100,
+              "rows": [
+                ">..#.....",
+                "##.###.#.",
+                "...#...#.",
+                ".###.###.",
+                ".#...#G#.",
+                ".###.#.#.",
+                ".....#..."
+              ],
+              "hints": [
+                "Keep a hand on the right wall and walk. It finds the way out of any maze like this.",
+                "The two decisions from the last level are all you need."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "square-maze",
+              "title": "Square maze",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 120,
+              "rows": [
+                ">....#...",
+                "####.###.",
+                "..G#...#.",
+                ".#####.#.",
+                ".#...#...",
+                ".#.#.###.",
+                "...#...#.",
+                ".###.###.",
+                "...#....."
+              ],
+              "hints": [
+                "Keep a hand on the right wall and walk. It finds the way out of any maze like this.",
+                "The two decisions from the last level are all you need."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "long-maze",
+              "title": "Long maze",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 200,
+              "rows": [
+                "G....#...#.",
+                "####.#.#.#.",
+                "...#.#.#.#.",
+                ".#.#.#.#.#.",
+                ".#.#...#...",
+                ".#.#######.",
+                ".#..<#.....",
+                ".#.###.####",
+                ".#........."
+              ],
+              "hints": [
+                "Keep a hand on the right wall and walk. It finds the way out of any maze like this.",
+                "The two decisions from the last level are all you need."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "big-maze",
+              "title": "Big maze",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 200,
+              "rows": [
+                "G#>........",
+                ".#####.###.",
+                ".....#...#.",
+                "####.###.#.",
+                "...#.#...#.",
+                ".###.#.###.",
+                "...#.#.#...",
+                ".#.#.#.#.#.",
+                ".#...#.#.#.",
+                ".#######.#.",
+                ".........#."
+              ],
+              "hints": [
+                "Keep a hand on the right wall and walk. It finds the way out of any maze like this.",
+                "The two decisions from the last level are all you need."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
               ]
             }
           ]

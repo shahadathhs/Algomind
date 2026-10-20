@@ -35,16 +35,26 @@ export function verifySubmission(content: unknown, program: unknown): Verified {
 }
 
 /** The same program always has the same hash: nodes are rebuilt in a fixed key order. */
-export function programHash(
-  program: { op: string; count?: number; until?: string; body?: { op: string }[] }[],
-) {
-  const body = (n: { body?: { op: string }[] }) => (n.body ?? []).map((b) => ({ op: b.op }));
-  const canonical = program.map((n) =>
+type HashNode = {
+  op: string;
+  count?: number;
+  until?: string;
+  when?: string;
+  body?: HashNode[];
+  then?: HashNode[];
+  else?: HashNode[];
+};
+
+export function programHash(program: HashNode[]) {
+  const ops = (list: HashNode[] | undefined) => (list ?? []).map((b) => ({ op: b.op }));
+  const canonicalNode = (n: HashNode): unknown =>
     n.op === "REPEAT"
-      ? { op: n.op, count: n.count, body: body(n) }
+      ? { op: n.op, count: n.count, body: (n.body ?? []).map(canonicalNode) }
       : n.op === "REPEAT_UNTIL"
-        ? { op: n.op, until: n.until, body: body(n) }
-        : { op: n.op },
-  );
+        ? { op: n.op, until: n.until, body: (n.body ?? []).map(canonicalNode) }
+        : n.op === "IF"
+          ? { op: n.op, when: n.when, then: ops(n.then), else: ops(n.else) }
+          : { op: n.op };
+  const canonical = program.map(canonicalNode);
   return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
 }

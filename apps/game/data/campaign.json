@@ -74,6 +74,23 @@
           "levels": ["steps-to-the-wall", "zigzag", "long-way-round", "round-and-in"]
         }
       ]
+    },
+    {
+      "id": "decisions",
+      "title": "Decisions",
+      "summary": "Choose by what you sense.",
+      "chapters": [
+        {
+          "id": "look",
+          "title": "Look",
+          "levels": ["look-ahead", "the-other-way", "both-ways"]
+        },
+        {
+          "id": "follow-the-wall",
+          "title": "Follow the wall",
+          "levels": ["small-maze", "wide-maze", "square-maze", "long-maze", "big-maze"]
+        }
+      ]
     }
   ],
   "par": {
@@ -220,6 +237,38 @@
     "round-and-in": {
       "commands": 14,
       "steps": 40
+    },
+    "look-ahead": {
+      "commands": 14,
+      "steps": 33
+    },
+    "the-other-way": {
+      "commands": 14,
+      "steps": 33
+    },
+    "both-ways": {
+      "commands": 28,
+      "steps": 47
+    },
+    "small-maze": {
+      "commands": 20,
+      "steps": 30
+    },
+    "wide-maze": {
+      "commands": 28,
+      "steps": 51
+    },
+    "square-maze": {
+      "commands": 30,
+      "steps": 52
+    },
+    "long-maze": {
+      "commands": 35,
+      "steps": 52
+    },
+    "big-maze": {
+      "commands": 37,
+      "steps": 65
     }
   }
 }

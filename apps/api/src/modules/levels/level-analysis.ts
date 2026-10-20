@@ -17,6 +17,7 @@ export const COMMAND_MECHANICS: Record<CommandName, string> = {
   TURN_RIGHT: "turn",
   REPEAT: "repeat",
   REPEAT_UNTIL: "repeat_until",
+  IF: "if",
 };
 
 export type Analysis = {
@@ -92,7 +93,15 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
   }
 
   let par: Par | null = null;
-  const best = solve(publicLevel);
+  // The exact search does not cover IF. For a level that offers it, par is the better of the best
+  // program without IF and the reference solution (which the simulator has just checked).
+  let best = solve(publicLevel);
+  if (publicLevel.availableCommands.includes("IF") && referenceSolved) {
+    const slots = programSlots(program);
+    if (!best || slots < best.commands || (slots === best.commands && run.steps < best.steps)) {
+      best = { commands: slots, steps: run.steps, program, fitsConstraints: true };
+    }
+  }
   if (!best) {
     errors.push({
       gate: "par",
@@ -154,6 +163,23 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
         path: "constraints.maxCommands",
         code: "LOOP_NOT_REQUIRED",
         message: `The shortest program without loops needs ${flat.commands} commands and the limit is ${level.constraints.maxCommands}, so a loop is optional here.`,
+      });
+    }
+  }
+
+  // A level that offers IF should need it: if the best program without IF already fits the limit, the
+  // decision is optional and the level does not teach decisions.
+  if (level.availableCommands.includes("IF") && best) {
+    const withoutIf = solve({
+      ...level,
+      availableCommands: level.availableCommands.filter((c) => c !== "IF"),
+    });
+    if (withoutIf && withoutIf.commands <= level.constraints.maxCommands) {
+      warnings.push({
+        gate: "par",
+        path: "constraints.maxCommands",
+        code: "IF_NOT_REQUIRED",
+        message: `A program without IF needs ${withoutIf.commands} commands and the limit is ${level.constraints.maxCommands}, so a decision is optional here.`,
       });
     }
   }
