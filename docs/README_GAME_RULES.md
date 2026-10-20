@@ -160,6 +160,35 @@ A conditional loop, the second loop node:
 
 **Editing:** the palette gains a Repeat until tile beside Repeat when a level offers it. A group shows "UNTIL BLOCKED" instead of a count, with no plus and minus tiles; the body is built as for Repeat. While it runs, the group shows the round. Visual rules are in [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md).
 
+### 3.3 IF and the sensors (world 5)
+
+> **Status:** specified 2026-10-20; the contract (TypeScript), both simulators (TypeScript and GDScript), the shared fixtures and the game editor are built; the dashboard editor and world 5 levels follow (see TODO.md).
+
+A decision node, the third kind of instruction:
+
+```json
+{ "op": "IF", "when": "CLEAR_RIGHT", "then": [{ "op": "TURN_RIGHT" }], "else": [] }
+```
+
+- **Sensors** (`when`): `CLEAR_AHEAD`, `CLEAR_LEFT`, `CLEAR_RIGHT`. A sensor is true when the cell on that side of the automaton (straight ahead, or one quarter turn left or right of its facing) is on the board and not a wall. Reading a sensor costs no step and no slot. A sensor does not see the goal as different from floor.
+- **Branches:** `then` holds 1 to 4 primitives and `else` holds 0 to 4 (`else` is always present, and may be empty). The `then` branch runs when the sensor is true, the `else` branch when it is false. An `IF` cannot contain an `IF` or a loop (`NESTED_IF` for an `IF`, `NESTED_REPEAT` for a loop).
+- **Where it may stand:** at the top level of a program, or as an item of a loop body (the body of `REPEAT` and `REPEAT_UNTIL` is 1 to 8 items, each a primitive or an `IF`). A loop still cannot contain a loop.
+- **Slots:** an `IF` is 1 plus the primitives in `then` plus the primitives in `else`. A loop is 1 plus the slots of its body items. `maxCommands` bounds the sum.
+- **Steps:** each executed primitive is one step. Choosing a branch is free. The step limit is checked before each primitive.
+- **Trace:** the trace `node` of a primitive inside an `IF` is `[i, k]` at the top level and `[i, j, k]` inside loop `i`, body item `j`, where `k` counts the `then` primitives first and the `else` primitives after them. `round` is the loop's round, as before.
+- **Availability:** a level lists `IF` in `availableCommands`; the mechanic is `if`.
+- **`REPEAT_UNTIL` gains a second condition:** `until` is `BLOCKED` or `GOAL`. `GOAL` is never true at the start of a round (the run ends the moment the goal is entered), so the loop runs until the goal is reached, a move fails, or the step limit stops it. It is how a program with a decision keeps going.
+- **The right-hand rule** in two decisions, the algorithm world 5 teaches: `REPEAT_UNTIL GOAL { IF CLEAR_RIGHT { TURN_RIGHT }, IF CLEAR_AHEAD { MOVE_FORWARD } else { TURN_LEFT } }` is 6 slots. In a maze whose walls are all joined to the outer wall, it reaches every cell, so it reaches the goal.
+- **Par:** the exact search does not cover `IF` (the number of programs is too large). For a level that offers `IF`, par is the slots and steps of its reference solution, which must solve the level; the publish gate also runs the exact solver with `IF` removed, and the level is accepted as needing `IF` only when that best program does not fit `maxCommands`. The solver in the package ignores `IF`.
+
+**Level design rules for world 5:**
+
+1. The limit equals the slots of the reference solution, and the best program without `IF` does not fit it (by at least 1.5 times).
+2. Corridor levels come first (one decision), maze levels after (the right-hand rule).
+3. Mazes are simply connected (every wall joined to the outer wall), so the right-hand rule is guaranteed to finish; `maxSteps` is at least twice the steps of the reference run.
+
+**Editing:** the palette gains an If tile. Tapping it opens an `IF` group with the sensor `CLEAR_AHEAD`; tapping the sensor tile on the group cycles through the three sensors. The next tapped commands go to the `then` branch; the palette's Else tile switches to the `else` branch; End if (the If tile while a group is open) closes it. Inside an open loop an `IF` is one of its items; at most one `IF` and one loop are open at the same time, and the loop closes last. An `IF` with an empty `then` is not a program.
+
 ## 4. Execution model and feedback
 
 ### Controls

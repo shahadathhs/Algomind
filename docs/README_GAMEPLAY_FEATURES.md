@@ -52,14 +52,23 @@ Required behavior:
 - Prevent the player from accidentally editing the sequence while a run is executing, or define and test a clear edit-during-run behavior.
 - Preserve the current sequence when a run fails so the player can inspect it.
 
-Loops (rules in [README_GAME_RULES.md](README_GAME_RULES.md) sections 3.1 and 3.2):
+Loops and decisions (rules in [README_GAME_RULES.md](README_GAME_RULES.md) sections 3.1 to 3.3):
 
 - The commands row shows a **Repeat** tile when a level offers `REPEAT` and a **Repeat until** tile (label UNTIL) when it offers `REPEAT_UNTIL`, side by side when both are offered. With five tiles the icon sits above the label.
 - Tapping a loop tile starts a loop and opens it; commands tapped next go into its body (at most 8). The same tile now reads END LOOP and closes it; an empty loop cannot be closed and is not a program (Run and Step stay off and the message asks for a command). Only one loop is open at a time, and a loop cannot hold a loop, so the other loop tile waits while one is open.
 - A Repeat loop starts at two rounds; selecting its count tile shows minus and plus (2 to 11). A Repeat until loop has no count: its header reads UNTIL BLOCKED, selecting it shows only the move and remove tools, and the loop is ended by the wall or board edge, not by the player.
 - A loop costs 1 slot plus one per body command, in the editor, the command counter, the result and the score.
 - While a run is shown, a Repeat header reads round/count and a Repeat until header reads ROUND and the round number; a failure inside a body shows the X on that body tile. A Repeat until loop that never meets a wall is stopped by the step limit and the message says the loop never reached a wall.
+- A Repeat until loop on a level that also offers `IF` can wait for the goal: the header is selected when the loop opens, and tapping it again (or the extra tile that appears with the move and remove tools) switches UNTIL BLOCKED to UNTIL GOAL and back. A loop that never reaches the goal is stopped by the step limit and the message says the loop never reached the goal; a round in which nothing ran stops the run with the message that a round of the loop did nothing.
 - The how-to-play screen explains both loops.
+
+If (rules in section 3.3):
+
+- The commands row shows an **If** tile when a level offers `IF`. Tapping it opens an If group with the sensor AHEAD and selects its header; the extra tile with the move and remove tools (or a second tap on the selected header) switches AHEAD, LEFT and RIGHT. Commands tapped next go to the then branch.
+- While an If is open, an **Else** tile appears beside the If tile and switches to the else branch; the If tile reads END IF and closes the group. An If needs one command before Else or End if: a group with an empty then is not a program (Run and Step stay off and the message asks for a command).
+- Branches take commands only: up to 4 per branch, no loop and no other If inside, and no loop can open while an If is open. Inside an open loop an If is one of the loop's items, and the loop can only be ended once the If is closed. When the palette has six tiles, the loop tiles that cannot be used give way to Else while an If is open, so the row never has more than six tiles.
+- An If costs 1 slot plus one per command in then and else; the Else divider on the tape is not a slot and has no number. Selecting the header and removing deletes the whole If; moving it moves the group. Commands move only within their own branch.
+- While a run is shown, a command in a branch that was not taken stays outlined; the X of a failure sits on the command that was blocked, inside whichever branch ran.
 
 ### 3.3 Deterministic simulation
 
