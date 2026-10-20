@@ -6,10 +6,12 @@ import type { PlayerDetail } from "@/lib/admin/admin-api";
 import { downloadJson } from "@/lib/admin/download";
 import { apiMessage } from "@/lib/admin/messages";
 import { useAdminApi } from "../use-admin-api";
+import { useSocialApi } from "../use-social-api";
 
 /** One player and the actions an admin can take on them. Each action reloads the detail. */
 export function usePlayer(playerId: string) {
   const api = useAdminApi();
+  const social = useSocialApi();
   const [detail, setDetail] = useState<PlayerDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -69,6 +71,11 @@ export function usePlayer(playerId: string) {
       ),
     suspend: () => run(() => api.suspendPlayer(playerId), "Player suspended and signed out."),
     unsuspend: () => run(() => api.unsuspendPlayer(playerId), "Player can sign in again."),
+    setBoardHidden: (hidden: boolean) =>
+      run(
+        () => social.setLeaderboardHidden(playerId, hidden),
+        hidden ? "Player hidden from the boards." : "Player shown on the boards again.",
+      ),
     export: () =>
       run(
         async () => downloadJson(`player-${playerId}.json`, await api.exportPlayer(playerId)),

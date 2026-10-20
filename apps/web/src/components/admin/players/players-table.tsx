@@ -43,6 +43,11 @@ export function PlayersTable({
                 {p.displayName && (
                   <p className="mt-1 text-sm font-semibold text-mute">{p.displayName}</p>
                 )}
+                {(p.leaderboardHidden || p.leaderboardOptIn) && (
+                  <p className="mt-1 text-xs tracking-[2px] text-mute uppercase">
+                    {p.leaderboardHidden ? "Hidden from boards" : "On the boards"}
+                  </p>
+                )}
               </td>
               <td className="py-4 pr-4">
                 <PlayerStatusTile status={p.status} />

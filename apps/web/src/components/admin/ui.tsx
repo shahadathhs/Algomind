@@ -150,3 +150,17 @@ export function StatusTile({ status }: { status: "DRAFT" | "PUBLISHED" | "ARCHIV
     </span>
   );
 }
+
+/** A small word on a tile: solid or outlined, so a state is never only a color. */
+export function LabelTile({ solid = false, children }: { solid?: boolean; children: ReactNode }) {
+  return (
+    <span
+      className={`tile inline-flex h-7 items-center px-2.5 text-xs tracking-[2px] whitespace-nowrap uppercase ${
+        solid ? "bg-ink text-on-ink" : "bg-strip text-ink outline-2 -outline-offset-2 outline-ink"
+      }`}
+      style={{ ["--chamfer" as string]: "7px" }}
+    >
+      {children}
+    </span>
+  );
+}

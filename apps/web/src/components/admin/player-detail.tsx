@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Notice } from "./ui";
 import { PlayerAccount } from "./players/player-account";
 import { PlayerActions } from "./players/player-actions";
+import { PlayerLeaderboard } from "./players/player-leaderboard";
 import { PlayerPoints } from "./players/player-points";
 import { PlayerProgress } from "./players/player-progress";
 import { PlayerSessions } from "./players/player-sessions";
@@ -70,6 +71,7 @@ export function PlayerDetail({ playerId }: { playerId: string }) {
         busy={busy}
         actions={actions}
       />
+      <PlayerLeaderboard account={detail.account} busy={busy} actions={actions} />
       <PlayerProgress progress={detail.progress} />
       <PlayerPoints points={detail.points} />
       <PlayerSessions sessions={detail.sessions} settings={detail.settings} />

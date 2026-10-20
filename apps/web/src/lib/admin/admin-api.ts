@@ -192,6 +192,9 @@ export type PlayerSummary = {
   status: PlayerStatus;
   createdAt: string;
   lastActiveAt: string | null;
+  /** On a leaderboard by their own choice, and whether an admin hid them. */
+  leaderboardOptIn: boolean;
+  leaderboardHidden: boolean;
   levelsCleared: number;
   points: number;
 };
@@ -204,7 +207,12 @@ export type PlayerQuery = {
   pageSize?: number;
 };
 export type PlayerDetail = {
-  account: Omit<PlayerSummary, "levelsCleared" | "points">;
+  account: Omit<PlayerSummary, "levelsCleared" | "points"> & {
+    publicId: string;
+    leaderboardOptIn: boolean;
+    hideName: boolean;
+    leaderboardHidden: boolean;
+  };
   progress: {
     levelSlug: string;
     levelVersion: number;

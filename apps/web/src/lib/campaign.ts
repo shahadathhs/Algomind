@@ -75,7 +75,7 @@ export function boardFromContent(content: unknown): BoardData | null {
   };
 }
 
-async function getJson(path: string): Promise<unknown> {
+export async function getJson(path: string): Promise<unknown> {
   const res = await fetch(`${apiBaseUrl()}${path}`, {
     headers: { Accept: "application/json" },
     next: { revalidate: REVALIDATE_SECONDS },
