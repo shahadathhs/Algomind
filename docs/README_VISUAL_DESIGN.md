@@ -168,6 +168,16 @@ Avoid “Wrong!”, “You failed!”, taglines, error codes, long tutorial para
 
 The 15 game screens are listed in [design/SCREENS.md](design/SCREENS.md). Every one must exist in both themes before UI is considered done. Level tiles distinguish four states, each with a shape or icon as well as a visual treatment: **solved** (solid ink), **current** (yellow), **locked** (faint outline), **not downloaded** (dashed with a download icon). Worlds use the same four states. The world picker is a list of world tiles; the world screen shows each chapter's level tiles. Never conflate “not downloaded” with “locked by progression.”
 
+### Social screens, stars, and board rows
+
+Profile, Badges, Leaderboard and Daily share one frame (`PanelScreen`): back tile, small caption, title, a scrolling list, and up to three actions at the bottom (primary, secondary, tertiary). They add no new shapes or colors.
+
+- **Star glyph.** A five-pointed star drawn from shapes (`StarGlyph`, also the `star` icon in `UiKit`). Earned stars are solid and the others outlined, so the count reads without color. A solved level tile shows its stars in place of the check, with the level number below; the legend's SOLVED swatch shows a star. The accessible name carries the count ("Level 05, solved, 3 stars").
+- **Board row.** A 56 px row: rank, name (shortened with an ellipsis), then the result, with a hairline under it. The player's own row is a solid ink tile with a yellow YOU tag (shape and word, not color alone). REPORT is a small underlined tertiary action at the right of another player's row; hidden-name rows have none.
+- **Badge row.** An 84 px row: a 44 px tile (solid with a check when earned, outlined with a lock when locked), the badge name, EARNED and the date or LOCKED, and the description in two lines.
+- **Solved screen.** Share and Ranking are two secondary tiles in their own row above the result figures. Share reads COPIED for two seconds after copying (no animation).
+- **States.** Loading, offline, signed out, empty and error are plain lines of text with one action (Try again, or Sign in): no illustrations.
+
 ## 9. Public website
 
 The public site uses the same tokens, shapes, tile wordmark, and rules as the game, so it reads as the same product.

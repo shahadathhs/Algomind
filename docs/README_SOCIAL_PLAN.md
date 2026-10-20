@@ -1,7 +1,7 @@
 # Algomind — Points, Leaderboards, Daily Challenge, Sharing, and Player Management
 
 > **Purpose:** Plan the features that make Algomind a complete game beyond the campaign: verified points, leaderboards, a daily challenge, sharing, and the dashboard tools to run them.  
-> **Status:** phases 1 and 2 are built (verified submissions, points ledger, stars, the result screen, and player management in the dashboard; see section 6). Leaderboards, the daily challenge, sharing, achievements, and a player-chosen display name are planned. Decisions in section 1 were made on 2026-10-19. The rules these features rely on are in [README_GAME_RULES.md](README_GAME_RULES.md); the data and API conventions are in [README_ARCHITECTURE.md](README_ARCHITECTURE.md).
+> **Status:** built: verified submissions and points, player management, a player-chosen display name and profile, leaderboards (with reports and admin moderation), the daily challenge with its pool, sharing, achievements, level statistics, and stars on level tiles (see section 6). Not built: friend groups, season snapshots with badge rewards, and the Android system share sheet. Decisions in section 1 were made on 2026-10-19. The rules these features rely on are in [README_GAME_RULES.md](README_GAME_RULES.md).
 
 ## 1. Decisions
 
@@ -95,13 +95,26 @@ Every endpoint is server-authoritative, rate limited, and audited. Tokens never 
 
 Each phase ends in something playable, tested, and documented, and meets the "definition of done" in [README_IMPLEMENTATION_PLAN.md](README_IMPLEMENTATION_PLAN.md), with screenshots in both themes at the three phone sizes (and the web pages with JavaScript disabled).
 
-## 6. What is built (phases 1 and 2)
+## 6. What is built
+
+**Verified points and player management** (phases 1 and 2)
 
 - **Scoring** lives in `packages/level-contract` (`scoring.ts`) with a GDScript mirror (`scripts/contract/scoring.gd`); both pass the fixtures in `fixtures/scoring`. Rule set 1: a base by difficulty (10, 20, 30), 10 for par slots or fewer, 5 for within two slots of par, 5 for par steps, 10 for the first clear; stars are 3 at par, 2 within two slots, otherwise 1. A rule change is a new version made in the dashboard (Points) and applies to results from then on.
 - **Submissions** (`POST /v1/me/submissions`): the server validates the program for the exact level version, runs it, and scores it. A level's points only go up, by the amount a better result adds, and the same program is never awarded twice, even from two devices at once. The ledger is append-only (a database trigger refuses updates).
-- **The game** keeps the best program per level in `PlayerResults` and sends it only through the sync (`ProgressSync` stays the only uploader); signed out, nothing is sent. The solved screen shows a provisional stars and points score; the account screen shows the server's total.
+- **The game** keeps the best program per level in `PlayerResults` and sends it only through the sync (`ProgressSync` stays the only uploader); signed out, nothing is sent.
 - **Player management** (dashboard, Players): list, detail, and the audited actions. Suspending refuses sign-in and every live token at once. Resetting progress takes points back with ledger entries and does not touch the player's device.
-- **Not yet:** a player's own profile and display name (an admin can set or clear one), leaderboards, the daily challenge, sharing, achievements, level statistics, and stars drawn on the level tiles.
+
+**Profile, leaderboards, daily challenge, sharing, badges, statistics** (phases 3 to 6)
+
+- **Profile** (`GET`, `PUT /v1/me/profile`; game screen Profile): a display name (3 to 20 characters, unique ignoring case, checked against a short block list and impersonating words), the choice to appear on leaderboards (off until chosen), a hidden-name mode that shows "Anonymous", and a rank from total points (Novice to Master; titles only). Opting in needs a name or hidden-name mode.
+- **Leaderboards** (`GET /v1/leaderboards/points|levels/:slug|daily/:date`; game screen Leaderboard): points all time, this week (Monday start) and this month, all in UTC; a level's board and a day's board rank by fewest slots, then fewest steps, then earliest, on the current published version only. Only opted-in, active, un-hidden players appear. A signed-in caller also gets their own place with the rows around it. Players report a name (`POST /v1/leaderboards/report`); the dashboard Reports page lets an admin dismiss, clear the name, or hide the player, and the Players page can hide or show anyone. Weekly and monthly boards are computed from the append-only ledger, so no snapshot is stored.
+- **Daily challenge** (`GET /v1/daily`, `GET /v1/me/daily`; game screen Daily): one level per UTC day. An admin schedules a day in the dashboard (Daily); a day with no schedule falls back to a deterministic rotation over the daily pool that never repeats within a cycle. The pool is 19 published levels with no chapter (11 plain, 8 needing a loop), outside the campaign, so players meet one only on its day; a campaign level cannot join the pool and a pool level cannot be placed in a chapter. A solve claims the day with `dailyDate` (today or up to seven days back, for a late sync). Streaks count consecutive days and forgive one missed day in any seven. The game caches today and the next three days, so the daily is playable offline, and the result goes up through the sync.
+- **Sharing** (`POST /v1/me/share`, `GET /v1/share/:code`; the solved screen's Share and the public page `/s/<code>`): a share link is a random code with a verified result and no name, email, or account id. The page shows the level's board, the result in words, one Play in the browser button and a Download link, works with JavaScript off, and has a share image. The game copies the result card to the clipboard (with the link when signed in and online).
+- **Badges** (`GET /v1/me/achievements`; game screen Badges; dashboard Badges): 12 default badges with rules as data (levels solved, stars, par levels, points, streak, daily solves, one named level). The server awards them after each verified result and never takes one back; the dashboard edits, adds, and switches them off.
+- **Level statistics** (dashboard, Statistics): per published level, the solvers, the average slots, results at par and within two slots, and the drop-off from the previous level, from verified results only.
+- **Stars on level tiles**: the world screen draws 1 to 3 stars on a solved level, from the server's answer when a sync has reported it, otherwise from the best local result against the bundled par.
+- **Privacy**: deleting an account removes its results, badges, share links, and the reports made by or about it; the admin data export includes them; the privacy page describes what an opted-in profile stores and who sees it.
+- **Not built:** friend groups by invite code; season snapshots and badge rewards for season winners; the Android system share sheet (it needs a plugin; Share copies text); and the browser build has none of these screens (it is offline-only by design).
 
 ## 7. Risks
 

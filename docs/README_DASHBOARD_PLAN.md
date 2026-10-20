@@ -48,19 +48,33 @@ The campaign is a tree: **World → Chapter → Level**.
 
 ## 4. Screens
 
-| Screen       | Contents                                                |
-| ------------ | ------------------------------------------------------- |
-| Sign in      | Email, password, error states; no sign-up               |
-| Home         | Counts, recent activity, release and API status         |
-| Levels       | List and filters (rendered)                             |
-| Level editor | Tabs listed above (Board tab rendered)                  |
-| Publish      | Gate checks, diff, confirm (rendered)                   |
-| History      | Version list and diff (rendered)                        |
-| Campaign     | Worlds, chapters, order, unassigned (rendered)          |
-| Capabilities | Registry of app versions and the mechanics they support |
-| Import       | File picker, validation result, import into a new draft |
-| Audit log    | Chronological list, filter by action                    |
-| Settings     | Account and session                                     |
+| Screen       | Contents                                                   |
+| ------------ | ---------------------------------------------------------- |
+| Sign in      | Email, password, error states; no sign-up                  |
+| Home         | Counts, recent activity, release and API status            |
+| Levels       | List and filters (rendered)                                |
+| Level editor | Tabs listed above (Board tab rendered)                     |
+| Publish      | Gate checks, diff, confirm (rendered)                      |
+| History      | Version list and diff (rendered)                           |
+| Campaign     | Worlds, chapters, order, unassigned (rendered)             |
+| Capabilities | Registry of app versions and the mechanics they support    |
+| Import       | File picker, validation result, import into a new draft    |
+| Audit log    | Chronological list, filter by action                       |
+| Settings     | Account and session                                        |
+| Reports      | Open name reports; dismiss, clear name, hide from boards   |
+| Daily        | Next 30 days, schedule or clear a day, the daily pool      |
+| Badges       | Badge rules in words, earned-by counts, create and edit    |
+| Statistics   | Per-level results from verified runs, by world and chapter |
+
+### Social screens
+
+Built on the social admin API (`/admin/reports`, `/admin/daily`, `/admin/achievements`, `/admin/level-stats`, and `PUT /admin/players/:id/leaderboard-hidden`). Each action asks for confirmation where it changes what players see and shows a result notice.
+
+- **Reports** (`/admin/reports`): open reports (or all) with the reported name, the reason and a link to the player. Dismiss closes the report; Clear name removes the name and takes the player off the boards until they opt in again; Hide from boards sets the admin hide.
+- **Daily** (`/admin/daily`): thirty UTC days with the level, difficulty, par and limit, and a Scheduled or Rotation label. Change picks a level from the pool; Clear returns the day to rotation (the pool is shuffled into a fixed order and every level comes once before any repeat). A pool panel lists published levels with Add to pool or Remove from pool; a campaign level cannot join the pool.
+- **Badges** (`/admin/achievements`): each rule in words, the earned-by count, an active switch, and create and edit forms (a rule type with a number, or a level slug). A badge already earned stays earned; an off badge is hidden and not awarded.
+- **Statistics** (`/admin/level-stats`): solvers, average slots, par, limit, at par, within two slots, and the change in solvers against the previous campaign level (a fall of 40% or more from a level with at least 5 solvers is marked a sharp drop), grouped by world and chapter, pool levels last. Numbers come from verified results only; failed runs are never recorded.
+- **Players detail** also shows the leaderboard state (opted in, shown as Anonymous, hidden by an admin) with Hide from boards or Show on boards. The Players list does not show it, because the list API does not return those fields.
 
 ## 5. Solver
 

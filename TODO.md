@@ -75,7 +75,7 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 
 - [x] Step 4: verified submissions, points ledger, stars, result screen, player management (see [docs/README_SOCIAL_PLAN.md](docs/README_SOCIAL_PLAN.md), section 6 for what is built and what is not)
 - [ ] Step 5: world 4 (`REPEAT UNTIL`), world 5 (`IF` sensors)
-- [ ] Step 6: leaderboards, daily challenge, sharing
+- [x] Step 6: leaderboards, daily challenge, sharing, badges, level statistics, profile, stars on tiles (see [docs/README_SOCIAL_PLAN.md](docs/README_SOCIAL_PLAN.md), section 6). Open: look at the new game screens at all three sizes in both themes (a screenshot run needs a window; only 360x640 was reviewed), try the tap flows in the running game (report confirm, MORE paging, COPIED, clipboard), and test the browser build hides the four screens
 - [ ] Step 7: worlds 6 to 10
 
 ## Open items

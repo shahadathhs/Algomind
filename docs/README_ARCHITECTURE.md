@@ -295,6 +295,7 @@ Progress is local-first (see [README_GAME_RULES.md](README_GAME_RULES.md), secti
 - `LevelProgress`: `userId`, `levelId`, `completedAt`, `bestCommandCount`, `bestStepCount`, `bestLevelVersion`, `updatedAt`. Unique on `(userId, levelId)`.
 - `PlayerSettings`: `userId`, `settings` (JSON), `updatedAt`.
 - `PointsRuleSet` (versioned scoring rules, one active), `Submission` (a verified clear: the program, its slots and steps, stars, points and the rule version, unique per `(userId, levelVersionId, programHash)`) and `PointsLedger` (append-only; a player's total is the sum of `delta`; a database trigger refuses updates). `User` also has `status` (`ACTIVE` or `SUSPENDED`; a suspended account is refused at sign-in, on refresh, and on every request), `displayName`, and `lastActiveAt`.
+- Social data: `User` also holds `displayNameKey` (the name lowercased, unique), `leaderboardOptIn` and `hideName` (the player's choices; nothing is public until opted in), `leaderboardHidden` (an admin's moderation flag), and `publicId` (what other players see and what a report names; never the account id). `Level.dailyPool` marks a published level eligible for the daily challenge (a pool level has no chapter). `DailyChallenge` (an admin's choice for a UTC date; other days fall back to a rotation over the pool), `DailyResult` (a player's best result for a day, unique per player and date), `Achievement` and `PlayerAchievement` (badges as data and who earned them), `ShareLink` (a random code with a verified result and no personal data) and `Report` (a player's report of a leaderboard name; its ids are not foreign keys, so deleting an account removes the reports with it).
 
 Completion is keyed by stable level ID, so a new published version does not erase a completion. Best metrics record the level version they came from.
 
@@ -343,11 +344,27 @@ Accounts and sync phase (optional accounts; never required to play):
 | `POST`        | `/v1/me/progress/sync` | Send local progress; the server merges it with cloud progress and returns the merged result (idempotent) |
 | `GET` / `PUT` | `/v1/me/settings`      | Read or update synced settings (last write wins by timestamp)                                            |
 
-Later, only with a verification design: `POST /v1/scores`.
+Verified results, points, and the social features (all optional and account-based; the boards and the share card are public, everything else needs a bearer token):
+
+| Method         | Route                                                           | Purpose                                                                                                                                                         |
+| -------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`         | `/v1/me/submissions`                                            | A program for a level version; the server verifies, runs, and scores it. `dailyDate` claims a daily result; the answer may list badges earned                   |
+| `GET`          | `/v1/me/points`                                                 | Total points and the best stars and points per level                                                                                                            |
+| `GET` / `PUT`  | `/v1/me/profile`                                                | Display name, leaderboard opt-in, hidden-name mode, total, and rank. A name is 3 to 20 characters, unique ignoring case, and checked against a short block list |
+| `GET`          | `/v1/leaderboards/points?period=all\|week\|month`               | Points boards (weeks start Monday, UTC). Only opted-in, visible players appear, as their name or "Anonymous"; a token adds the caller's own place               |
+| `GET`          | `/v1/leaderboards/levels/:slug`, `/v1/leaderboards/daily/:date` | A level's board and one day's board: fewest slots, then fewest steps, then earliest; the current published version only                                         |
+| `POST`         | `/v1/leaderboards/report`                                       | Report a name by `publicId` for an admin to review                                                                                                              |
+| `GET`          | `/v1/daily`, `/v1/me/daily`                                     | Today's challenge and the next days (public); the player's result and streak (a missed day is forgiven once in seven)                                           |
+| `GET`          | `/v1/me/achievements`                                           | Every active badge with when it was earned                                                                                                                      |
+| `POST` / `GET` | `/v1/me/share`, `/v1/share/:code`                               | Make or reuse a share link for a verified result; the public card (level, slots, steps, par; no name and no account id)                                         |
+
+There is no client-submitted score: a result exists only because the server ran a program.
 
 The merge follows the policy in [README_GAME_RULES.md](README_GAME_RULES.md): union of completions, unlocks recalculated, better metrics kept, newest settings win, and a failed sync never touches local data.
 
 ### Admin endpoints
+
+The social features add these (all behind the admin guard and each writing an audit event): `GET /v1/admin/daily`, `PUT` and `DELETE /v1/admin/daily/:date`, `GET /v1/admin/daily/pool`, `PUT /v1/admin/daily/pool/:slug`; `GET` and `POST /v1/admin/achievements`, `PUT /v1/admin/achievements/:id`; `GET /v1/admin/reports`, `POST /v1/admin/reports/:id/resolve` (dismiss, clear the name, or hide the player), `PUT /v1/admin/players/:id/leaderboard-hidden`; and `GET /v1/admin/level-stats` (solvers, average slots, and results at par per published level, from verified results only). The daily pool and the campaign never overlap: a campaign level cannot join the pool and a pool level cannot be placed in a chapter.
 
 | Method                        | Route                                     | Purpose                                                                                      |
 | ----------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------- |
@@ -435,7 +452,7 @@ Warnings (never block): `BUDGET_FAR_ABOVE_PAR` (limit above par plus the larger 
 
 Publishing, under a row lock on the level: re-validates the draft, checks every gate, marks the previous published version `SUPERSEDED`, freezes the draft as `PUBLISHED` (`publishedAt`, `par`, `validationSummary`), moves `currentPublishedVersionId`, sets `status = PUBLISHED`, and writes the `AuditEvent`, all in one transaction. After a successful audited change the API asks the web app to revalidate its public pages (`WEB_REVALIDATE_URL` and `REVALIDATE_SECRET`; best effort, merged and delayed a moment so it lands after the commit).
 
-Seeds: on startup, after the admin seed, `SEED_STARTER_CAMPAIGN` (default true outside production, false in production) creates three worlds (Basics, Routes, Loops), six chapters and twenty-eight published starter levels (data in `starter-campaign.data.ts`, designed with `scripts/level-lab`) (converted to the contract, validated and solved with the solver at seed time, each with a "seed" playtest) plus a client-registry row for the API's package version supporting `move`, `turn` and `repeat`. It skips anything that exists by slug and fails startup if the starter content does not validate.
+Seeds: on startup (a fresh database also gets the daily pool of published levels with no chapter, from `daily-pool.data.ts`, and the default badges, from `default-achievements.ts`; badges are seeded only while the table is empty, so dashboard edits stay) , after the admin seed, `SEED_STARTER_CAMPAIGN` (default true outside production, false in production) creates three worlds (Basics, Routes, Loops), six chapters and twenty-eight published starter levels (data in `starter-campaign.data.ts`, designed with `scripts/level-lab`) (converted to the contract, validated and solved with the solver at seed time, each with a "seed" playtest) plus a client-registry row for the API's package version supporting `move`, `turn` and `repeat`. It skips anything that exists by slug and fails startup if the starter content does not validate.
 
 ### 7.2 Accounts and sync (implemented)
 

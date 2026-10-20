@@ -85,7 +85,7 @@ Duplications found in review and since removed (do not re-copy): `TextAction` an
 | `apps/api/src/generated/**`                                                                                                                     | Prisma output                                                                          |
 | `apps/game/addons/**`                                                                                                                           | Vendored GUT                                                                           |
 | Generated token outputs (`token-colors.generated.ts`, `scripts/generated/palette.gd`, `tokens.css`)                                             | Produced by `make tokens`                                                              |
-| Pure data modules (`starter-campaign.data.ts`, fixture JSON, seed catalogs)                                                                     | Data, not logic; keep entries one per level                                            |
+| Pure data modules (`starter-campaign.data.ts`, `daily-pool.data.ts`, fixture JSON, seed catalogs)                                               | Data, not logic; keep entries one per level                                            |
 | Contract mirrors: `packages/level-contract/src/validate.ts`, `apps/game/scripts/contract/level_validator.gd` (and their simulator/solver twins) | Rule parity outranks size; if they are ever split, split both sides in the same change |
 
 ## 9. Refactor backlog (current state, measured 2026-10-19)
@@ -103,7 +103,7 @@ Files still over the soft limit (300), all under the ceiling. Split the part you
 | `apps/api/src/modules/levels/levels.service.ts`          | 320   | drafts                                                   |
 | `apps/web/src/lib/admin/bff.ts`                          | 306   | proxy request shaping                                    |
 
-Exempt (section 8): `starter-campaign.data.ts`, `level_validator.gd`, `validate.ts`.
+Exempt (section 8): `starter-campaign.data.ts`, `daily-pool.data.ts`, `level_validator.gd`, `validate.ts`.
 
 ## 10. Enforcement
 
