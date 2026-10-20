@@ -84,6 +84,7 @@ static func _build_tape(p: PlayScreen) -> void:
 		["prev", "Move earlier"],
 		["next", "Move later"],
 		["x", "Remove"],
+		["condition", "Change what it looks at"],
 	]:
 		var button := TileButton.make(TileButton.Kind.SECONDARY, "", tool[0])
 		button.accessibility_name = tool[1]
@@ -100,23 +101,34 @@ static func _build_commands(p: PlayScreen, available: Array[String]) -> void:
 	p._commands_caption = UiKit.label("COMMANDS", 14, Palette.MUTE, 3)
 	p.add_child(p._commands_caption)
 	var offered := 0
-	for command in PlayScreen.COMMANDS:
+	for command in PlayView.COMMANDS:
 		if available.has(command["op"]):
 			offered += 1
-	for command in PlayScreen.COMMANDS:
+	for command in PlayView.COMMANDS:
 		if not available.has(command["op"]):
 			continue
 		# Four tiles share a row, so their labels are a little smaller; five stack icon over label.
-		var button := TileButton.make(
-			TileButton.Kind.SECONDARY, command["label"], command["icon"], 20 if offered < 4 else 14
-		)
-		button.stacked = offered >= 5
-		button.accessibility_name = command.get("name", command["label"])
+		var button := _command_tile(p, command, offered)
+		button.set_meta("op", command["op"])
 		button.pressed.connect(p._on_command.bind(command["op"]))
-		p.add_child(button)
 		p._command_buttons.append(button)
-		if ContractLimits.is_loop(command["op"]):
-			p._loop_buttons[command["op"]] = button
+		if ContractLimits.is_loop(command["op"]) or command["op"] == "IF":
+			p._group_buttons[command["op"]] = button
+	if available.has("IF"):
+		# Else shares the row with the others only while an IF is open.
+		p._else_button = _command_tile(p, PlayView.ELSE_COMMAND, maxi(offered, 5))
+		p._else_button.visible = false
+		p._else_button.pressed.connect(p._on_command.bind("ELSE"))
+
+
+static func _command_tile(p: PlayScreen, command: Dictionary, offered: int) -> TileButton:
+	var button := TileButton.make(
+		TileButton.Kind.SECONDARY, command["label"], command["icon"], 20 if offered < 4 else 14
+	)
+	button.stacked = offered >= 5
+	button.accessibility_name = command.get("name", command["label"])
+	p.add_child(button)
+	return button
 
 
 static func _build_controls(p: PlayScreen) -> void:

@@ -12,10 +12,15 @@ const REPEAT_OP := "REPEAT"
 ## The conditional loop: it runs its body while the way ahead is open.
 const REPEAT_UNTIL_OP := "REPEAT_UNTIL"
 ## The conditions a REPEAT_UNTIL can wait for. BLOCKED: a wall or the board edge is straight ahead.
-const UNTIL_CONDITIONS: Array[String] = ["BLOCKED"]
+## GOAL is never true at the start of a round (entering the goal ends the run).
+const UNTIL_CONDITIONS: Array[String] = ["BLOCKED", "GOAL"]
+## The decision instruction: a sensor, a `then` branch and an `else` branch of primitives.
+const IF_OP := "IF"
+## What an IF can look at. Each is true when the cell on that side is on the board and not a wall.
+const SENSORS: Array[String] = ["CLEAR_AHEAD", "CLEAR_LEFT", "CLEAR_RIGHT"]
 ## Every command a level can offer, in the canonical order.
 const COMMAND_NAMES: Array[String] = [
-	"MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT", "REPEAT_UNTIL"
+	"MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT", "REPEAT_UNTIL", "IF"
 ]
 ## Clockwise order: turning right moves one step forward in this list.
 const DIRECTIONS: Array[String] = ["north", "east", "south", "west"]
@@ -47,6 +52,10 @@ const REPEAT_BODY_MIN := 1
 const REPEAT_BODY_MAX := 8
 const REPEAT_COUNT_MIN := 2
 const REPEAT_COUNT_MAX := 11
+const IF_THEN_MIN := 1
+const IF_THEN_MAX := 4
+const IF_ELSE_MIN := 0
+const IF_ELSE_MAX := 4
 const HINTS_MAX_COUNT := 5
 const HINT_MIN := 1
 const HINT_MAX := 140
@@ -73,3 +82,8 @@ static func is_repeat_until(op: Variant) -> bool:
 ## True when op is either loop instruction (a node that carries a body).
 static func is_loop(op: Variant) -> bool:
 	return is_repeat(op) or is_repeat_until(op)
+
+
+## True when op is the decision instruction. Safe for any value.
+static func is_if(op: Variant) -> bool:
+	return typeof(op) == TYPE_STRING and op == IF_OP

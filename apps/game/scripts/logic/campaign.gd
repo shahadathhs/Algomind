@@ -11,7 +11,7 @@ extends RefCounted
 const BUNDLED_CAMPAIGN := "res://data/campaign.json"
 const BUNDLED_LEVELS := "res://data/levels"
 ## The mechanics this version of the game can play (the client-registry names).
-const SUPPORTED_MECHANICS: Array[String] = ["move", "turn", "repeat", "repeat_until"]
+const SUPPORTED_MECHANICS: Array[String] = ["move", "turn", "repeat", "repeat_until", "if"]
 
 ## [{ id, title, summary, chapters: [{ id, title, entries: [entry] }] }]
 var worlds: Array[Dictionary] = []

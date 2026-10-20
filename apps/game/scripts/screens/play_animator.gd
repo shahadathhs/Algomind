@@ -10,7 +10,7 @@ const NUDGE_SECONDS := 0.08
 static func show_step(p: PlayScreen, id: int, entry: Dictionary) -> bool:
 	p._tape_view.running = true
 	p._tape_view.failed_index = -1
-	p._set_head(entry)
+	PlayTape.set_head(p, entry)
 	p._board.facing = entry["direction"]
 	var cell: Array = entry["position"]
 	var target := Vector2(int(cell[0]), int(cell[1]))
@@ -49,3 +49,31 @@ static func _nudge(p: PlayScreen, direction: String) -> void:
 	tween.tween_property(p._board, "nudge", push, NUDGE_SECONDS)
 	tween.tween_property(p._board, "nudge", Vector2.ZERO, NUDGE_SECONDS)
 	await tween.finished
+
+
+## Plays steps one after another until the run stops, is paused, or is cancelled.
+static func play_until_stopped(p: PlayScreen) -> void:
+	var id := p._run_id
+	while p._session.state == PlaySession.State.RUNNING and id == p._run_id:
+		await play_one_step(p)
+
+
+static func play_one_step(p: PlayScreen) -> void:
+	var id := p._run_id
+	p._busy = true
+	var entry := p._session.advance()
+	if entry.is_empty() or await show_step(p, id, entry):
+		after_step(p)
+	if id == p._run_id:
+		p._busy = false
+
+
+static func after_step(p: PlayScreen) -> void:
+	if p._session.state == PlaySession.State.SUCCEEDED:
+		p.app.sfx("success")
+		p.app.haptic(60)
+		if p.persist:
+			PlayCompletion.save(p)
+	elif p._session.state == PlaySession.State.FAILED:
+		p.app.sfx("fail")
+	p._refresh()

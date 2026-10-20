@@ -31,8 +31,10 @@ static func apply(p: PlayScreen) -> void:
 
 	var row_nodes: Array = []
 	row_nodes.append_array(p._command_buttons)
+	if p._else_button != null:
+		row_nodes.append(p._else_button)
 	row_nodes.append_array(p._stats)
-	p._sync_tape_scroll()
+	PlayTape.sync_scroll(p)
 	_place_row(row_nodes, row_y, control_h, width, m)
 	_place_controls(p, controls_y, control_h, width, m)
 	p._commands_caption.visible = not compact and not p._session.is_finished()

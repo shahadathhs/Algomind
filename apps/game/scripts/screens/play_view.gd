@@ -2,10 +2,24 @@ class_name PlayView
 extends RefCounted
 ## Texts and tool states of the play screen, derived from the session and the tape.
 
+## The commands of the palette, in order. A level shows the ones it offers.
+const COMMANDS: Array[Dictionary] = [
+	{"op": "MOVE_FORWARD", "label": "MOVE", "icon": "move"},
+	{"op": "TURN_LEFT", "label": "LEFT", "icon": "left"},
+	{"op": "TURN_RIGHT", "label": "RIGHT", "icon": "right"},
+	{"op": "REPEAT", "label": "REPEAT", "icon": "repeat"},
+	{"op": "REPEAT_UNTIL", "label": "UNTIL", "icon": "until", "name": "Repeat until"},
+	{"op": "IF", "label": "IF", "icon": "if", "name": "If"},
+]
+## The Else tile, shown beside If while an IF is open.
+const ELSE_COMMAND := {"label": "ELSE", "icon": "", "name": "Else"}
+## Palette tiles at which the tiles of a loop that is not open give way to Else while an IF is open.
+const CROWDED := 6
 
-## The PlayScreen.COMMANDS entry of an op.
+
+## The COMMANDS entry of an op.
 static func command_meta(op: String) -> Dictionary:
-	for command in PlayScreen.COMMANDS:
+	for command in COMMANDS:
 		if command["op"] == op:
 			return command
 	return {}
@@ -16,49 +30,99 @@ static func open_op(tape: TapeModel) -> String:
 	return "" if tape.open_loop() < 0 else String(tape.nodes[tape.open_loop()]["op"])
 
 
-## The loop tiles of the palette. While a loop is open its own tile ends it (and needs a command
-## inside first) and the other loop tile waits; otherwise each starts its loop.
-static func refresh_loop_buttons(p: PlayScreen, running: bool) -> void:
+## Does a palette tile: ends the open loop or IF when its own tile is tapped, switches an open IF
+## to its else branch for Else, otherwise adds the command.
+static func apply_command(tape: TapeModel, op: String) -> void:
+	if op == "ELSE":
+		tape.start_else()
+	elif op == "IF" and not tape.open_if().is_empty():
+		tape.end_if()
+	elif tape.open_loop() >= 0 and op == open_op(tape):
+		tape.end_loop()
+	else:
+		tape.append(op)
+
+
+## Shows the palette: the commands while editing, the group tiles with the label and state they
+## have now, and Else while an IF is open. Nothing shows once the level is solved.
+static func refresh_palette(p: PlayScreen, solved: bool, running: bool) -> void:
 	var tape := p._tape
-	for op: String in p._loop_buttons:
-		var button: TileButton = p._loop_buttons[op]
+	for button: TileButton in p._command_buttons:
+		var op: String = button.get_meta("op")
+		button.visible = not solved
+		button.set_disabled(running or not tape.can_append(op))
+	var if_open := not tape.open_if().is_empty()
+	var crowded := p._command_buttons.size() >= CROWDED
+	for op: String in p._group_buttons:
+		var button: TileButton = p._group_buttons[op]
 		var meta := command_meta(op)
-		if tape.open_loop() >= 0 and open_op(tape) == op:
-			button.label = "END LOOP"
+		var is_open := (
+			not tape.open_if().is_empty()
+			if op == "IF"
+			else tape.open_loop() >= 0 and open_op(tape) == op
+		)
+		if is_open:
+			var can_end := tape.can_end_if() if op == "IF" else tape.can_end_loop()
+			button.label = "END IF" if op == "IF" else "END LOOP"
 			button.icon = "check"
-			button.set_disabled(running or not tape.can_end_loop())
+			button.set_disabled(running or not can_end)
 		else:
 			button.label = meta["label"]
 			button.icon = meta["icon"]
-			button.set_disabled(running or tape.open_loop() >= 0 or tape.is_full())
+		# With a crowded palette, the loop tiles that cannot be used while an IF is open give way.
+		if not solved and if_open and crowded and op != "IF":
+			button.visible = is_open
 		button.queue_redraw()
+	if p._else_button != null:
+		p._else_button.visible = if_open and not solved
+		p._else_button.set_disabled(running or not tape.can_start_else())
+		p._else_button.queue_redraw()
 
 
-## Shows the tools that apply to the selected cell: rounds only for a loop's count tile.
+## True when the selected cell is one whose tap changes its sensor or condition.
+static func can_cycle(tape: TapeModel) -> bool:
+	var kind := tape.selected_kind()
+	return kind == "if" or (kind == "until" and tape.available.has("IF"))
+
+
+## The trace paths (see TapeCells.key_of) of the commands the run has shown so far.
+static func executed_paths(session: PlaySession) -> Dictionary:
+	var out := {}
+	for i in session.cursor:
+		out[TapeCells.key_of(session.trace()[i]["node"])] = true
+	return out
+
+
+## Shows the tools that apply to the selected cell: rounds only for a loop's count tile, the
+## sensor or condition for an IF or a REPEAT_UNTIL that can be changed.
 static func refresh_tools(p: PlayScreen) -> void:
 	var tape := p._tape
 	var tools := p._tools
 	var has_selection := tape.selected >= 0 and not p._session.is_active()
 	var is_count := tape.selected_is_count()
-	# Order: minus, plus, earlier, later, remove.
+	# Order: minus, plus, earlier, later, remove, condition.
 	tools[0].visible = has_selection and is_count
 	tools[1].visible = has_selection and is_count
 	for i in range(2, 5):
 		tools[i].visible = has_selection
+	tools[5].visible = has_selection and can_cycle(tape)
 	if not has_selection:
 		return
-	var path: Array = tape.cells()[tape.selected]["path"]
-	var siblings := (
-		tape.nodes.size()
-		if path.size() == 1
-		else (tape.nodes[int(path[0])]["body"] as Array).size()
-	)
-	var place := int(path[path.size() - 1])
+	var cell := tape.cells()[tape.selected]
+	var place := tape.position_of(cell)
 	tools[2].set_disabled(place <= 0)
-	tools[3].set_disabled(place >= siblings - 1)
-	var count := int(tape.cells()[tape.selected].get("count", 0))
+	tools[3].set_disabled(place >= tape.siblings_of(cell).size() - 1)
+	var count := int(cell.get("count", 0))
 	tools[0].set_disabled(count <= ContractLimits.REPEAT_COUNT_MIN)
 	tools[1].set_disabled(count >= ContractLimits.REPEAT_COUNT_MAX)
+	if tools[5].visible:
+		var node := tape.node_of(cell)
+		tools[5].icon = (
+			TapeIfCells.icon(node["when"])
+			if cell["kind"] == "if"
+			else ("goal" if node["until"] == "GOAL" else "until")
+		)
+		tools[5].queue_redraw()
 
 
 ## The text at the right of the objective row: commands used while building, and the stars and
@@ -96,6 +160,8 @@ static func message_text(p: PlayScreen) -> String:
 		_:
 			if p._tape.has_empty_loop():
 				return "ADD A COMMAND TO THE LOOP"
+			if TapeCells.has_empty_if(p._tape.nodes):
+				return "ADD A COMMAND TO THE IF"
 			return "REACH THE TARGET"
 
 

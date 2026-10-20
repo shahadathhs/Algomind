@@ -9,22 +9,32 @@ extends RefCounted
 static func for_result(level: Dictionary, program: Array, result: Dictionary) -> String:
 	if result.get("status") != "FAILED" or result.get("reason") != "STEP_LIMIT":
 		return ""
-	if _stopped_in_until_loop(level, program, result):
-		return "The loop never reached a wall, so it was stopped."
-	return ""
-
-
-## True when the step limit cut off a REPEAT_UNTIL that was still waiting for its condition: the
-## last step ran in its body and the way ahead was still open.
-static func _stopped_in_until_loop(level: Dictionary, program: Array, result: Dictionary) -> bool:
 	var trace: Array = result.get("trace", [])
+	if int(result.get("steps", 0)) < int(level["constraints"]["maxSteps"]):
+		# Stopped below the step limit: a round of a REPEAT_UNTIL ran no command at all.
+		return "A round of the loop did nothing, so it was stopped."
 	if trace.is_empty():
-		return false
-	var node: Array = trace[trace.size() - 1]["node"]
-	if node.size() != 2:
-		return false
+		return ""
+	var loop := _until_loop_of(program, trace[trace.size() - 1]["node"])
+	if loop.is_empty():
+		return ""
+	if loop["until"] == "GOAL":
+		return "The loop never reached the goal, so it was stopped."
+	if _blocked_ahead(level, result):
+		return ""
+	return "The loop never reached a wall, so it was stopped."
+
+
+## The REPEAT_UNTIL that the step at `node` ran in, or an empty Dictionary.
+static func _until_loop_of(program: Array, node: Array) -> Dictionary:
 	var index := int(node[0])
-	if index >= program.size() or not ContractLimits.is_repeat_until(program[index].get("op")):
-		return false
+	if node.size() < 2 or index >= program.size():
+		return {}
+	var loop: Dictionary = program[index]
+	return loop if ContractLimits.is_repeat_until(loop.get("op")) else {}
+
+
+## True when the way ahead of the automaton is blocked at the end of the run.
+static func _blocked_ahead(level: Dictionary, result: Dictionary) -> bool:
 	var state: Dictionary = result["finalState"]
-	return not LevelSimulator.blocked_ahead(level, state["position"], String(state["direction"]))
+	return LevelSimulator.blocked_ahead(level, state["position"], String(state["direction"]))

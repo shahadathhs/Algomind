@@ -27,69 +27,20 @@ static func cell_ahead(position: Array, direction: String) -> Array:
 	return [int(position[0]) + int(delta[0]), int(position[1]) + int(delta[1])]
 
 
-## True for one primitive node: an object whose op is MOVE_FORWARD, TURN_LEFT, or TURN_RIGHT.
-static func _is_primitive(node: Variant) -> bool:
-	return (
-		typeof(node) == TYPE_DICTIONARY
-		and typeof(node.get("op")) == TYPE_STRING
-		and ContractLimits.PRIMITIVE_COMMANDS.has(node["op"])
-	)
-
-
-## True for a loop the simulator can run: a whole count in range and 1 to 8 primitives.
-static func _is_runnable_repeat(node: Variant) -> bool:
-	if typeof(node) != TYPE_DICTIONARY or not ContractLimits.is_repeat(node.get("op")):
-		return false
-	var count: Variant = node.get("count")
-	if typeof(count) == TYPE_FLOAT:
-		if count != floorf(count):
-			return false
-	elif typeof(count) != TYPE_INT:
-		return false
-	if int(count) < ContractLimits.REPEAT_COUNT_MIN or int(count) > ContractLimits.REPEAT_COUNT_MAX:
-		return false
-	var body: Variant = node.get("body")
-	if typeof(body) != TYPE_ARRAY:
-		return false
-	return _is_runnable_body(body)
-
-
-## True for a body the simulator can run: 1 to 8 primitives.
-static func _is_runnable_body(body: Variant) -> bool:
-	if typeof(body) != TYPE_ARRAY:
-		return false
-	var items: Array = body
-	if (
-		items.size() < ContractLimits.REPEAT_BODY_MIN
-		or items.size() > ContractLimits.REPEAT_BODY_MAX
-	):
-		return false
-	for item: Variant in items:
-		if not _is_primitive(item):
-			return false
-	return true
-
-
-## True for a conditional loop the simulator can run: a known condition and a runnable body.
-static func _is_runnable_repeat_until(node: Variant) -> bool:
-	if typeof(node) != TYPE_DICTIONARY or not ContractLimits.is_repeat_until(node.get("op")):
-		return false
-	var until: Variant = node.get("until")
-	return (
-		typeof(until) == TYPE_STRING
-		and ContractLimits.UNTIL_CONDITIONS.has(until)
-		and _is_runnable_body(node.get("body"))
-	)
-
-
-## True when a wall or the board edge is straight ahead of the automaton.
-static func _blocked_ahead(run: Dictionary) -> bool:
-	var target := cell_ahead(run["position"], run["direction"])
+## True when the cell on a side of the automaton is on the board and not a wall. A sensor is
+## CLEAR_AHEAD, CLEAR_LEFT, or CLEAR_RIGHT.
+static func _is_clear(run: Dictionary, sensor: String) -> bool:
+	var facing: String = run["direction"]
+	if sensor == "CLEAR_LEFT":
+		facing = turn(facing, "left")
+	elif sensor == "CLEAR_RIGHT":
+		facing = turn(facing, "right")
+	var target := cell_ahead(run["position"], facing)
 	var tx := int(target[0])
 	var ty := int(target[1])
 	if tx < 0 or ty < 0 or tx >= int(run["width"]) or ty >= int(run["height"]):
-		return true
-	return (run["walls"] as Dictionary).has(Vector2i(tx, ty))
+		return false
+	return not (run["walls"] as Dictionary).has(Vector2i(tx, ty))
 
 
 ## True when a wall or the board edge is straight ahead of position facing direction.
@@ -106,14 +57,37 @@ static func blocked_ahead(level: Dictionary, position: Array, direction: String)
 	return false
 
 
+## Runs one body item (a primitive or an IF) at path as round_number. Returns the final result or
+## null. An IF reads its sensor now, then runs the chosen branch; the step limit is checked before
+## each of its primitives.
+static func _run_item(
+	run: Dictionary, item: Dictionary, path: Array, round_number: Variant, max_steps: int
+) -> Variant:
+	if not ContractLimits.is_if(item["op"]):
+		return _step(run, String(item["op"]), path, round_number)
+	var taken_then := _is_clear(run, String(item["when"]))
+	var branch: Array = item["then"] if taken_then else item["else"]
+	var offset: int = 0 if taken_then else (item["then"] as Array).size()
+	for k in branch.size():
+		if (run["trace"] as Array).size() >= max_steps:
+			return _finish("FAILED", "STEP_LIMIT", null, run)
+		var inner_path := path.duplicate()
+		inner_path.append(offset + k)
+		var result: Variant = _step(run, String(branch[k]["op"]), inner_path, round_number)
+		if result != null:
+			return result
+	return null
+
+
 ## Runs the body of node i once, as round_number. Returns the final result or null.
 static func _run_body(
 	run: Dictionary, body: Array, i: int, round_number: int, max_steps: int
 ) -> Variant:
 	for j in body.size():
-		if (run["trace"] as Array).size() >= max_steps:
+		var item: Dictionary = body[j]
+		if not ContractLimits.is_if(item["op"]) and (run["trace"] as Array).size() >= max_steps:
 			return _finish("FAILED", "STEP_LIMIT", null, run)
-		var result: Variant = _step(run, String(body[j]["op"]), [i, j], round_number)
+		var result: Variant = _run_item(run, item, [i, j], round_number, max_steps)
 		if result != null:
 			return result
 	return null
@@ -122,8 +96,9 @@ static func _run_body(
 ## Runs program (an Array of instruction nodes) on level (parsed JSON Dictionary).
 ## Returns { status, reason, steps, finalState, blockedCell, trace }.
 ##
-## Every executed primitive is one step; a REPEAT or REPEAT_UNTIL itself costs none. A
-## REPEAT_UNTIL checks the way ahead before every round (free), so it may run zero rounds. The
+## Every executed primitive is one step; a REPEAT, REPEAT_UNTIL or IF itself costs none, and
+## choosing an IF branch is free. A REPEAT_UNTIL checks its condition before every round (free),
+## so it may run zero rounds; a round that runs no primitive stops the run with STEP_LIMIT. The
 ## step limit is checked before each node and before each primitive inside a loop. The run
 ## succeeds the moment the goal cell is entered, even in the middle of a loop.
 static func simulate(level: Dictionary, program: Array) -> Dictionary:
@@ -152,21 +127,25 @@ static func simulate(level: Dictionary, program: Array) -> Dictionary:
 		if (run["trace"] as Array).size() >= max_steps:
 			return _finish("FAILED", "STEP_LIMIT", null, run)
 
-		if _is_primitive(node):
-			var result: Variant = _step(run, String(node["op"]), [i], null)
+		if ProgramShape.is_primitive(node) or ProgramShape.is_runnable_if(node):
+			var result: Variant = _run_item(run, node, [i], null, max_steps)
 			if result != null:
 				return result
 			continue
-		if _is_runnable_repeat_until(node):
-			# The condition is checked before every round; the check costs no step.
+		if ProgramShape.is_runnable_repeat_until(node):
+			# The condition is checked before every round; the check costs no step. GOAL is never
+			# true at the start of a round. A round that ran no primitive would repeat for ever.
 			var round_number := 1
-			while not _blocked_ahead(run):
+			while not (node["until"] == "BLOCKED" and not _is_clear(run, "CLEAR_AHEAD")):
+				var before := (run["trace"] as Array).size()
 				var outcome: Variant = _run_body(run, node["body"], i, round_number, max_steps)
 				if outcome != null:
 					return outcome
+				if (run["trace"] as Array).size() == before:
+					return _finish("FAILED", "STEP_LIMIT", null, run)
 				round_number += 1
 			continue
-		if not _is_runnable_repeat(node):
+		if not ProgramShape.is_runnable_repeat(node):
 			return _finish("FAILED", "INVALID_INSTRUCTION", null, run)
 
 		for round_number in range(1, int(node["count"]) + 1):

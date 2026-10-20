@@ -6,14 +6,6 @@ extends ScreenBase
 ## resulting events with short animations. Animation length never changes the outcome, and with
 ## Reduce motion the tape and automaton jump instead of sliding.
 
-const COMMANDS: Array[Dictionary] = [
-	{"op": "MOVE_FORWARD", "label": "MOVE", "icon": "move"},
-	{"op": "TURN_LEFT", "label": "LEFT", "icon": "left"},
-	{"op": "TURN_RIGHT", "label": "RIGHT", "icon": "right"},
-	{"op": "REPEAT", "label": "REPEAT", "icon": "repeat"},
-	{"op": "REPEAT_UNTIL", "label": "UNTIL", "icon": "until", "name": "Repeat until"},
-]
-
 ## False in debug screenshots, which must not write progress.
 var persist := true
 
@@ -45,8 +37,10 @@ var _tools: Array[TileButton] = []
 var _tape_view: TapeView
 var _commands_caption: Label
 var _command_buttons: Array[TileButton] = []
-## The palette tile of each loop the level offers, by op (REPEAT, REPEAT_UNTIL).
-var _loop_buttons := {}
+## The palette tile of each group the level offers, by op (REPEAT, REPEAT_UNTIL, IF).
+var _group_buttons := {}
+## The Else tile, shown while an IF is open; null when the level does not offer IF.
+var _else_button: TileButton
 var _stats: Array[StatTile] = []
 var _step: TileButton
 var _run: TileButton
@@ -120,24 +114,21 @@ func _refresh() -> void:
 	for item: Array in plan:
 		(item[0] as TileButton).visible = true
 
-	# A loop with no command in it is not a program yet.
-	var empty := _tape.is_empty() or _tape.has_empty_loop()
+	# A loop with no command in it, or an IF with an empty then, is not a program yet.
+	var empty := _tape.is_empty() or _tape.is_incomplete()
 	_step.set_disabled(state == PlaySession.State.RUNNING or empty)
 	_reset.set_disabled(state == PlaySession.State.READY)
 	match state:
 		PlaySession.State.RUNNING:
-			_set_run_button("PAUSE", "pause", false)
+			PlayTape.set_run_button(self, "PAUSE", "pause", false)
 		PlaySession.State.PAUSED:
-			_set_run_button("CONTINUE", "play", false)
+			PlayTape.set_run_button(self, "CONTINUE", "play", false)
 		_:
-			_set_run_button("RUN", "play", empty)
+			PlayTape.set_run_button(self, "RUN", "play", empty)
 
 	var solved := state == PlaySession.State.SUCCEEDED
 	var running := state == PlaySession.State.RUNNING
-	for button in _command_buttons:
-		button.visible = not solved
-		button.set_disabled(running or _tape.is_full() or _tape.open_loop_is_full())
-	PlayView.refresh_loop_buttons(self, running)
+	PlayView.refresh_palette(self, solved, running)
 	for stat in _stats:
 		stat.visible = solved
 	_share.visible = solved
@@ -156,26 +147,21 @@ func _refresh() -> void:
 
 	_tape_view.running = state != PlaySession.State.READY
 	_tape_view.set_content(
-		_tape.cells(), _tape.slots(), _tape.limit, _tape.selected, _tape.open_loop()
+		_tape.cells(),
+		_tape.slots(),
+		_tape.limit,
+		_tape.selected,
+		_tape.open_loop(),
+		_tape.open_if_key()
 	)
 	_tape_view.failed_index = _tape.cell_for_node(_session.failing_node())
-	_set_head(_session.current_entry())
-	_sync_tape_scroll()
-	_show_board()
+	PlayTape.set_head(self, _session.current_entry())
+	PlayTape.sync_scroll(self)
+	PlayTape.show_board(self)
 	_layout()
 	queue_redraw()
 	for node in [_badge, _tape_view]:
 		node.queue_redraw()
-
-
-## Points the read-head at the cell the last shown event ran, and shows its loop round.
-func _set_head(entry: Dictionary) -> void:
-	if entry.is_empty():
-		_tape_view.current = 0 if _tape_view.running else -1
-		_tape_view.current_round = 0
-		return
-	_tape_view.current = _tape.cell_for_node(entry["node"])
-	_tape_view.current_round = int(entry["round"]) if entry["round"] != null else 0
 
 
 ## A wrapping label first measured at zero width keeps a huge minimum height, so it is sized
@@ -184,35 +170,6 @@ func _settle_message() -> void:
 	await get_tree().process_frame
 	if is_instance_valid(_message):
 		_message.size = _message_box
-
-
-## Puts the tape where it belongs for the current state: the read-head while a run is shown,
-## otherwise the end of the program. Depends on the tape's width, so it also runs after layout.
-func _sync_tape_scroll() -> void:
-	if _tape_view.running:
-		_tape_view.scroll = _tape_view.head_scroll(_tape_view.current)
-	elif _tape.selected >= 0:
-		# Keep the tile being edited in view; do not jump to the end of the program.
-		_tape_view.reveal(_tape.selected)
-	else:
-		_tape_view.scroll = _tape_view.edit_scroll()
-	_tape_view.queue_redraw()
-
-
-func _set_run_button(label: String, icon: String, disabled: bool) -> void:
-	_run.label = label
-	_run.icon = icon
-	_run.accessibility_name = label
-	_run.set_disabled(disabled)
-	_run.queue_redraw()
-
-
-## Shows the board for the session's current cursor, without animation.
-func _show_board() -> void:
-	var auto := _session.automaton_state()
-	_board.show_state(
-		auto["position"], auto["direction"], _session.trail(), _session.blocked_cell()
-	)
 
 
 # ----- player actions ---------------------------------------------------------------------------
@@ -236,10 +193,7 @@ func _on_command(op: String) -> void:
 	if _session.state == PlaySession.State.RUNNING:
 		return
 	_begin_edit()
-	if _tape.open_loop() >= 0 and op == PlayView.open_op(_tape):
-		_tape.end_loop()
-	else:
-		_tape.append(op)
+	PlayView.apply_command(_tape, op)
 	app.sfx("tap")
 	_refresh()
 
@@ -248,7 +202,10 @@ func _on_tile_tapped(index: int) -> void:
 	if _session.state == PlaySession.State.RUNNING:
 		return
 	_begin_edit()
-	_tape.toggle_select(index)
+	if index >= 0 and index == _tape.selected and PlayView.can_cycle(_tape):
+		_tape.cycle_condition()
+	else:
+		_tape.toggle_select(index)
 	_refresh()
 
 
@@ -262,6 +219,8 @@ func _on_tool(kind: String) -> void:
 			_tape.adjust_count(-1)
 		"plus":
 			_tape.adjust_count(1)
+		"condition":
+			_tape.cycle_condition()
 		"x":
 			_tape.remove_selected()
 	_refresh()
@@ -282,10 +241,10 @@ func _on_run() -> void:
 			if not _busy:
 				_session.resume()
 				_refresh()
-				_play_until_stopped()
+				PlayAnimator.play_until_stopped(self)
 		PlaySession.State.READY:
 			if _start(PlaySession.State.RUNNING):
-				_play_until_stopped()
+				PlayAnimator.play_until_stopped(self)
 
 
 func _on_step() -> void:
@@ -293,7 +252,7 @@ func _on_step() -> void:
 		return
 	if _session.state == PlaySession.State.READY and not _start(PlaySession.State.PAUSED):
 		return
-	_play_one_step()
+	PlayAnimator.play_one_step(self)
 
 
 func _on_next() -> void:
@@ -304,11 +263,7 @@ func _on_next() -> void:
 
 func _start(next_state: PlaySession.State) -> bool:
 	_tape.clear_selection()
-	if (
-		_tape.is_empty()
-		or _tape.has_empty_loop()
-		or not _session.start(_tape.program(), next_state)
-	):
+	if _tape.is_empty() or _tape.is_incomplete() or not _session.start(_tape.program(), next_state):
 		return false
 	_run_id += 1
 	_refresh()
@@ -335,41 +290,6 @@ func _close_overlay() -> void:
 	if _overlay != null:
 		_overlay.queue_free()
 		_overlay = null
-
-
-# ----- animation: displays simulation events, never decides them -------------------------------
-
-
-func _play_until_stopped() -> void:
-	var id := _run_id
-	while _session.state == PlaySession.State.RUNNING and id == _run_id:
-		await _play_one_step()
-
-
-func _play_one_step() -> void:
-	var id := _run_id
-	_busy = true
-	await _animate_next_step()
-	if id == _run_id:
-		_busy = false
-
-
-func _animate_next_step() -> void:
-	var id := _run_id
-	var entry := _session.advance()
-	if entry.is_empty() or await PlayAnimator.show_step(self, id, entry):
-		_after_step()
-
-
-func _after_step() -> void:
-	if _session.state == PlaySession.State.SUCCEEDED:
-		app.sfx("success")
-		app.haptic(60)
-		if persist:
-			PlayCompletion.save(self)
-	elif _session.state == PlaySession.State.FAILED:
-		app.sfx("fail")
-	_refresh()
 
 
 # ----- debug screenshots -----------------------------------------------------------------------
