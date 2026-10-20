@@ -35,11 +35,16 @@ export function verifySubmission(content: unknown, program: unknown): Verified {
 }
 
 /** The same program always has the same hash: nodes are rebuilt in a fixed key order. */
-export function programHash(program: { op: string; count?: number; body?: { op: string }[] }[]) {
+export function programHash(
+  program: { op: string; count?: number; until?: string; body?: { op: string }[] }[],
+) {
+  const body = (n: { body?: { op: string }[] }) => (n.body ?? []).map((b) => ({ op: b.op }));
   const canonical = program.map((n) =>
     n.op === "REPEAT"
-      ? { op: n.op, count: n.count, body: (n.body ?? []).map((b) => ({ op: b.op })) }
-      : { op: n.op },
+      ? { op: n.op, count: n.count, body: body(n) }
+      : n.op === "REPEAT_UNTIL"
+        ? { op: n.op, until: n.until, body: body(n) }
+        : { op: n.op },
   );
   return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
 }
