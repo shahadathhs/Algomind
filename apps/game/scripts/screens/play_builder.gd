@@ -112,8 +112,16 @@ static func _build_commands(p: PlayScreen, available: Array[String]) -> void:
 		button.set_meta("op", command["op"])
 		button.pressed.connect(p._on_command.bind(command["op"]))
 		p._command_buttons.append(button)
-		if ContractLimits.is_loop(command["op"]) or command["op"] == "IF":
+		if ContractLimits.is_loop(command["op"]) or command["op"] in ["IF", "PROC"]:
 			p._group_buttons[command["op"]] = button
+	if available.has("PROC"):
+		for name in ContractLimits.PROCEDURE_NAMES:
+			var call_info := {"label": "CALL " + name, "icon": "call", "name": "Call " + name}
+			var call_button := _command_tile(p, call_info, maxi(offered, 5))
+			call_button.set_meta("name", name)
+			call_button.visible = false
+			call_button.pressed.connect(p._on_call.bind(name))
+			p._call_buttons.append(call_button)
 	if available.has("IF"):
 		# Else shares the row with the others only while an IF is open.
 		p._else_button = _command_tile(p, PlayView.ELSE_COMMAND, maxi(offered, 5))

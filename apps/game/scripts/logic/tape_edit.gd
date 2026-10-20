@@ -105,6 +105,21 @@ func remove_selected() -> bool:
 	return true
 
 
+## True when the selected cell can move one place earlier (-1) or later (1): it stays inside its
+## list, and a definition never leaves the start of the program or a main node enters it.
+func can_move(direction: int) -> bool:
+	if selected < 0:
+		return false
+	var cell := cells()[selected]
+	var list := siblings_of(cell)
+	var target := position_of(cell) + direction
+	if target < 0 or target >= list.size():
+		return false
+	if (cell["path"] as Array).size() > 1:
+		return true
+	return (list[target]["op"] == "PROC") == (list[position_of(cell)]["op"] == "PROC")
+
+
 ## Moves the selected cell one place earlier (-1) or later (1) among its siblings: a node among
 ## the program or a loop body, a command within its IF branch. A loop or IF moves with its
 ## contents. The selection follows it.
@@ -114,9 +129,9 @@ func move_selected(direction: int) -> bool:
 	var cell := cells()[selected]
 	var list := siblings_of(cell)
 	var place := position_of(cell)
-	var target := place + direction
-	if target < 0 or target >= list.size():
+	if not can_move(direction):
 		return false
+	var target := place + direction
 	var item: Dictionary = list[place]
 	list[place] = list[target]
 	list[target] = item
@@ -134,10 +149,6 @@ func clear() -> void:
 ## The program in the simulator's format: a list of instruction nodes (copies).
 func program() -> Array:
 	return TapeCells.program_of(nodes)
-
-
-func _node_at(path: Array) -> Dictionary:
-	return nodes[int(path[0])] if path.size() == 1 else nodes[int(path[0])]["body"][int(path[1])]
 
 
 ## The `iff` key of the IF whose else divider must show although its else is empty; "" for none.

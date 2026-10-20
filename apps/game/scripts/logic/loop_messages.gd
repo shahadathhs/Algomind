@@ -38,3 +38,17 @@ static func _until_loop_of(program: Array, node: Array) -> Dictionary:
 static func _blocked_ahead(level: Dictionary, result: Dictionary) -> bool:
 	var state: Dictionary = result["finalState"]
 	return LevelSimulator.blocked_ahead(level, state["position"], String(state["direction"]))
+
+
+## The objective text while the program is being built: what is missing, else the goal.
+static func building_text(tape: TapeModel) -> String:
+	if TapeCells.has_empty_loop(tape.nodes):
+		return "ADD A COMMAND TO THE LOOP"
+	if TapeCells.has_empty_if(tape.nodes):
+		return "ADD A COMMAND TO THE IF"
+	if tape.has_empty_proc():
+		return "ADD A COMMAND TO THE PROCEDURE"
+	var missing := tape.undefined_calls()
+	if not missing.is_empty():
+		return "PROCEDURE %s IS NOT DEFINED" % " AND ".join(missing)
+	return "REACH THE TARGET"

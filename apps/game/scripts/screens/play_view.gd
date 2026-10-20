@@ -10,6 +10,7 @@ const COMMANDS: Array[Dictionary] = [
 	{"op": "REPEAT", "label": "REPEAT", "icon": "repeat"},
 	{"op": "REPEAT_UNTIL", "label": "UNTIL", "icon": "until", "name": "Repeat until"},
 	{"op": "IF", "label": "IF", "icon": "if", "name": "If"},
+	{"op": "PROC", "label": "PROC", "icon": "proc", "name": "Procedure"},
 ]
 ## The Else tile, shown beside If while an IF is open.
 const ELSE_COMMAND := {"label": "ELSE", "icon": "", "name": "Else"}
@@ -25,26 +26,39 @@ static func command_meta(op: String) -> Dictionary:
 	return {}
 
 
-## The op of the loop that is open on the tape, or "".
+## The op of the loop that is open on the tape (in the main program or a definition), or "".
 static func open_op(tape: TapeModel) -> String:
-	return "" if tape.open_loop() < 0 else String(tape.nodes[tape.open_loop()]["op"])
+	var path := tape.open_loop_path()
+	return "" if path.is_empty() else String(TapeCells.node_at(tape.nodes, path)["op"])
 
 
-## Does a palette tile: ends the open loop or IF when its own tile is tapped, switches an open IF
-## to its else branch for Else, otherwise adds the command.
+## True while the group a palette tile starts (IF, PROC, REPEAT, REPEAT_UNTIL) is open.
+static func group_is_open(tape: TapeModel, op: String) -> bool:
+	if op == "IF":
+		return not tape.open_if().is_empty()
+	if op == "PROC":
+		return tape.open_proc() >= 0
+	return open_op(tape) == op
+
+
+## Does a palette tile: ends the open group when its own tile is tapped, switches an open IF to
+## its else branch for Else, otherwise adds the command.
 static func apply_command(tape: TapeModel, op: String) -> void:
 	if op == "ELSE":
 		tape.start_else()
-	elif op == "IF" and not tape.open_if().is_empty():
+	elif op == "IF" and group_is_open(tape, op):
 		tape.end_if()
-	elif tape.open_loop() >= 0 and op == open_op(tape):
+	elif op == "PROC" and group_is_open(tape, op):
+		tape.end_proc()
+	elif ContractLimits.is_loop(op) and group_is_open(tape, op):
 		tape.end_loop()
 	else:
 		tape.append(op)
 
 
 ## Shows the palette: the commands while editing, the group tiles with the label and state they
-## have now, and Else while an IF is open. Nothing shows once the level is solved.
+## have now, a CALL tile for each defined procedure while no definition is open, and Else while
+## an IF is open. Nothing shows once the level is solved.
 static func refresh_palette(p: PlayScreen, solved: bool, running: bool) -> void:
 	var tape := p._tape
 	for button: TileButton in p._command_buttons:
@@ -56,22 +70,24 @@ static func refresh_palette(p: PlayScreen, solved: bool, running: bool) -> void:
 	for op: String in p._group_buttons:
 		var button: TileButton = p._group_buttons[op]
 		var meta := command_meta(op)
-		var is_open := (
-			not tape.open_if().is_empty()
-			if op == "IF"
-			else tape.open_loop() >= 0 and open_op(tape) == op
-		)
-		if is_open:
+		if group_is_open(tape, op):
 			var can_end := tape.can_end_if() if op == "IF" else tape.can_end_loop()
-			button.label = "END IF" if op == "IF" else "END LOOP"
+			if op == "PROC":
+				can_end = tape.can_end_proc()
+			button.label = {"IF": "END IF", "PROC": "END PROC"}.get(op, "END LOOP")
 			button.icon = "check"
 			button.set_disabled(running or not can_end)
 		else:
 			button.label = meta["label"]
 			button.icon = meta["icon"]
 		# With a crowded palette, the loop tiles that cannot be used while an IF is open give way.
-		if not solved and if_open and crowded and op != "IF":
-			button.visible = is_open
+		if not solved and if_open and crowded and ContractLimits.is_loop(op):
+			button.visible = group_is_open(tape, op)
+		button.queue_redraw()
+	for button: TileButton in p._call_buttons:
+		var name: String = button.get_meta("name")
+		button.visible = not solved and tape.open_proc() < 0 and tape.defined_names().has(name)
+		button.set_disabled(running or not tape.can_call(name))
 		button.queue_redraw()
 	if p._else_button != null:
 		p._else_button.visible = if_open and not solved
@@ -109,9 +125,8 @@ static func refresh_tools(p: PlayScreen) -> void:
 	if not has_selection:
 		return
 	var cell := tape.cells()[tape.selected]
-	var place := tape.position_of(cell)
-	tools[2].set_disabled(place <= 0)
-	tools[3].set_disabled(place >= tape.siblings_of(cell).size() - 1)
+	tools[2].set_disabled(not tape.can_move(-1))
+	tools[3].set_disabled(not tape.can_move(1))
 	var count := int(cell.get("count", 0))
 	tools[0].set_disabled(count <= ContractLimits.REPEAT_COUNT_MIN)
 	tools[1].set_disabled(count >= ContractLimits.REPEAT_COUNT_MAX)
@@ -158,11 +173,7 @@ static func message_text(p: PlayScreen) -> String:
 				return special.to_upper().trim_suffix(".")
 			return ResultMessages.for_result(p._session.result).to_upper().trim_suffix(".")
 		_:
-			if p._tape.has_empty_loop():
-				return "ADD A COMMAND TO THE LOOP"
-			if TapeCells.has_empty_if(p._tape.nodes):
-				return "ADD A COMMAND TO THE IF"
-			return "REACH THE TARGET"
+			return LoopMessages.building_text(p._tape)
 
 
 static func update_stats(p: PlayScreen) -> void:

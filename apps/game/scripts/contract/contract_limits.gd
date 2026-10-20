@@ -18,9 +18,15 @@ const UNTIL_CONDITIONS: Array[String] = ["BLOCKED", "GOAL"]
 const IF_OP := "IF"
 ## What an IF can look at. Each is true when the cell on that side is on the board and not a wall.
 const SENSORS: Array[String] = ["CLEAR_AHEAD", "CLEAR_LEFT", "CLEAR_RIGHT"]
+## A named piece of program, defined once at the top level and run by CALL.
+const PROC_OP := "PROC"
+## Runs the procedure of that name. Offered together with PROC: a level that lists PROC allows both.
+const CALL_OP := "CALL"
+## The names a procedure can have. At most one procedure per name.
+const PROCEDURE_NAMES: Array[String] = ["A", "B", "C"]
 ## Every command a level can offer, in the canonical order.
 const COMMAND_NAMES: Array[String] = [
-	"MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT", "REPEAT_UNTIL", "IF"
+	"MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT", "REPEAT_UNTIL", "IF", "PROC"
 ]
 ## Clockwise order: turning right moves one step forward in this list.
 const DIRECTIONS: Array[String] = ["north", "east", "south", "west"]
@@ -52,6 +58,8 @@ const REPEAT_BODY_MIN := 1
 const REPEAT_BODY_MAX := 8
 const REPEAT_COUNT_MIN := 2
 const REPEAT_COUNT_MAX := 11
+const PROC_BODY_MIN := 1
+const PROC_BODY_MAX := 8
 const IF_THEN_MIN := 1
 const IF_THEN_MAX := 4
 const IF_ELSE_MIN := 0
@@ -87,3 +95,18 @@ static func is_loop(op: Variant) -> bool:
 ## True when op is the decision instruction. Safe for any value.
 static func is_if(op: Variant) -> bool:
 	return typeof(op) == TYPE_STRING and op == IF_OP
+
+
+## True when op is a procedure definition. Safe for any value.
+static func is_proc(op: Variant) -> bool:
+	return typeof(op) == TYPE_STRING and op == PROC_OP
+
+
+## True when op is a procedure call. Safe for any value.
+static func is_call(op: Variant) -> bool:
+	return typeof(op) == TYPE_STRING and op == CALL_OP
+
+
+## True when op is any op a program node can have: a command, or CALL (offered by PROC).
+static func is_node_op(op: Variant) -> bool:
+	return typeof(op) == TYPE_STRING and (COMMAND_NAMES.has(op) or op == CALL_OP)

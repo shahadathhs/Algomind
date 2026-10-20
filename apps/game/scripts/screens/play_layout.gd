@@ -4,6 +4,8 @@ extends RefCounted
 
 const GAP := 10.0
 const ACTION_HEIGHT := 44.0
+## Palette tiles that share one row; more than this wrap onto a second row.
+const PALETTE_ROW := 6
 
 
 static func apply(p: PlayScreen) -> void:
@@ -16,7 +18,11 @@ static func apply(p: PlayScreen) -> void:
 	y = _objective(p, m, y, width, compact)
 
 	var controls_y := p.size.y - p.inset_bottom() - m - control_h
-	var row_y := controls_y - 10.0 - control_h
+	var palette := _palette_nodes(p)
+	var palette_rows := palette_row_count(palette.size())
+	var palette_h := control_h if palette_rows == 1 else minf(control_h, 44.0)
+	var palette_total := palette_rows * palette_h + (palette_rows - 1) * 6.0
+	var row_y := controls_y - 10.0 - palette_total
 	var tape_bottom := row_y - (10.0 if compact else 6.0)
 	if p._session.state == PlaySession.State.SUCCEEDED:
 		# Share and Ranking sit in a row of their own above the result figures.
@@ -29,13 +35,8 @@ static func apply(p: PlayScreen) -> void:
 	p._board.size = Vector2(side, side)
 	p._board.position = Vector2((p.size.x - side) / 2.0, y + (board_h - side) / 2.0)
 
-	var row_nodes: Array = []
-	row_nodes.append_array(p._command_buttons)
-	if p._else_button != null:
-		row_nodes.append(p._else_button)
-	row_nodes.append_array(p._stats)
 	PlayTape.sync_scroll(p)
-	_place_row(row_nodes, row_y, control_h, width, m)
+	_place_palette(palette, palette_rows, row_y, palette_h, width, m)
 	_place_controls(p, controls_y, control_h, width, m)
 	p._commands_caption.visible = not compact and not p._session.is_finished()
 
@@ -108,6 +109,38 @@ static func _tape_area(
 			p.size.x - m - (shown.size() - i) * (tool_size + 8.0) + 8.0, cursor - caption_h + 2.0
 		)
 	return p._program_caption.position.y - 4.0
+
+
+## The visible tiles of the palette area: commands, CALL tiles, Else, and the result figures.
+static func _palette_nodes(p: PlayScreen) -> Array[Control]:
+	var all: Array = []
+	all.append_array(p._command_buttons)
+	all.append_array(p._call_buttons)
+	if p._else_button != null:
+		all.append(p._else_button)
+	all.append_array(p._stats)
+	var out: Array[Control] = []
+	for node: Control in all:
+		if node.visible:
+			out.append(node)
+	return out
+
+
+## Rows the palette needs: tiles stay in one row up to PALETTE_ROW and share two rows beyond it.
+static func palette_row_count(tiles: int) -> int:
+	return 1 if tiles <= PALETTE_ROW else 2
+
+
+## Places the palette tiles in `rows` rows of equal-width tiles, the first row on top.
+static func _place_palette(
+	nodes: Array[Control], rows: int, row_y: float, height: float, width: float, m: float
+) -> void:
+	var per_row := ceili(float(nodes.size()) / float(rows))
+	for r in rows:
+		var start := r * per_row
+		_place_row(
+			nodes.slice(start, start + per_row), row_y + r * (height + 6.0), height, width, m
+		)
 
 
 ## Places equal-width controls in one row; hidden ones are skipped.

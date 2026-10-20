@@ -5,10 +5,11 @@ extends RefCounted
 ## owns the shared helpers; the issue format is the same.
 ##
 ## Slots: a primitive is 1; a loop is 1 plus the slots of its body items; an IF is 1 plus the
-## primitives in its two branches.
+## primitives in its two branches; a CALL is 1; a PROC is 1 plus its body items.
 
-## Where a node stands: at the top, as an item of a loop body, or inside an IF branch.
-enum Place { TOP, BODY, BRANCH }
+## Where a node stands: at the top, in the body of a loop of the main program, inside an IF
+## branch, in a procedure body, or in the body of a loop inside a procedure.
+enum Place { TOP, BODY, BRANCH, PROC_BODY, PROC_LOOP_BODY }
 
 
 ## Best-effort read of availableCommands and maxCommands from a level that may have other
@@ -42,32 +43,64 @@ static func check_program(
 		)
 		return
 	var nodes: Array = program
-	var available: Variant = limits["available"]
-	var slots := 0
+	var proc_names := {}
+	for node: Variant in nodes:
+		if (
+			typeof(node) == TYPE_DICTIONARY
+			and ContractLimits.is_proc(node.get("op"))
+			and typeof(node.get("name")) == TYPE_STRING
+		):
+			proc_names[node["name"]] = true
+	var ctx := {
+		"issues": issues,
+		"available": limits["available"],
+		"proc_names": proc_names,
+		"defined": {},
+		"slots": 0,
+	}
 	for i in nodes.size():
-		var path := "%s[%d]" % [base, i]
-		var node: Variant = nodes[i]
-		slots += 1
-		if typeof(node) != TYPE_DICTIONARY:
-			LevelValidator._add(
-				issues, path, "INVALID_TYPE", "%s must be an instruction object." % path
-			)
-			continue
-		var node_dict: Dictionary = node
-		LevelValidator._reject_unknown(issues, node_dict, path, _allowed_keys(node_dict.get("op")))
-		var op: Variant = _check_op(issues, node_dict, path, available, Place.TOP)
-		if ContractLimits.is_loop(op):
-			slots += _check_loop(issues, node_dict, path, available, op)
-		elif ContractLimits.is_if(op):
-			slots += _check_if(issues, node_dict, path, available)
+		_check_item(ctx, nodes[i], "%s[%d]" % [base, i], Place.TOP)
 	var max_commands: Variant = limits["max"]
-	if max_commands != null and slots > int(max_commands):
+	if max_commands != null and int(ctx["slots"]) > int(max_commands):
 		LevelValidator._add(
 			issues,
 			base,
 			"TOO_MANY_COMMANDS",
-			"%s uses %d slots; this level allows %d." % [base, slots, max_commands]
+			"%s uses %d slots; this level allows %d." % [base, ctx["slots"], max_commands]
 		)
+
+
+## One instruction in a place: checks it, counts its slots, and goes into what it holds.
+static func _check_item(ctx: Dictionary, item: Variant, path: String, place: Place) -> void:
+	var issues: Array[Dictionary] = ctx["issues"]
+	ctx["slots"] = int(ctx["slots"]) + 1
+	if typeof(item) != TYPE_DICTIONARY:
+		LevelValidator._add(
+			issues, path, "INVALID_TYPE", "%s must be an instruction object." % path
+		)
+		return
+	var node: Dictionary = item
+	var checked := _check_op(issues, node, path, ctx["available"], place)
+	# A node the place does not allow is reported once, not field by field.
+	if not checked["nested"]:
+		LevelValidator._reject_unknown(issues, node, path, _allowed_keys(checked["op"]))
+	var op: Variant = checked["op"]
+	if ContractLimits.is_loop(op):
+		var inner := Place.PROC_LOOP_BODY if place == Place.PROC_BODY else Place.BODY
+		_check_loop(ctx, node, path, op, inner)
+	elif ContractLimits.is_if(op):
+		_check_if(ctx, node, path)
+	elif ContractLimits.is_proc(op):
+		_check_proc(ctx, node, path)
+	elif ContractLimits.is_call(op):
+		var name: Variant = ProgramFields.check_name(issues, node, path)
+		if name != null and not (ctx["proc_names"] as Dictionary).has(name):
+			LevelValidator._add(
+				issues,
+				path + ".name",
+				"UNDEFINED_PROCEDURE",
+				"%s.name: no procedure %s is defined." % [path, name]
+			)
 
 
 static func _allowed_keys(op: Variant) -> Array[String]:
@@ -77,79 +110,91 @@ static func _allowed_keys(op: Variant) -> Array[String]:
 		return ["op", "until", "body"]
 	if ContractLimits.is_if(op):
 		return ["op", "when", "then", "else"]
+	if ContractLimits.is_proc(op):
+		return ["op", "name", "body"]
+	if ContractLimits.is_call(op):
+		return ["op", "name"]
 	return ["op"]
 
 
-## Checks the op of one instruction. Returns the op when it is a known command, else null.
+## Checks the op of one instruction. Returns { op, nested }: op is the op when it is a known one,
+## else null; nested is true when the place does not allow it.
 static func _check_op(
 	issues: Array[Dictionary], node: Dictionary, path: String, available: Variant, place: Place
-) -> Variant:
+) -> Dictionary:
 	var op_path := path + ".op"
 	if not node.has("op"):
 		LevelValidator._add(issues, op_path, "REQUIRED", "%s is required." % op_path)
-		return null
+		return {"op": null, "nested": false}
 	var op: Variant = node["op"]
 	if typeof(op) != TYPE_STRING:
 		LevelValidator._add(issues, op_path, "INVALID_TYPE", "%s must be a string." % op_path)
-		return null
-	if not LevelValidator._is_command_name(op):
+		return {"op": null, "nested": false}
+	if not ContractLimits.is_node_op(op):
 		LevelValidator._add(
 			issues, op_path, "UNKNOWN_COMMAND", "%s is not a known command." % op_path
 		)
-		return null
-	if place != Place.TOP and ContractLimits.is_loop(op):
+		return {"op": null, "nested": false}
+	if ContractLimits.is_loop(op) and place != Place.TOP and place != Place.PROC_BODY:
 		LevelValidator._add(
 			issues, op_path, "NESTED_REPEAT", "%s: a loop cannot contain a loop." % op_path
 		)
-		return null
+		return {"op": null, "nested": true}
 	if place == Place.BRANCH and ContractLimits.is_if(op):
 		LevelValidator._add(
 			issues, op_path, "NESTED_IF", "%s: an IF cannot contain an IF." % op_path
 		)
-		return null
-	if available != null and not (available as Array).has(op):
+		return {"op": null, "nested": true}
+	if place != Place.TOP and ContractLimits.is_proc(op):
+		LevelValidator._add(
+			issues,
+			op_path,
+			"NESTED_PROC",
+			"%s: a procedure can only be defined at the top level." % op_path
+		)
+		return {"op": null, "nested": true}
+	if place != Place.TOP and place != Place.BODY and ContractLimits.is_call(op):
+		LevelValidator._add(
+			issues,
+			op_path,
+			"CALL_NOT_ALLOWED",
+			"%s: a CALL stands at the top level or in a loop of the main program." % op_path
+		)
+		return {"op": null, "nested": true}
+	var needed: String = ContractLimits.PROC_OP if ContractLimits.is_call(op) else op
+	if available != null and not (available as Array).has(needed):
 		LevelValidator._add(
 			issues, op_path, "COMMAND_NOT_AVAILABLE", "%s is not available in this level." % op
 		)
-	return op
+	return {"op": op, "nested": false}
 
 
-## Reads an array field with a length range. Returns the array, or null when absent or not an array.
-static func _check_list(
-	issues: Array[Dictionary],
-	node: Dictionary,
-	key: String,
-	path: String,
-	low: int,
-	high: int,
-	required: bool
-) -> Variant:
-	var list_path := "%s.%s" % [path, key]
-	if not node.has(key):
-		if required:
-			LevelValidator._add(issues, list_path, "REQUIRED", "%s is required." % list_path)
-		return null
-	if typeof(node[key]) != TYPE_ARRAY:
-		LevelValidator._add(
-			issues, list_path, "INVALID_TYPE", "%s must be an array of instructions." % list_path
-		)
-		return null
-	var list: Array = node[key]
-	if list.size() < low or list.size() > high:
-		LevelValidator._add(
-			issues,
-			list_path,
-			"LENGTH_OUT_OF_RANGE",
-			"%s must have %d to %d instructions." % [list_path, low, high]
-		)
-	return list
+## Checks the name and the body of a PROC whose op was already checked.
+static func _check_proc(ctx: Dictionary, node: Dictionary, path: String) -> void:
+	var issues: Array[Dictionary] = ctx["issues"]
+	var name: Variant = ProgramFields.check_name(issues, node, path)
+	if name != null:
+		var defined: Dictionary = ctx["defined"]
+		if defined.has(name):
+			LevelValidator._add(
+				issues,
+				path + ".name",
+				"DUPLICATE_PROCEDURE",
+				"%s.name: %s is defined twice." % [path, name]
+			)
+		defined[name] = true
+	var body: Variant = ProgramFields.check_list(
+		issues, node, "body", path, ContractLimits.PROC_BODY_MIN, ContractLimits.PROC_BODY_MAX, true
+	)
+	if body != null:
+		var items: Array = body
+		for j in items.size():
+			_check_item(ctx, items[j], "%s.body[%d]" % [path, j], Place.PROC_BODY)
 
 
-## Checks the sensor and both branches of an IF whose op was already checked. Returns the
-## primitives in the branches (for slots).
-static func _check_if(
-	issues: Array[Dictionary], node: Dictionary, path: String, available: Variant
-) -> int:
+## Checks the sensor and both branches of an IF whose op was already checked.
+static func _check_if(ctx: Dictionary, node: Dictionary, path: String) -> void:
+	var issues: Array[Dictionary] = ctx["issues"]
 	var when_path := path + ".when"
 	if not node.has("when"):
 		LevelValidator._add(issues, when_path, "REQUIRED", "%s is required." % when_path)
@@ -162,83 +207,27 @@ static func _check_if(
 			"INVALID_VALUE",
 			"%s must be one of %s." % [when_path, ", ".join(ContractLimits.SENSORS)]
 		)
-	var slots := 0
 	for key: String in ["then", "else"]:
 		var low: int = ContractLimits.IF_THEN_MIN if key == "then" else ContractLimits.IF_ELSE_MIN
 		var high: int = ContractLimits.IF_THEN_MAX if key == "then" else ContractLimits.IF_ELSE_MAX
-		var list: Variant = _check_list(issues, node, key, path, low, high, true)
+		var list: Variant = ProgramFields.check_list(issues, node, key, path, low, high, true)
 		if list == null:
 			continue
 		var items: Array = list
-		slots += items.size()
 		for j in items.size():
-			var inner_path := "%s.%s[%d]" % [path, key, j]
-			var inner: Variant = items[j]
-			if typeof(inner) != TYPE_DICTIONARY:
-				LevelValidator._add(
-					issues,
-					inner_path,
-					"INVALID_TYPE",
-					"%s must be an instruction object." % inner_path
-				)
-				continue
-			var inner_dict: Dictionary = inner
-			# A nested loop or IF is reported once, not field by field.
-			var inner_op: Variant = inner_dict.get("op")
-			if not (ContractLimits.is_loop(inner_op) or ContractLimits.is_if(inner_op)):
-				LevelValidator._reject_unknown(issues, inner_dict, inner_path, ["op"])
-			_check_op(issues, inner_dict, inner_path, available, Place.BRANCH)
-	return slots
+			_check_item(ctx, items[j], "%s.%s[%d]" % [path, key, j], Place.BRANCH)
 
 
-## Checks the until condition of a REPEAT_UNTIL.
-static func _check_until(issues: Array[Dictionary], node: Dictionary, path: String) -> void:
-	var until_path := path + ".until"
-	if not node.has("until"):
-		LevelValidator._add(issues, until_path, "REQUIRED", "%s is required." % until_path)
-	elif typeof(node["until"]) != TYPE_STRING:
-		LevelValidator._add(issues, until_path, "INVALID_TYPE", "%s must be a string." % until_path)
-	elif not ContractLimits.UNTIL_CONDITIONS.has(node["until"]):
-		LevelValidator._add(
-			issues,
-			until_path,
-			"INVALID_VALUE",
-			"%s must be one of %s." % [until_path, ", ".join(ContractLimits.UNTIL_CONDITIONS)]
-		)
-
-
-static func _check_count(issues: Array[Dictionary], node: Dictionary, path: String) -> void:
-	var count_path := path + ".count"
-	if not node.has("count"):
-		LevelValidator._add(issues, count_path, "REQUIRED", "%s is required." % count_path)
-	elif not LevelValidator._is_int(node["count"]):
-		LevelValidator._add(
-			issues, count_path, "INVALID_TYPE", "%s must be an integer." % count_path
-		)
-	else:
-		var count := int(node["count"])
-		if count < ContractLimits.REPEAT_COUNT_MIN or count > ContractLimits.REPEAT_COUNT_MAX:
-			LevelValidator._add(
-				issues,
-				count_path,
-				"OUT_OF_RANGE",
-				(
-					"%s must be from %d to %d."
-					% [count_path, ContractLimits.REPEAT_COUNT_MIN, ContractLimits.REPEAT_COUNT_MAX]
-				)
-			)
-
-
-## Checks the count (REPEAT) or condition (REPEAT_UNTIL) and the body of a loop. Returns the
-## slots of the body items.
+## Checks the count (REPEAT) or condition (REPEAT_UNTIL) and the body of a loop.
 static func _check_loop(
-	issues: Array[Dictionary], node: Dictionary, path: String, available: Variant, op: Variant
-) -> int:
+	ctx: Dictionary, node: Dictionary, path: String, op: Variant, body_place: Place
+) -> void:
+	var issues: Array[Dictionary] = ctx["issues"]
 	if ContractLimits.is_repeat_until(op):
-		_check_until(issues, node, path)
+		ProgramFields.check_until(issues, node, path)
 	else:
-		_check_count(issues, node, path)
-	var body: Variant = _check_list(
+		ProgramFields.check_count(issues, node, path)
+	var body: Variant = ProgramFields.check_list(
 		issues,
 		node,
 		"body",
@@ -248,24 +237,7 @@ static func _check_loop(
 		true
 	)
 	if body == null:
-		return 0
+		return
 	var items: Array = body
-	var slots := 0
 	for j in items.size():
-		var inner_path := "%s.body[%d]" % [path, j]
-		var inner: Variant = items[j]
-		slots += 1
-		if typeof(inner) != TYPE_DICTIONARY:
-			LevelValidator._add(
-				issues, inner_path, "INVALID_TYPE", "%s must be an instruction object." % inner_path
-			)
-			continue
-		var inner_dict: Dictionary = inner
-		var inner_op: Variant = inner_dict.get("op")
-		# A nested loop is reported once, as NESTED_REPEAT, not field by field.
-		if not ContractLimits.is_loop(inner_op):
-			LevelValidator._reject_unknown(issues, inner_dict, inner_path, _allowed_keys(inner_op))
-		var known: Variant = _check_op(issues, inner_dict, inner_path, available, Place.BODY)
-		if ContractLimits.is_if(known):
-			slots += _check_if(issues, inner_dict, inner_path, available)
-	return slots
+		_check_item(ctx, items[j], "%s.body[%d]" % [path, j], body_place)

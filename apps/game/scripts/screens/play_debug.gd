@@ -46,11 +46,28 @@ static func overlay(p: PlayScreen, kind: String) -> void:
 
 
 ## Letters are commands; "3{MRML}" is a loop of three rounds over that body and "U{M}" a loop
-## that runs its body until the way ahead is blocked.
+## that runs its body until the way ahead is blocked. "P{MR}" defines the next procedure over
+## that body (no closing brace leaves it open) and "@A" calls procedure A.
 static func _fill_tape(tape: TapeModel, program_text: String) -> void:
 	var i := 0
 	while i < program_text.length():
 		var letter := program_text[i]
+		if letter == "P":
+			var proc_close := program_text.find("}", i)
+			var proc_open_end := proc_close < 0
+			if proc_open_end:
+				proc_close = program_text.length()
+			tape.append(TapeModel.PROC)
+			for inner in program_text.substr(i + 2, proc_close - i - 2):
+				tape.append(LETTERS.get(inner, "MOVE_FORWARD"))
+			if not proc_open_end:
+				tape.end_proc()
+			i = proc_close + 1
+			continue
+		if letter == "@":
+			tape.append_call(program_text.substr(i + 1, 1))
+			i += 2
+			continue
 		if letter == "U":
 			# "U{MR}" is a REPEAT_UNTIL (until blocked) over that body.
 			var until_close := program_text.find("}", i)

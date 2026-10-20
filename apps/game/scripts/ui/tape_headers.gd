@@ -3,7 +3,7 @@ extends RefCounted
 ## The first tile of a loop on the tape. REPEAT shows its count ("x3"); REPEAT_UNTIL shows the
 ## words UNTIL BLOCKED and a wall icon (or UNTIL GOAL and a ring), because it has no count.
 ## While a run is shown, the loop the read-head is in shows its 1-based round, and loops already
-## passed are solid.
+## passed are solid (TapeView decides which).
 
 
 ## True for the first cell of a loop of either kind.
@@ -11,44 +11,26 @@ static func is_header(cell: Dictionary) -> bool:
 	return cell["kind"] == "count" or cell["kind"] == "until"
 
 
-## Draws the header at cells[index] into rect. `state` has running (bool), current (cell index
-## under the read-head, -1 before the first step) and round (1-based, 0 when none).
+## Draws the header of a loop into rect. `solid` is an ink fill (selected, or already reached by
+## the read-head). `round_number` is the round to show: the 1-based round of the loop the
+## read-head is in, -1 for a loop that is finished, 0 when it is not known or not running.
 static func draw(
-	canvas: CanvasItem,
-	cells: Array[Dictionary],
-	index: int,
-	rect: Rect2,
-	is_selected: bool,
-	state: Dictionary
+	canvas: CanvasItem, cell: Dictionary, rect: Rect2, solid: bool, round_number: int
 ) -> void:
-	var cell := cells[index]
-	var running: bool = state["running"]
-	var current: int = state["current"]
-	var loop := int((cell["path"] as Array)[0])
-	var solid := not running and is_selected
-	var in_loop := false
-	if running and current >= 0:
-		var here := int((cells[current]["path"] as Array)[0])
-		if loop < here:
-			solid = true
-		elif loop == here:
-			solid = true
-			in_loop = true
 	if solid:
 		UiKit.fill_chamfer(canvas, rect, Palette.INK)
 	else:
 		UiKit.fill_chamfer(canvas, rect, Palette.FLOOR)
 		UiKit.outline_chamfer(canvas, rect, Palette.INK)
 	var color := Palette.ON_INK if solid else Palette.INK
-	var round_number := maxi(int(state["round"]), 1)
 	if cell["kind"] == "until":
-		_draw_until(canvas, rect, color, round_number if in_loop else 0, cell["until"] == "GOAL")
+		_draw_until(canvas, rect, color, maxi(round_number, 0), cell["until"] == "GOAL")
 		return
 	var count := int(cell["count"])
 	# Running: "round/count" once the loop has started, "x3" before it.
 	var text := "\u00d7%d" % count
-	if running and current >= 0 and solid:
-		text = "%d/%d" % [round_number if in_loop else count, count]
+	if round_number != 0:
+		text = "%d/%d" % [count if round_number < 0 else round_number, count]
 	UiKit.text(canvas, text, rect, int(rect.size.x * 0.42), color, 0)
 
 

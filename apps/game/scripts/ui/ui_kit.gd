@@ -122,7 +122,7 @@ static func label(value: String, size: int, color: Color, spacing: int = 1) -> L
 
 ## Draws a command or control icon inside a square of side `s` centered on `c`.
 ## Kinds: move, left, right, back, play, pause, step, reset, plus, x, check, lock, prev, next,
-## menu, help, download, up, offline, star, repeat, until, and the IfIcons kinds.
+## menu, help, download, up, offline, star, repeat, until, and the IfIcons and ProcIcons kinds.
 static func icon(canvas: CanvasItem, kind: String, c: Vector2, s: float, color: Color) -> void:
 	var w := maxf(2.0, s * 0.12)
 	match kind:
@@ -269,7 +269,8 @@ static func icon(canvas: CanvasItem, kind: String, c: Vector2, s: float, color: 
 				c + Vector2(-s * 0.4, -s * 0.34), c + Vector2(s * 0.4, s * 0.4), color, w
 			)
 		_:
-			IfIcons.draw(canvas, kind, c, s, color)
+			if not IfIcons.draw(canvas, kind, c, s, color):
+				ProcIcons.draw(canvas, kind, c, s, color)
 
 
 ## A filled triangle: tip point, unit direction pointing from tip toward the base, base width

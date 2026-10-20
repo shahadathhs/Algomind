@@ -37,8 +37,10 @@ var _tools: Array[TileButton] = []
 var _tape_view: TapeView
 var _commands_caption: Label
 var _command_buttons: Array[TileButton] = []
-## The palette tile of each group the level offers, by op (REPEAT, REPEAT_UNTIL, IF).
+## The palette tile of each group the level offers, by op (REPEAT, REPEAT_UNTIL, IF, PROC).
 var _group_buttons := {}
+## The CALL tile of each procedure name, shown for the names that are defined (PROC levels).
+var _call_buttons: Array[TileButton] = []
 ## The Else tile, shown while an IF is open; null when the level does not offer IF.
 var _else_button: TileButton
 var _stats: Array[StatTile] = []
@@ -147,12 +149,7 @@ func _refresh() -> void:
 
 	_tape_view.running = state != PlaySession.State.READY
 	_tape_view.set_content(
-		_tape.cells(),
-		_tape.slots(),
-		_tape.limit,
-		_tape.selected,
-		_tape.open_loop(),
-		_tape.open_if_key()
+		_tape.cells(), _tape.slots(), _tape.limit, _tape.selected, _tape.open_keys()
 	)
 	_tape_view.failed_index = _tape.cell_for_node(_session.failing_node())
 	PlayTape.set_head(self, _session.current_entry())
@@ -210,19 +207,17 @@ func _on_tile_tapped(index: int) -> void:
 
 
 func _on_tool(kind: String) -> void:
-	match kind:
-		"prev":
-			_tape.move_selected(-1)
-		"next":
-			_tape.move_selected(1)
-		"minus":
-			_tape.adjust_count(-1)
-		"plus":
-			_tape.adjust_count(1)
-		"condition":
-			_tape.cycle_condition()
-		"x":
-			_tape.remove_selected()
+	PlayTape.apply_tool(_tape, kind)
+	_refresh()
+
+
+## A CALL tile of the palette: adds a call of that procedure.
+func _on_call(name: String) -> void:
+	if _session.state == PlaySession.State.RUNNING:
+		return
+	_begin_edit()
+	_tape.append_call(name)
+	app.sfx("tap")
 	_refresh()
 
 

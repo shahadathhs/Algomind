@@ -1,7 +1,10 @@
 class_name ProgramShape
 extends RefCounted
 ## Which program nodes the simulator can run. A node that fails these checks stops the run with
-## INVALID_INSTRUCTION. Mirrors the isRunnable functions of level-contract src/simulate.ts.
+## INVALID_INSTRUCTION. Mirrors the runnable function of level-contract src/simulate.ts.
+
+## Where a node stands, which decides what it may hold.
+enum Place { TOP, LOOP_BODY, PROC_BODY, PROC_LOOP_BODY }
 
 
 ## True for one primitive node: an object whose op is MOVE_FORWARD, TURN_LEFT, or TURN_RIGHT.
@@ -43,44 +46,96 @@ static func is_runnable_if(node: Variant) -> bool:
 	)
 
 
-## True for a body the simulator can run: 1 to 8 items, each a primitive or a runnable IF.
-static func is_runnable_body(body: Variant) -> bool:
-	if typeof(body) != TYPE_ARRAY:
+## True for a list of runnable items whose length is within [low, high].
+static func _is_runnable_list(
+	list: Variant, low: int, high: int, place: Place, procs: Dictionary
+) -> bool:
+	if typeof(list) != TYPE_ARRAY:
 		return false
-	var items: Array = body
-	if (
-		items.size() < ContractLimits.REPEAT_BODY_MIN
-		or items.size() > ContractLimits.REPEAT_BODY_MAX
-	):
+	var items: Array = list
+	if items.size() < low or items.size() > high:
 		return false
 	for item: Variant in items:
-		if not (is_primitive(item) or is_runnable_if(item)):
+		if not is_runnable(item, place, procs):
 			return false
 	return true
 
 
-## True for a loop the simulator can run: a whole count in range and a runnable body.
-static func is_runnable_repeat(node: Variant) -> bool:
-	if typeof(node) != TYPE_DICTIONARY or not ContractLimits.is_repeat(node.get("op")):
+## True when the node and everything inside it can be run: known ops and conditions, bodies and
+## branches of the right size, and only what the place allows. procs maps the names a CALL may use.
+static func is_runnable(node: Variant, place: Place, procs: Dictionary) -> bool:
+	if typeof(node) != TYPE_DICTIONARY:
 		return false
-	var count: Variant = node.get("count")
+	if is_primitive(node):
+		return true
+	var op: Variant = node.get("op")
+	if ContractLimits.is_if(op):
+		return is_runnable_if(node)
+	if ContractLimits.is_call(op):
+		var name: Variant = node.get("name")
+		return (
+			(place == Place.TOP or place == Place.LOOP_BODY)
+			and typeof(name) == TYPE_STRING
+			and procs.has(name)
+		)
+	if ContractLimits.is_loop(op):
+		if place == Place.LOOP_BODY or place == Place.PROC_LOOP_BODY:
+			return false
+		var inner := Place.PROC_LOOP_BODY if place == Place.PROC_BODY else Place.LOOP_BODY
+		if ContractLimits.is_repeat(op):
+			if not _is_valid_count(node.get("count")):
+				return false
+		else:
+			var until: Variant = node.get("until")
+			if typeof(until) != TYPE_STRING or not ContractLimits.UNTIL_CONDITIONS.has(until):
+				return false
+		return _is_runnable_list(
+			node.get("body"),
+			ContractLimits.REPEAT_BODY_MIN,
+			ContractLimits.REPEAT_BODY_MAX,
+			inner,
+			procs
+		)
+	if ContractLimits.is_proc(op):
+		var proc_name: Variant = node.get("name")
+		return (
+			place == Place.TOP
+			and typeof(proc_name) == TYPE_STRING
+			and ContractLimits.PROCEDURE_NAMES.has(proc_name)
+			and _is_runnable_list(
+				node.get("body"),
+				ContractLimits.PROC_BODY_MIN,
+				ContractLimits.PROC_BODY_MAX,
+				Place.PROC_BODY,
+				procs
+			)
+		)
+	return false
+
+
+static func _is_valid_count(count: Variant) -> bool:
 	if typeof(count) == TYPE_FLOAT:
 		if count != floorf(count):
 			return false
 	elif typeof(count) != TYPE_INT:
 		return false
-	if int(count) < ContractLimits.REPEAT_COUNT_MIN or int(count) > ContractLimits.REPEAT_COUNT_MAX:
-		return false
-	return is_runnable_body(node.get("body"))
-
-
-## True for a conditional loop the simulator can run: a known condition and a runnable body.
-static func is_runnable_repeat_until(node: Variant) -> bool:
-	if typeof(node) != TYPE_DICTIONARY or not ContractLimits.is_repeat_until(node.get("op")):
-		return false
-	var until: Variant = node.get("until")
 	return (
-		typeof(until) == TYPE_STRING
-		and ContractLimits.UNTIL_CONDITIONS.has(until)
-		and is_runnable_body(node.get("body"))
+		int(count) >= ContractLimits.REPEAT_COUNT_MIN
+		and int(count) <= ContractLimits.REPEAT_COUNT_MAX
 	)
+
+
+## The procedures a CALL can reach: name -> { "node": the PROC node, "index": its index }. The
+## first well-formed definition of each name wins.
+static func reachable_procs(program: Array) -> Dictionary:
+	var procs := {}
+	for i in program.size():
+		var node: Variant = program[i]
+		if typeof(node) != TYPE_DICTIONARY or not ContractLimits.is_proc(node.get("op")):
+			continue
+		var name: Variant = node.get("name")
+		if typeof(name) != TYPE_STRING or procs.has(name):
+			continue
+		if is_runnable(node, Place.TOP, {}):
+			procs[name] = {"node": node, "index": i}
+	return procs

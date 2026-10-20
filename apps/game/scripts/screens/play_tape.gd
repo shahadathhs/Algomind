@@ -3,15 +3,19 @@ extends RefCounted
 ## Keeps the tape, the board and the run button of the play screen in step with the session.
 
 
-## Points the read-head at the cell the last shown event ran, shows its loop round and which
-## commands of the IF branches have run.
+## Points the read-head at the cell the last shown event ran (and at the CALL that was running
+## it), shows its loop round and which commands of the IF branches have run.
 static func set_head(p: PlayScreen, entry: Dictionary) -> void:
 	p._tape_view.executed = PlayView.executed_paths(p._session)
 	if entry.is_empty():
 		p._tape_view.current = 0 if p._tape_view.running else -1
 		p._tape_view.current_round = 0
+		p._tape_view.call_index = -1
 		return
 	p._tape_view.current = p._tape.cell_for_node(entry["node"])
+	p._tape_view.call_index = (
+		-1 if entry.get("call") == null else p._tape.cell_for_node(entry["call"])
+	)
 	p._tape_view.current_round = int(entry["round"]) if entry["round"] != null else 0
 
 
@@ -25,7 +29,7 @@ static func sync_scroll(p: PlayScreen) -> void:
 		# Keep the tile being edited in view; do not jump to the end of the program.
 		view.reveal(p._tape.selected)
 	else:
-		view.scroll = view.edit_scroll()
+		view.scroll = view.append_scroll()
 	view.queue_redraw()
 
 
@@ -43,3 +47,20 @@ static func show_board(p: PlayScreen) -> void:
 	p._board.show_state(
 		auto["position"], auto["direction"], p._session.trail(), p._session.blocked_cell()
 	)
+
+
+## Does a tool button of the tape (earlier, later, rounds, condition, remove) to the selection.
+static func apply_tool(tape: TapeModel, kind: String) -> void:
+	match kind:
+		"prev":
+			tape.move_selected(-1)
+		"next":
+			tape.move_selected(1)
+		"minus":
+			tape.adjust_count(-1)
+		"plus":
+			tape.adjust_count(1)
+		"condition":
+			tape.cycle_condition()
+		"x":
+			tape.remove_selected()

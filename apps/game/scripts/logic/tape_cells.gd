@@ -2,20 +2,30 @@ class_name TapeCells
 extends RefCounted
 ## The cells the tape shows for a list of program nodes (see TapeModel). Pure data.
 ##
-## Every cell is { kind, op, path, loop, iff } plus:
-## - kind "op": a primitive. `path` is the node's trace path ([i], [i, j] in a loop body, [i, k] in
-##   an IF at the top level, [i, j, k] in an IF in a loop body; k counts the then primitives
-##   first). Primitives in an IF also have `branch` ("then" or "else") and `pos` (index in it).
+## Every cell is { kind, op, path, loop, iff, proc, groups } plus:
+## - kind "op": a primitive. `path` is the node's trace path ([i], [i, j] in a loop or procedure
+##   body, [i, k] in an IF at the top level, [i, j, k] in an IF in a body; k counts the then
+##   primitives first; [p, j, m] in a loop in procedure p). Primitives in an IF also have
+##   `branch` ("then" or "else") and `pos` (index in it).
 ## - kind "count" / "until": the first cell of a loop; `body` is its number of items, `count`
 ##   is set on "count" and `until` (BLOCKED or GOAL) on "until".
 ## - kind "if": the first cell of an IF; `when` is its sensor.
 ## - kind "else": the divider between the then and else tiles of an IF (not a slot).
-## `loop` is the index of the loop the cell belongs to (-1 outside loops) and `iff` identifies the
-## IF it belongs to (its path joined with "_", "" outside IFs).
+## - kind "proc": the first cell of a procedure definition; `name` is A, B, or C and `body` its
+##   number of items. kind "call": a CALL; `name` is the procedure it runs.
+## `loop` is the index of the top-level node when the cell is in a loop (-1 otherwise), `iff`
+## identifies the IF it belongs to (its path joined with "_", "" outside IFs), `proc` is the
+## index of the procedure it belongs to (-1 in the main program) and `groups` lists the keys
+## (key_of the header path) of every procedure, loop and IF around it, outermost first, a header
+## cell included in its own group.
+##
+## Definitions come first in `nodes`; the main program follows them.
 
 const REPEAT := ContractLimits.REPEAT_OP
 const REPEAT_UNTIL := ContractLimits.REPEAT_UNTIL_OP
 const IF := ContractLimits.IF_OP
+const PROC := ContractLimits.PROC_OP
+const CALL := ContractLimits.CALL_OP
 
 
 ## `showing_else` is the `iff` key of an IF whose else divider shows although its else is empty.
@@ -23,19 +33,8 @@ static func build(nodes: Array, showing_else: String = "") -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for i in nodes.size():
 		var node: Dictionary = nodes[i]
-		if not ContractLimits.is_loop(node["op"]):
-			_add_item(out, node, [i], -1, showing_else)
-			continue
-		var body: Array = node["body"]
-		var header := {"kind": "until", "op": node["op"], "path": [i], "loop": i, "iff": ""}
-		header["body"] = body.size()
-		header["until"] = String(node.get("until", ""))
-		if node["op"] == ContractLimits.REPEAT_OP:
-			header["kind"] = "count"
-			header["count"] = int(node["count"])
-		out.append(header)
-		for j in body.size():
-			_add_item(out, body[j], [i, j], i, showing_else)
+		var proc: int = i if node["op"] == PROC else -1
+		_add_node(out, node, [i], {"groups": [], "proc": proc, "loop": -1}, showing_else)
 	return out
 
 
@@ -46,28 +45,108 @@ static func key_of(path: Array) -> String:
 	return "_".join(parts)
 
 
-static func _add_item(
-	out: Array[Dictionary], item: Dictionary, path: Array, loop: int, showing_else: String
+## Adds the cells of one node (and what it holds). `ctx` has the enclosing `groups`, `proc` and
+## `loop` values.
+static func _add_node(
+	out: Array[Dictionary], node: Dictionary, path: Array, ctx: Dictionary, showing_else: String
 ) -> void:
-	if not ContractLimits.is_if(item["op"]):
-		out.append({"kind": "op", "op": item["op"], "path": path, "loop": loop, "iff": ""})
-		return
+	var op: String = node["op"]
 	var key := key_of(path)
-	out.append(
-		{"kind": "if", "op": "IF", "path": path, "loop": loop, "iff": key, "when": item["when"]}
+	var groups: Array = (ctx["groups"] as Array).duplicate()
+	if ContractLimits.is_if(op):
+		groups.append(key)
+		_add_if(out, node, path, ctx, groups, showing_else)
+		return
+	var cell := {
+		"kind": "op", "op": op, "path": path, "loop": ctx["loop"], "iff": "", "proc": ctx["proc"]
+	}
+	if op == CALL:
+		cell["kind"] = "call"
+		cell["name"] = node["name"]
+		cell["groups"] = groups
+		out.append(cell)
+		return
+	if op != PROC and not ContractLimits.is_loop(op):
+		cell["groups"] = groups
+		out.append(cell)
+		return
+	groups.append(key)
+	var body: Array = node["body"]
+	cell["groups"] = groups
+	cell["body"] = body.size()
+	var inner := {"groups": groups, "proc": ctx["proc"], "loop": ctx["loop"]}
+	if op == PROC:
+		cell["kind"] = "proc"
+		cell["name"] = node["name"]
+	else:
+		cell["kind"] = "count" if op == REPEAT else "until"
+		cell["until"] = String(node.get("until", ""))
+		if op == REPEAT:
+			cell["count"] = int(node["count"])
+		cell["loop"] = path[0]
+		inner["loop"] = path[0]
+	out.append(cell)
+	for j in body.size():
+		var inner_path := path.duplicate()
+		inner_path.append(j)
+		_add_node(out, body[j], inner_path, inner, showing_else)
+
+
+static func _add_if(
+	out: Array[Dictionary],
+	item: Dictionary,
+	path: Array,
+	ctx: Dictionary,
+	groups: Array,
+	showing_else: String
+) -> void:
+	var key := key_of(path)
+	(
+		out
+		. append(
+			{
+				"kind": "if",
+				"op": "IF",
+				"path": path,
+				"loop": ctx["loop"],
+				"iff": key,
+				"when": item["when"],
+				"proc": ctx["proc"],
+				"groups": groups,
+			}
+		)
 	)
 	var then_list: Array = item["then"]
 	var else_list: Array = item["else"]
 	for k in then_list.size():
-		out.append(_branch_cell(then_list[k], path, k, k, "then", loop, key))
+		out.append(_branch_cell(then_list[k], path, k, k, "then", ctx, groups))
 	if not else_list.is_empty() or showing_else == key:
-		out.append({"kind": "else", "op": "IF", "path": path, "loop": loop, "iff": key})
+		(
+			out
+			. append(
+				{
+					"kind": "else",
+					"op": "IF",
+					"path": path,
+					"loop": ctx["loop"],
+					"iff": key,
+					"proc": ctx["proc"],
+					"groups": groups,
+				}
+			)
+		)
 	for k in else_list.size():
-		out.append(_branch_cell(else_list[k], path, then_list.size() + k, k, "else", loop, key))
+		out.append(_branch_cell(else_list[k], path, then_list.size() + k, k, "else", ctx, groups))
 
 
 static func _branch_cell(
-	item: Dictionary, path: Array, trace_k: int, pos: int, branch: String, loop: int, key: String
+	item: Dictionary,
+	path: Array,
+	trace_k: int,
+	pos: int,
+	branch: String,
+	ctx: Dictionary,
+	groups: Array
 ) -> Dictionary:
 	var cell_path := path.duplicate()
 	cell_path.append(trace_k)
@@ -75,25 +154,31 @@ static func _branch_cell(
 		"kind": "op",
 		"op": item["op"],
 		"path": cell_path,
-		"loop": loop,
-		"iff": key,
+		"loop": ctx["loop"],
+		"iff": key_of(path),
 		"branch": branch,
 		"pos": pos,
+		"proc": ctx["proc"],
+		"groups": groups,
 	}
 
 
-## The list (the program, a loop body or an IF branch) that holds the cell's node.
+## The node at a path of nodes ([i], [i, j], [i, j, m]); every step after the first goes into a
+## body. An IF is reached by its own path, never through its branches.
+static func node_at(nodes: Array, path: Array) -> Dictionary:
+	var node: Dictionary = nodes[int(path[0])]
+	for k in range(1, path.size()):
+		node = node["body"][int(path[k])]
+	return node
+
+
+## The list (the program, a loop or procedure body, or an IF branch) that holds the cell's node.
 static func siblings_of(nodes: Array, cell: Dictionary) -> Array:
 	var path: Array = cell["path"]
+	var owner: Array = path.slice(0, path.size() - 1)
 	if cell.has("branch"):
-		var owner: Array = path.slice(0, path.size() - 1)
-		var node: Dictionary = (
-			nodes[int(owner[0])]
-			if owner.size() == 1
-			else nodes[int(owner[0])]["body"][int(owner[1])]
-		)
-		return node[cell["branch"]]
-	return nodes if path.size() == 1 else nodes[int(path[0])]["body"]
+		return node_at(nodes, owner)[cell["branch"]]
+	return nodes if owner.is_empty() else node_at(nodes, owner)["body"]
 
 
 ## The position of the cell's node in siblings_of.
@@ -122,6 +207,10 @@ static func _plain(node: Dictionary) -> Dictionary:
 		return {"op": REPEAT, "count": int(node["count"]), "body": _plain_list(node["body"])}
 	if op == REPEAT_UNTIL:
 		return {"op": REPEAT_UNTIL, "until": node["until"], "body": _plain_list(node["body"])}
+	if op == PROC:
+		return {"op": PROC, "name": node["name"], "body": _plain_list(node["body"])}
+	if op == CALL:
+		return {"op": CALL, "name": node["name"]}
 	return {"op": op}
 
 
@@ -129,19 +218,33 @@ static func _plain_list(list: Array) -> Array:
 	return program_of(list)
 
 
-## True when a loop has no item.
+## True when a loop (anywhere, procedure bodies included) has no item.
 static func has_empty_loop(nodes: Array) -> bool:
 	for node: Dictionary in nodes:
 		if ContractLimits.is_loop(node["op"]) and (node["body"] as Array).is_empty():
 			return true
+		if _holds_body(node) and has_empty_loop(node["body"]):
+			return true
 	return false
 
 
-## True when an IF (at the top level or in a loop body) has no then command.
+## True when a procedure definition has no item.
+static func has_empty_proc(nodes: Array) -> bool:
+	for node: Dictionary in nodes:
+		if node["op"] == PROC and (node["body"] as Array).is_empty():
+			return true
+	return false
+
+
+## True when an IF (anywhere) has no then command.
 static func has_empty_if(nodes: Array) -> bool:
 	for node: Dictionary in nodes:
-		var items: Array = node["body"] if ContractLimits.is_loop(node["op"]) else [node]
-		for item: Dictionary in items:
-			if ContractLimits.is_if(item["op"]) and (item["then"] as Array).is_empty():
-				return true
+		if ContractLimits.is_if(node["op"]) and (node["then"] as Array).is_empty():
+			return true
+		if _holds_body(node) and has_empty_if(node["body"]):
+			return true
 	return false
+
+
+static func _holds_body(node: Dictionary) -> bool:
+	return ContractLimits.is_loop(node["op"]) or node["op"] == PROC

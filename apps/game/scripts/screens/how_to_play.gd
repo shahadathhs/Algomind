@@ -29,6 +29,16 @@ const COMMANDS: Array[Dictionary] = [
 		"name": "IF",
 		"text": "Starts a decision. Add commands, tap ELSE for the others, then tap END IF."
 	},
+	{
+		"icon": "proc",
+		"name": "PROC",
+		"text": "Starts a procedure: a named group of commands. Add commands, then tap END PROC."
+	},
+	{
+		"icon": "call",
+		"name": "CALL",
+		"text": "Carries out a procedure that is already defined, such as CALL A."
+	},
 ]
 const SENSORS: Array[Dictionary] = [
 	{"icon": "ahead", "name": "AHEAD", "text": "True when the cell straight ahead is open."},
@@ -102,6 +112,7 @@ func _build() -> void:
 		)
 	)
 	_add_decisions()
+	_add_procedures()
 	_list.add_child(UiKit.label("CONTROLS", 14, Palette.MUTE, 3))
 	for item in CONTROLS:
 		_list.add_child(_Row.make(item["icon"], item["name"], item["text"]))
@@ -153,6 +164,33 @@ func _add_decisions() -> void:
 					+ "switch between BLOCKED and GOAL. It carries out its commands again and again until the "
 					+ "automaton reaches the goal, so it keeps a program with decisions going."
 				)
+			)
+		)
+	)
+
+
+## The procedure section: defining a group once and running it from several places.
+func _add_procedures() -> void:
+	_list.add_child(UiKit.label("PROCEDURES", 14, Palette.MUTE, 3))
+	_list.add_child(
+		_paragraph(
+			(
+				"A procedure is a group of commands with a name: A, B or C. Tap PROC and add its "
+				+ "commands. It is drawn at the start of the tape and does not run where it "
+				+ "stands. Tap END PROC, then tap CALL with its name wherever the program should "
+				+ "carry it out. Each CALL runs the whole group, then the program goes on."
+			)
+		)
+	)
+	_list.add_child(
+		_paragraph(
+			(
+				"A procedure uses one slot, plus one for each command in it. A CALL uses one slot, "
+				+ "so a group used several times costs less than the same commands written out "
+				+ "each time. A procedure may hold loops and IFs. It cannot hold a CALL or "
+				+ "another procedure. A CALL stands in the program or inside a loop. If a "
+				+ "procedure is removed, its CALL tiles stay and the program cannot run until "
+				+ "the procedure is made again or the calls are removed."
 			)
 		)
 	)
