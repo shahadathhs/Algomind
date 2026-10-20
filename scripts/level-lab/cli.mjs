@@ -98,14 +98,17 @@ if (command === "families") {
         const slots = programSlots(def.solution);
         const plain = solve({
           ...level,
-          availableCommands: level.availableCommands.filter((c) => c !== "IF"),
+          availableCommands: level.availableCommands.filter((c) => c !== "IF" && c !== "PROC"),
         });
         if (run.status !== "SUCCEEDED") issues.push(`the solution fails: ${run.reason}`);
         if (slots !== def.maxCommands)
           issues.push(`limit ${def.maxCommands} is not the solution's ${slots} slots`);
-        if (plain && plain.commands < 1.5 * def.maxCommands)
+        if (
+          plain &&
+          plain.commands < (level.availableCommands.includes("PROC") ? 1.3 : 1.5) * def.maxCommands
+        )
           issues.push(
-            `a program without IF of ${plain.commands} slots is too close to the limit ${def.maxCommands}`,
+            `a program without IF or PROC of ${plain.commands} slots is too close to the limit ${def.maxCommands}`,
           );
         if (run.steps * 2 > level.constraints.maxSteps)
           issues.push(

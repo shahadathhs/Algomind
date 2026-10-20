@@ -116,7 +116,7 @@
         "availableCommands": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 6,
+          "maxItems": 7,
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/commandName"
@@ -181,7 +181,7 @@
       "enum": ["north", "east", "south", "west"]
     },
     "commandName": {
-      "enum": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT", "REPEAT_UNTIL", "IF"]
+      "enum": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT", "REPEAT_UNTIL", "IF", "PROC"]
     },
     "instruction": {
       "oneOf": [
@@ -196,6 +196,12 @@
         },
         {
           "$ref": "#/$defs/repeatUntilInstruction"
+        },
+        {
+          "$ref": "#/$defs/callInstruction"
+        },
+        {
+          "$ref": "#/$defs/procInstruction"
         }
       ]
     },
@@ -269,6 +275,9 @@
         },
         {
           "$ref": "#/$defs/ifInstruction"
+        },
+        {
+          "$ref": "#/$defs/callInstruction"
         }
       ]
     },
@@ -297,6 +306,53 @@
           "maxItems": 4,
           "items": {
             "$ref": "#/$defs/primitiveInstruction"
+          }
+        }
+      }
+    },
+    "callInstruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "name"],
+      "properties": {
+        "op": {
+          "const": "CALL"
+        },
+        "name": {
+          "enum": ["A", "B", "C"]
+        }
+      }
+    },
+    "procInstruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "name", "body"],
+      "properties": {
+        "op": {
+          "const": "PROC"
+        },
+        "name": {
+          "enum": ["A", "B", "C"]
+        },
+        "body": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/primitiveInstruction"
+              },
+              {
+                "$ref": "#/$defs/ifInstruction"
+              },
+              {
+                "$ref": "#/$defs/repeatInstruction"
+              },
+              {
+                "$ref": "#/$defs/repeatUntilInstruction"
+              }
+            ]
           }
         }
       }

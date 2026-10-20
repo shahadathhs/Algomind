@@ -69,6 +69,7 @@
         "index": 0,
         "op": "TURN_RIGHT",
         "node": [0, 1],
+        "call": null,
         "round": null,
         "position": [0, 0],
         "direction": "north",

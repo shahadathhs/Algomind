@@ -4,12 +4,14 @@ import type {
   DIRECTIONS,
   PRIMITIVE_COMMANDS,
   SENSORS,
+  PROCEDURE_NAMES,
   UNTIL_CONDITIONS,
 } from "./constants.js";
 
 export type PrimitiveName = (typeof PRIMITIVE_COMMANDS)[number];
 export type CommandName = (typeof COMMAND_NAMES)[number];
 export type Sensor = (typeof SENSORS)[number];
+export type ProcedureName = (typeof PROCEDURE_NAMES)[number];
 export type UntilCondition = (typeof UNTIL_CONDITIONS)[number];
 export type Direction = (typeof DIRECTIONS)[number];
 export type Difficulty = (typeof DIFFICULTIES)[number];
@@ -28,8 +30,13 @@ export interface IfInstruction {
   then: PrimitiveInstruction[];
   else: PrimitiveInstruction[];
 }
-/** An item of a loop body: a primitive or an IF. */
-export type BodyInstruction = PrimitiveInstruction | IfInstruction;
+/** Runs the procedure called `name`. Allowed at the top level and as an item of a loop body. */
+export interface CallInstruction {
+  op: "CALL";
+  name: ProcedureName;
+}
+/** An item of a loop body: a primitive, an IF, or (in the main program only) a CALL. */
+export type BodyInstruction = PrimitiveInstruction | IfInstruction | CallInstruction;
 /** A loop: `body` runs `count` times. The body holds primitives and IFs, not loops. */
 export interface RepeatInstruction {
   op: "REPEAT";
@@ -46,9 +53,23 @@ export interface RepeatUntilInstruction {
   until: UntilCondition;
   body: BodyInstruction[];
 }
+/**
+ * A procedure definition, at the top level only. It is not run where it stands; a CALL runs its body.
+ * The body holds primitives, IFs and loops, never a CALL or another PROC.
+ */
+export interface ProcInstruction {
+  op: "PROC";
+  name: ProcedureName;
+  body: (PrimitiveInstruction | IfInstruction | RepeatInstruction | RepeatUntilInstruction)[];
+}
 /** One node of a program. Nodes (not bare strings) so a loop can hold a body. */
 export type Instruction =
-  PrimitiveInstruction | IfInstruction | RepeatInstruction | RepeatUntilInstruction;
+  | PrimitiveInstruction
+  | IfInstruction
+  | CallInstruction
+  | ProcInstruction
+  | RepeatInstruction
+  | RepeatUntilInstruction;
 export type Program = Instruction[];
 
 /** The public level definition served to the game. Never contains the reference solution. */
@@ -94,7 +115,11 @@ export type IssueCode =
   | "COMMAND_NOT_AVAILABLE"
   | "TOO_MANY_COMMANDS"
   | "NESTED_REPEAT"
-  | "NESTED_IF";
+  | "NESTED_IF"
+  | "NESTED_PROC"
+  | "CALL_NOT_ALLOWED"
+  | "DUPLICATE_PROCEDURE"
+  | "UNDEFINED_PROCEDURE";
 
 export interface Issue {
   /** JSON-pointer-like location, e.g. "board.width" or "board.walls[2]". "" is the document root. */
@@ -134,9 +159,15 @@ export interface TraceEntry {
   /**
    * Where the instruction sits in the program: [i] at the top level, [i, j] inside the body of loop i,
    * [i, k] inside the branches of the IF at i, and [i, j, k] inside the IF at body item j of loop i. k
-   * counts the `then` primitives first and the `else` primitives after them.
+   * counts the `then` primitives first and the `else` primitives after them. Inside a procedure the path
+   * starts with the index p of the PROC node and goes on as if the PROC were a loop: [p, j, ...].
    */
   node: number[];
+  /**
+   * The path of the CALL node whose procedure is running this instruction, or null in the main
+   * program. A primitive inside a procedure has `node` `[p, ...]`, where p is the index of the PROC.
+   */
+  call: number[] | null;
   /** 1-based repetition of the loop the instruction ran in; null outside a loop. */
   round: number | null;
   /** State after the step. */

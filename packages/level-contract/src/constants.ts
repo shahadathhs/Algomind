@@ -23,8 +23,26 @@ export const IF_OP = "IF";
 /** What an IF can look at. Each is true when the cell on that side is on the board and not a wall. */
 export const SENSORS = ["CLEAR_AHEAD", "CLEAR_LEFT", "CLEAR_RIGHT"] as const;
 
+/** A named piece of program, defined once at the top level and run by CALL. */
+export const PROC_OP = "PROC";
+
+/** Runs the procedure of that name. Offered together with PROC: a level that lists PROC allows both. */
+export const CALL_OP = "CALL";
+
+/** The names a procedure can have. At most one procedure per name, so at most three. */
+export const PROCEDURE_NAMES = ["A", "B", "C"] as const;
+
 /** Every command a level can offer, in the canonical order. */
-export const COMMAND_NAMES = [...PRIMITIVE_COMMANDS, REPEAT_OP, REPEAT_UNTIL_OP, IF_OP] as const;
+export const COMMAND_NAMES = [
+  ...PRIMITIVE_COMMANDS,
+  REPEAT_OP,
+  REPEAT_UNTIL_OP,
+  IF_OP,
+  PROC_OP,
+] as const;
+
+/** Every op a program node can have: the commands, and CALL, which is offered by PROC. */
+export const NODE_OPS = [...COMMAND_NAMES, CALL_OP] as const;
 
 /** Directions in clockwise order starting at north. */
 export const DIRECTIONS = ["north", "east", "south", "west"] as const;
@@ -50,6 +68,8 @@ export const LIMITS = {
   /** Items in a loop body (primitives and IFs), and the number of repetitions. A loop cannot contain a loop. */
   repeatBody: { min: 1, max: 8 },
   repeatCount: { min: 2, max: 11 },
+  /** Items in a procedure body (primitives, IFs and loops, not CALLs). */
+  procBody: { min: 1, max: 8 },
   /** Primitives in the two branches of an IF. An IF cannot contain an IF or a loop. */
   ifThen: { min: 1, max: 4 },
   ifElse: { min: 0, max: 4 },

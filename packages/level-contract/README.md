@@ -73,6 +73,8 @@ A second loop, `{ "op": "REPEAT_UNTIL", "until": "BLOCKED", "body": [...] }`, ha
 
 A third node, `{ "op": "IF", "when": "CLEAR_RIGHT", "then": [primitives], "else": [primitives] }`, is a decision. `when` is `CLEAR_AHEAD`, `CLEAR_LEFT`, or `CLEAR_RIGHT`: true when the cell on that side of the automaton is on the board and not a wall. `then` holds 1 to 4 primitives, `else` holds 0 to 4 (always present, possibly empty). An `IF` may stand at the top level or as an item of a loop body (a body is 1 to 8 items, each a primitive or an `IF`); an `IF` cannot hold an `IF` (`NESTED_IF`) or a loop (`NESTED_REPEAT`). Reading a sensor costs no step. An `IF` is 1 plus its branches in slots, and a loop is 1 plus the slots of its body items. A level offers it with `IF` in `availableCommands` (the mechanic `if`). Missing, mistyped or unknown `when` is `REQUIRED`, `INVALID_TYPE`, `INVALID_VALUE` at `program[i].when`; a branch outside its length is `LENGTH_OUT_OF_RANGE` at `program[i].then` or `.else`; a missing branch is `REQUIRED`. `REPEAT_UNTIL` also accepts `until: "GOAL"`, which is never true at the start of a round, so that loop runs until the goal, a failure, or the step limit. A round of a `REPEAT_UNTIL` in which no primitive runs would repeat for ever and stops the run with `STEP_LIMIT`. In the trace, a primitive inside an `IF` has `node` `[i, k]` (top level) or `[i, j, k]` (body item `j` of loop `i`), where `k` counts the `then` primitives first and the `else` primitives after them.
 
+Two more nodes define and use procedures: `{ "op": "PROC", "name": "A", "body": [...] }` (top level only) and `{ "op": "CALL", "name": "A" }` (top level, or an item of a loop body of the main program). `name` is `A`, `B`, or `C`. A `PROC` body is 1 to 8 items: primitives, `IF`s, and loops; it cannot hold a `CALL` or a `PROC`. A `PROC` is not run where it stands; a `CALL` runs the first `PROC` of that name. A level offers both by listing `PROC` in `availableCommands` (the mechanic `procedures`). Slots: a `CALL` is 1, a `PROC` is 1 plus the slots of its body. New issue codes: `NESTED_PROC` (a `PROC` that is not at the top level, at its `op`), `CALL_NOT_ALLOWED` (a `CALL` where it may not stand, at its `op`), `DUPLICATE_PROCEDURE` and `UNDEFINED_PROCEDURE` (at `name`), and `name` is `REQUIRED`, `INVALID_TYPE`, or `INVALID_VALUE` like the other fields. Every trace entry carries `call`, the path of the `CALL` that is running it or `null`; a primitive inside a procedure has `node` `[p, ...]` with `p` the index of the `PROC`. The solver ignores `PROC`; par for a level that offers it is the reference solution.
+
 The solver does not search `IF` programs. With `IF` offered it still finds the best program without one (loops included); par for such a level is the author's reference solution, which the publish gate runs.
 
 **Slots.** The command limit counts slots: a primitive is 1, a `REPEAT` is 1 plus the number of instructions in its body. `REPEAT 6 { MOVE_FORWARD, TURN_RIGHT, MOVE_FORWARD, TURN_LEFT }` is 5 slots. `programSlots(program)` computes it.
@@ -81,23 +83,23 @@ The solver does not search `IF` programs. With `IF` offered it still finds the b
 
 All are inclusive. Lengths of strings are counted in Unicode code points (not UTF-16 units or bytes). They live in `src/constants.ts` (`LIMITS`), and a test keeps the JSON Schema in sync.
 
-| Field                         | Limit                                                                                                    |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `schemaVersion`               | must be `1`                                                                                              |
-| `levelId`, `slug`             | 1 to 64 characters, lowercase letters and digits in hyphen-separated groups (`^[a-z0-9]+(-[a-z0-9]+)*$`) |
-| `levelVersion`                | integer, 1 to 1,000,000                                                                                  |
-| `title`                       | 1 to 60 characters                                                                                       |
-| `description`                 | 0 to 280 characters                                                                                      |
-| `difficulty`                  | `easy`, `medium`, or `hard`                                                                              |
-| `requires.mechanics`          | at most 8 entries, unique, each 1 to 32 characters matching `^[a-z][a-z0-9_]*$`                          |
-| `board.width`, `board.height` | integer, 3 to 12                                                                                         |
-| `board.walls`                 | at most 100 unique cells                                                                                 |
-| `availableCommands`           | 1 to 6 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, `REPEAT`, `REPEAT_UNTIL`, `IF`     |
-| `REPEAT` `count`              | integer, 2 to 11                                                                                         |
-| `REPEAT` `body`               | 1 to 8 primitive instructions (no `REPEAT`)                                                              |
-| `constraints.maxCommands`     | integer, 1 to 64                                                                                         |
-| `constraints.maxSteps`        | integer, 1 to 1000                                                                                       |
-| `hints`                       | at most 5 entries, each 1 to 140 characters                                                              |
+| Field                         | Limit                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `schemaVersion`               | must be `1`                                                                                                  |
+| `levelId`, `slug`             | 1 to 64 characters, lowercase letters and digits in hyphen-separated groups (`^[a-z0-9]+(-[a-z0-9]+)*$`)     |
+| `levelVersion`                | integer, 1 to 1,000,000                                                                                      |
+| `title`                       | 1 to 60 characters                                                                                           |
+| `description`                 | 0 to 280 characters                                                                                          |
+| `difficulty`                  | `easy`, `medium`, or `hard`                                                                                  |
+| `requires.mechanics`          | at most 8 entries, unique, each 1 to 32 characters matching `^[a-z][a-z0-9_]*$`                              |
+| `board.width`, `board.height` | integer, 3 to 12                                                                                             |
+| `board.walls`                 | at most 100 unique cells                                                                                     |
+| `availableCommands`           | 1 to 7 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, `REPEAT`, `REPEAT_UNTIL`, `IF`, `PROC` |
+| `REPEAT` `count`              | integer, 2 to 11                                                                                             |
+| `REPEAT` `body`               | 1 to 8 primitive instructions (no `REPEAT`)                                                                  |
+| `constraints.maxCommands`     | integer, 1 to 64                                                                                             |
+| `constraints.maxSteps`        | integer, 1 to 1000                                                                                           |
+| `hints`                       | at most 5 entries, each 1 to 140 characters                                                                  |
 
 `requires.mechanics` names are free-form within the pattern: the validator does not know which mechanics a game build supports; the API and the client compare the list with what they support. The first command set needs no mechanics, so the list is normally empty; `REPEAT` needs the mechanic `repeat`, which the API adds from `availableCommands`.
 

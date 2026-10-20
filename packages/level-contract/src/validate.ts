@@ -2,7 +2,11 @@ import {
   COMMAND_NAMES,
   REPEAT_OP,
   REPEAT_UNTIL_OP,
+  CALL_OP,
   IF_OP,
+  NODE_OPS,
+  PROCEDURE_NAMES,
+  PROC_OP,
   SENSORS,
   UNTIL_CONDITIONS,
   DIFFICULTIES,
@@ -47,6 +51,10 @@ function has(o: Obj, key: string): boolean {
 
 function isInt(v: unknown): v is number {
   return typeof v === "number" && Number.isSafeInteger(v);
+}
+
+function isNodeOp(v: unknown): v is CommandName | typeof CALL_OP {
+  return typeof v === "string" && (NODE_OPS as readonly string[]).includes(v);
 }
 
 function isCommandName(v: unknown): v is CommandName {
@@ -485,37 +493,68 @@ function checkProgram(
     c.add(base, "INVALID_TYPE", `${base} must be an array of instructions.`);
     return;
   }
-  // Slots: a primitive is 1; a loop is 1 plus the slots of its body; an IF is 1 plus its branches.
+  // Slots: a primitive and a CALL are 1; a loop, an IF and a PROC are 1 plus what they hold.
   let slots = 0;
-  /** Where a node stands: at the top, as an item of a loop body, or inside an IF branch. */
-  type Place = "top" | "body" | "branch";
-  const checkOp = (node: Obj, path: string, place: Place): CommandName | null => {
+  /**
+   * Where a node stands: at the top, in the body of a loop of the main program, inside an IF branch, in a
+   * procedure body, or in the body of a loop inside a procedure.
+   */
+  type Place = "top" | "body" | "branch" | "procBody" | "procLoopBody";
+  const procNames = new Set<string>();
+  for (const node of program) {
+    if (isObject(node) && node["op"] === PROC_OP && typeof node["name"] === "string") {
+      procNames.add(node["name"]);
+    }
+  }
+  const defined = new Set<string>();
+
+  /** Checks the op of a node. `nested` is true when the place does not allow it (reported once). */
+  const checkOp = (
+    node: Obj,
+    path: string,
+    place: Place,
+  ): { op: CommandName | typeof CALL_OP | null; nested: boolean } => {
     const opPath = `${path}.op`;
     if (!has(node, "op")) {
       c.add(opPath, "REQUIRED", `${opPath} is required.`);
-      return null;
+      return { op: null, nested: false };
     }
     const op = node["op"];
     if (typeof op !== "string") {
       c.add(opPath, "INVALID_TYPE", `${opPath} must be a string.`);
-      return null;
+      return { op: null, nested: false };
     }
-    if (!isCommandName(op)) {
+    if (!isNodeOp(op)) {
       c.add(opPath, "UNKNOWN_COMMAND", `${opPath} is not a known command.`);
-      return null;
+      return { op: null, nested: false };
     }
-    if (place !== "top" && (op === REPEAT_OP || op === REPEAT_UNTIL_OP)) {
+    const isLoopOp = op === REPEAT_OP || op === REPEAT_UNTIL_OP;
+    const loopAllowed = place === "top" || place === "procBody";
+    if (isLoopOp && !loopAllowed) {
       c.add(opPath, "NESTED_REPEAT", `${opPath}: a loop cannot contain a loop.`);
-      return null;
+      return { op: null, nested: true };
     }
-    if (place === "branch" && op === IF_OP) {
+    if (op === IF_OP && place === "branch") {
       c.add(opPath, "NESTED_IF", `${opPath}: an IF cannot contain an IF.`);
-      return null;
+      return { op: null, nested: true };
     }
-    if (limits.available && !limits.available.includes(op)) {
+    if (op === PROC_OP && place !== "top") {
+      c.add(opPath, "NESTED_PROC", `${opPath}: a procedure can only be defined at the top level.`);
+      return { op: null, nested: true };
+    }
+    if (op === CALL_OP && place !== "top" && place !== "body") {
+      c.add(
+        opPath,
+        "CALL_NOT_ALLOWED",
+        `${opPath}: a CALL stands at the top level or in a loop of the main program.`,
+      );
+      return { op: null, nested: true };
+    }
+    const needed = op === CALL_OP ? PROC_OP : op;
+    if (limits.available && !limits.available.includes(needed)) {
       c.add(opPath, "COMMAND_NOT_AVAILABLE", `${op} is not available in this level.`);
     }
-    return op;
+    return { op, nested: false };
   };
 
   const allowedKeys = (op: string | null): string[] =>
@@ -525,9 +564,13 @@ function checkProgram(
         ? ["op", "until", "body"]
         : op === IF_OP
           ? ["op", "when", "then", "else"]
-          : ["op"];
+          : op === PROC_OP
+            ? ["op", "name", "body"]
+            : op === CALL_OP
+              ? ["op", "name"]
+              : ["op"];
 
-  /** An array of instructions of one place: returns the objects, or null when it is not an array. */
+  /** An array of instructions of one place: returns the list, or null when it is not an array. */
   const checkList = (
     node: Obj,
     key: string,
@@ -555,6 +598,69 @@ function checkProgram(
     return list;
   };
 
+  /** The name of a PROC or a CALL. */
+  const checkName = (node: Obj, path: string): string | null => {
+    const namePath = `${path}.name`;
+    if (!has(node, "name")) {
+      c.add(namePath, "REQUIRED", `${namePath} is required.`);
+    } else if (typeof node["name"] !== "string") {
+      c.add(namePath, "INVALID_TYPE", `${namePath} must be a string.`);
+    } else if (!(PROCEDURE_NAMES as readonly string[]).includes(node["name"])) {
+      c.add(namePath, "INVALID_VALUE", `${namePath} must be one of ${PROCEDURE_NAMES.join(", ")}.`);
+    } else {
+      return node["name"];
+    }
+    return null;
+  };
+
+  /** One instruction in a place: checks it, counts its slots, and goes into what it holds. */
+  const checkItem = (item: unknown, path: string, place: Place): void => {
+    if (!isObject(item)) {
+      c.add(path, "INVALID_TYPE", `${path} must be an instruction object.`);
+      slots += 1;
+      return;
+    }
+    const { op, nested } = checkOp(item, path, place);
+    // A node the place does not allow is reported once, not field by field.
+    if (!nested) {
+      rejectUnknown(
+        c,
+        item,
+        path,
+        allowedKeys(op ?? (typeof item["op"] === "string" ? null : null)),
+      );
+    }
+    slots += 1;
+    if (op === REPEAT_OP || op === REPEAT_UNTIL_OP) {
+      checkLoop(item, path, op, place === "procBody" ? "procLoopBody" : "body");
+    } else if (op === IF_OP) {
+      checkIf(item, path);
+    } else if (op === PROC_OP) {
+      checkProc(item, path);
+    } else if (op === CALL_OP) {
+      const name = checkName(item, path);
+      if (name !== null && !procNames.has(name)) {
+        c.add(
+          `${path}.name`,
+          "UNDEFINED_PROCEDURE",
+          `${path}.name: no procedure ${name} is defined.`,
+        );
+      }
+    }
+  };
+
+  const checkProc = (node: Obj, path: string): void => {
+    const name = checkName(node, path);
+    if (name !== null) {
+      if (defined.has(name)) {
+        c.add(`${path}.name`, "DUPLICATE_PROCEDURE", `${path}.name: ${name} is defined twice.`);
+      }
+      defined.add(name);
+    }
+    const body = checkList(node, "body", path, LIMITS.procBody, true);
+    body?.forEach((inner, j) => checkItem(inner, `${path}.body[${j}]`, "procBody"));
+  };
+
   /** The fields and branches of an IF node whose op was already checked. */
   const checkIf = (node: Obj, path: string): void => {
     const whenPath = `${path}.when`;
@@ -570,24 +676,11 @@ function checkProgram(
       ["else", LIMITS.ifElse, true],
     ] as const) {
       const list = checkList(node, key, path, range, required);
-      if (!list) continue;
-      slots += list.length;
-      list.forEach((inner, j) => {
-        const innerPath = `${path}.${key}[${j}]`;
-        if (!isObject(inner)) {
-          c.add(innerPath, "INVALID_TYPE", `${innerPath} must be an instruction object.`);
-          return;
-        }
-        // A nested loop or IF is reported once, not field by field.
-        const innerOp = inner["op"];
-        const nested = innerOp === REPEAT_OP || innerOp === REPEAT_UNTIL_OP || innerOp === IF_OP;
-        if (!nested) rejectUnknown(c, inner, innerPath, ["op"]);
-        checkOp(inner, innerPath, "branch");
-      });
+      list?.forEach((inner, j) => checkItem(inner, `${path}.${key}[${j}]`, "branch"));
     }
   };
 
-  const checkLoop = (node: Obj, path: string, known: CommandName): void => {
+  const checkLoop = (node: Obj, path: string, known: CommandName, bodyPlace: Place): void => {
     if (known === REPEAT_OP) {
       const countPath = `${path}.count`;
       if (!has(node, "count")) {
@@ -615,41 +708,11 @@ function checkProgram(
         );
       }
     }
-
     const body = checkList(node, "body", path, LIMITS.repeatBody, true);
-    if (!body) return;
-    body.forEach((inner, j) => {
-      const innerPath = `${path}.body[${j}]`;
-      if (!isObject(inner)) {
-        c.add(innerPath, "INVALID_TYPE", `${innerPath} must be an instruction object.`);
-        slots += 1;
-        return;
-      }
-      const innerOp = typeof inner["op"] === "string" ? inner["op"] : null;
-      // A nested loop is reported once, as NESTED_REPEAT, not field by field.
-      if (innerOp !== REPEAT_OP && innerOp !== REPEAT_UNTIL_OP) {
-        rejectUnknown(c, inner, innerPath, allowedKeys(innerOp));
-      }
-      const innerKnown = checkOp(inner, innerPath, "body");
-      slots += 1;
-      if (innerKnown === IF_OP) checkIf(inner, innerPath);
-    });
+    body?.forEach((inner, j) => checkItem(inner, `${path}.body[${j}]`, bodyPlace));
   };
 
-  program.forEach((node, i) => {
-    const path = `${base}[${i}]`;
-    if (!isObject(node)) {
-      c.add(path, "INVALID_TYPE", `${path} must be an instruction object.`);
-      slots += 1;
-      return;
-    }
-    const op = typeof node["op"] === "string" ? node["op"] : null;
-    rejectUnknown(c, node, path, allowedKeys(op));
-    const known = checkOp(node, path, "top");
-    slots += 1;
-    if (known === REPEAT_OP || known === REPEAT_UNTIL_OP) checkLoop(node, path, known);
-    else if (known === IF_OP) checkIf(node, path);
-  });
+  program.forEach((node, i) => checkItem(node, `${base}[${i}]`, "top"));
   if (limits.max !== null && slots > limits.max) {
     c.add(
       base,
