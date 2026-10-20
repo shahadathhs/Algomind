@@ -18,7 +18,8 @@
     "tokens:check": "pnpm --filter @algomind/design-tokens check",
     "colors:check": "node scripts/check-colors.mjs",
     "size:check": "node scripts/check-file-size.mjs",
-    "smoke:web": "node scripts/web-smoke.mjs"
+    "smoke:web": "node scripts/web-smoke.mjs",
+    "smoke:api": "node scripts/api-social-smoke.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
