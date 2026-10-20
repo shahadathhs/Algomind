@@ -1,9 +1,9 @@
 import type { BoardData } from "@/lib/board";
 
 /**
- * Static sample boards for the landing page. These are illustrations of the board language, not
- * published levels: the API has no levels yet. When it does, the levels strip fetches published
- * boards and falls back to these so the page never depends on the API being up.
+ * Static sample boards for the landing page's levels strip. They are illustrations of the board
+ * language, not published levels. The strip shows real published boards (getCampaign) and falls
+ * back to these only when the API cannot be reached, so the page never depends on it being up.
  */
 export type SampleLevel = { id: string; title: string; board: BoardData };
 

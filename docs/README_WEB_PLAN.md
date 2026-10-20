@@ -18,7 +18,7 @@
 
 | Route                      | Purpose                                                            | Rendering                                     |
 | -------------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
-| `/`                        | Landing: explain the game and drive the download                   | Static                                        |
+| `/`                        | Landing: explain the game and drive the download                   | Per request; fetches cached (see below)       |
 | `/download`                | Install page: the APK, install steps, QR code for desktop visitors | Static shell, release data revalidated hourly |
 | `/how-to-play`             | The commands, loops, the tape, what failure messages mean          | Static                                        |
 | `/privacy`                 | What is and is not collected; account deletion instructions        | Static                                        |
@@ -79,7 +79,8 @@ The page must make sideloading feel safe and easy.
 ## 6. Technical decisions
 
 - **Same Next.js app** as the dashboard, in the `(public)` route group, with its own components (`components/public`) sharing `components/ui` and the generated design tokens.
-- **Static first:** the landing and static pages are pre-rendered; the download page revalidates hourly; level pages (later) revalidate on publish.
+- **Static first:** the legal and help pages are pre-rendered; the download page revalidates hourly. The landing page and `/levels` read the live campaign, so they render per request (`connection()`) while their fetches cache for a minute; a build made while the API is down or asleep therefore never bakes in a fallback or an error.
+- **The landing drawings** are computed from one real level and one real world (`lib/landing-level.ts`, a copy of the seed) with the contract's solver and simulator, and `apps/api/test/landing-sync.test.ts` fails when the seed and the copy disagree. The levels strip shows real published boards spread over the campaign, falling back to static samples only when the API cannot be reached.
 - **No JavaScript required** for any content or for downloading. The theme follows `prefers-color-scheme`; the toggle is a progressive enhancement (it appears only after hydration, and an explicit choice is kept in `localStorage` on the device only, never sent anywhere).
 - **Responsive by container:** the landing and download pages collapse to one column on narrow screens; nothing is clipped horizontally.
 - **Boards and tape are rendered from real data** by the shared tile renderer (also used by the dashboard preview), as inline SVG, never as screenshots.

@@ -34,8 +34,9 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 **Verify**
 
 - [x] `make check` green (lint, typecheck, API and game tests pass; the full run is not yet repeated) (green on `dev` after the refactor)
-- [x] Game plays the new levels (screenshots checked: palette starts with Move only)
-- [ ] Dashboard lists the new levels; `/levels` and `/play` show them
+- [x] Game plays the new levels (screenshots checked; every level offers Move, Left and Right from the start, by the owner's call: a new player can handle three tiles)
+- [x] `/levels` and the home page show the new levels (both render per request now; the home drawings are computed from a real level and guarded by a test)
+- [ ] Dashboard lists the new levels; `/play` shows them
 - [x] Screenshots reviewed at 360x640 and 412x915 (play ready, running, failed, solved, big board; pause; worlds; world; home; settings; account; how-to-play): the pause scrim is now opaque. Not every one of the 102 was looked at by eye; the rest were checked identical before and after the `play.gd` split
 
 ## Next: step 2, `REPEAT` in the editor and the dashboard

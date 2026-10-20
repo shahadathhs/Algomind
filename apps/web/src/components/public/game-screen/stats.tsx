@@ -1,11 +1,12 @@
 import { TileGraphic } from "@/components/ui/tile-graphic";
+import { SOLVED_STATS } from "@/lib/sample-screens";
 import { SvgCaption, TEXT } from "./svg-text";
 
 export function Stats() {
   const stats = [
-    { value: "9 / 10", label: "COMMANDS" },
-    { value: "9", label: "STEPS" },
-    { value: "8", label: "BEST" },
+    { value: `${SOLVED_STATS.used} / ${SOLVED_STATS.limit}`, label: "COMMANDS" },
+    { value: String(SOLVED_STATS.steps), label: "STEPS" },
+    { value: String(SOLVED_STATS.best), label: "BEST" },
   ];
   return (
     <g>

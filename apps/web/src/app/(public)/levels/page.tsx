@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { DownloadBand } from "@/components/public/download-band";
 import { WorldSection } from "@/components/public/world-section";
 import { Container } from "@/components/ui/container";
@@ -17,9 +18,10 @@ export const metadata: Metadata = pageMetadata({
   path: "/levels",
 });
 
-export const revalidate = 60;
-
+// Rendered per request, not prerendered at build, so a build made while the API is down or asleep
+// never serves "could not be loaded". The campaign fetch still caches for a minute.
 export default async function LevelsPage() {
+  await connection();
   const campaign = await getCampaign();
   const worlds = campaign.status === "available" ? campaign.worlds : [];
   const total = worlds.reduce((sum, world) => sum + levelCount(world), 0);

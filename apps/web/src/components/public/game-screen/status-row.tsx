@@ -1,6 +1,6 @@
 import { CommandIcon } from "@/components/ui/command-icon";
 import { TileGraphic } from "@/components/ui/tile-graphic";
-import { COMMAND_BUDGET } from "@/lib/sample-screens";
+import { COMMAND_BUDGET, READY_COUNT, SOLUTION } from "@/lib/sample-screens";
 import { TILE_TONE } from "@/lib/tile-variants";
 import type { GameScreenState } from "../game-screen";
 import { TEXT } from "./svg-text";
@@ -70,7 +70,7 @@ export function StatusRow({ state }: { state: GameScreenState }) {
         className="fill-mute"
         {...TEXT}
       >
-        {state === "ready" ? `4 / ${COMMAND_BUDGET} COMMANDS` : `9 / ${COMMAND_BUDGET} COMMANDS`}
+        {`${state === "ready" ? READY_COUNT : SOLUTION.length} / ${COMMAND_BUDGET} COMMANDS`}
       </text>
     </g>
   );

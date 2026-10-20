@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { JsonLd } from "@/components/public/json-ld";
 import { DownloadBand } from "@/components/public/download-band";
 import { Hero } from "@/components/public/hero";
@@ -9,7 +10,8 @@ import { ShortList } from "@/components/public/short-list";
 import { getLatestRelease } from "@/lib/releases";
 import { mobileApplicationJsonLd, pageMetadata, websiteJsonLd } from "@/lib/seo";
 
-export const revalidate = 3600;
+// Rendered per request (see LandingPage): the levels strip reads the live campaign, and a build made
+// while the API is down or asleep must not bake in its fallback. The fetches inside still cache.
 
 export const metadata: Metadata = pageMetadata({
   title: "Algomind: a programming puzzle for Android",
@@ -21,6 +23,7 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function LandingPage() {
+  await connection();
   const release = await getLatestRelease();
   return (
     <>

@@ -6,7 +6,7 @@ import { BoardView } from "@/components/ui/board-view";
 import { CommandTile } from "@/components/ui/command-tile";
 import { TapeView } from "@/components/ui/tape-view";
 import type { Command } from "@/lib/board";
-import { FAILED_BOARD, READY_BOARD, SOLUTION } from "@/lib/sample-screens";
+import { FAILED_BOARD, READY_BOARD, RUNNING_STEP, SOLUTION } from "@/lib/sample-screens";
 import { tapeFromProgram } from "@/lib/tape";
 import { pageMetadata } from "@/lib/seo";
 
@@ -56,7 +56,7 @@ export default function HowToPlayPage() {
         <div className="max-w-[260px]">
           <BoardView
             board={READY_BOARD}
-            label="A board with four walls, the automaton at the bottom left facing up, and the yellow target on the right."
+            label="A board with a wall of three cells, the automaton at the bottom right facing up, and the yellow target just above the wall."
           />
         </div>
         <p>
@@ -98,8 +98,8 @@ export default function HowToPlayPage() {
       <ProseSection title="The tape">
         <div className="max-w-[420px]">
           <TapeView
-            tiles={tapeFromProgram(SOLUTION, { current: 4 })}
-            head={4}
+            tiles={tapeFromProgram(SOLUTION, { current: RUNNING_STEP })}
+            head={RUNNING_STEP}
             label="A tape mid-run. Instructions already run are solid, the current one is yellow under the read-head, and the rest are outlined."
           />
         </div>
