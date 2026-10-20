@@ -3,6 +3,8 @@ import { scoreResult, type Difficulty } from "@algomind/level-contract";
 import type { Prisma } from "../../generated/prisma/client.js";
 import { conflict, notFound, unprocessable } from "../../core/http/errors.js";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
+import { AchievementsService } from "../achievements/achievements.service.js";
+import { DailyService } from "../daily/daily.service.js";
 import { asPar } from "../levels/level-views.js";
 import { PointsRulesService } from "./points-rules.service.js";
 import type { PointsView, SubmissionBody, SubmissionResult } from "./points.schemas.js";
@@ -18,6 +20,8 @@ export class SubmissionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly rules: PointsRulesService,
+    private readonly daily: DailyService,
+    private readonly achievements: AchievementsService,
   ) {}
 
   async submit(userId: string, input: SubmissionBody): Promise<SubmissionResult> {
@@ -52,7 +56,7 @@ export class SubmissionsService {
 
     const hash = programHash(input.program);
     const content = version.content as { difficulty: Difficulty };
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // One player's submissions take turns, so two devices cannot both award the same bonus.
       await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
       await tx.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } });
@@ -74,6 +78,7 @@ export class SubmissionsService {
           awarded: 0,
           total: await this.total(tx, userId),
           ruleVersion: earlier.ruleVersion,
+          daily: await this.claimDaily(tx, userId, input, version.versionNumber, earlier),
         };
       }
       const rules = await this.rules.active(tx);
@@ -124,7 +129,32 @@ export class SubmissionsService {
         awarded,
         total: await this.total(tx, userId),
         ruleVersion: rules.version,
+        daily: await this.claimDaily(tx, userId, input, version.versionNumber, {
+          slots: verified.slots,
+          steps: verified.steps,
+          stars: score.stars,
+        }),
       };
+    });
+    // Badges are read after the result is stored, from everything the player has verified.
+    const earned = await this.achievements.evaluate(userId);
+    return { ...result, ...(earned.length > 0 ? { achievements: earned } : {}) };
+  }
+
+  /** Counts the result for a daily challenge when the submission claims one. */
+  private async claimDaily(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    input: SubmissionBody,
+    versionNumber: number,
+    result: { slots: number; steps: number; stars: number },
+  ) {
+    if (!input.dailyDate) return undefined;
+    return this.daily.record(tx, userId, {
+      date: input.dailyDate,
+      slug: input.levelSlug,
+      version: versionNumber,
+      ...result,
     });
   }
 

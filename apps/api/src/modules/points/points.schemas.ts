@@ -47,6 +47,11 @@ export const submissionBodySchema = z.object({
     .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
   levelVersion: z.number().int().min(1).max(1_000_000),
   program: z.array(node).min(1).max(64),
+  /** Claims the result for a daily challenge: the UTC date of the day it was played. */
+  dailyDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 export type SubmissionBody = z.infer<typeof submissionBodySchema>;
 
@@ -61,6 +66,10 @@ export type SubmissionResult = {
   awarded: number;
   total: number;
   ruleVersion: number;
+  /** Set when the submission claimed a daily challenge: whether it counted, and the streak. */
+  daily?: { accepted: boolean; streak: { current: number; best: number } };
+  /** Badges this submission earned just now. */
+  achievements?: { slug: string; title: string }[];
 };
 
 export type PointsView = {

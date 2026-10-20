@@ -98,8 +98,15 @@ export class CatalogService {
   }
 
   async level(slug: string): Promise<{ body: PublicLevel; versionId: string }> {
+    // A daily-pool level has no chapter but may be fetched by slug: the game gets its slug from the
+    // daily endpoint. The campaign and the level list never include it.
     const row = await this.prisma.level.findFirst({
-      where: { slug, ...PLAYABLE },
+      where: {
+        slug,
+        status: "PUBLISHED",
+        currentPublishedVersionId: { not: null },
+        OR: [{ chapterId: { not: null } }, { dailyPool: true }],
+      },
       include: { currentPublishedVersion: true },
     });
     const version = row?.currentPublishedVersion;

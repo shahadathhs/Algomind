@@ -1,7 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { conflict, notFound } from "../../core/http/errors.js";
+import { conflict, isUniqueViolation, notFound } from "../../core/http/errors.js";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
 import { AuditService, type AuditAction } from "../audit/audit.service.js";
+import { deleteReportsOf } from "../leaderboards/reports.service.js";
+import { nameKey } from "../profile/name-rules.js";
 
 /**
  * What an admin can do to one player. Each action runs in one transaction with its audit event,
@@ -100,7 +102,20 @@ export class PlayersActionsService {
   ): Promise<{ displayName: string | null }> {
     return this.prisma.$transaction(async (tx) => {
       const user = await this.player(tx, id);
-      await tx.user.update({ where: { id }, data: { displayName } });
+      try {
+        await tx.user.update({
+          where: { id },
+          data: {
+            displayName,
+            displayNameKey: displayName ? nameKey(displayName) : null,
+            // A cleared name leaves nothing to show, so the player leaves the boards until they pick one.
+            ...(displayName === null && !user.hideName ? { leaderboardOptIn: false } : {}),
+          },
+        });
+      } catch (error) {
+        if (isUniqueViolation(error)) throw conflict("NAME_TAKEN", "That name is already taken.");
+        throw error;
+      }
       await this.record(tx, adminId, "PLAYER_NAME_CHANGED", id, {
         email: user.email,
         from: user.displayName,
@@ -143,6 +158,7 @@ export class PlayersActionsService {
         throw conflict("EMAIL_MISMATCH", "The email typed does not match the player's email.");
       }
       await this.record(tx, adminId, "PLAYER_DELETED", id, { email: user.email });
+      await deleteReportsOf(tx, id, user.publicId);
       await tx.user.delete({ where: { id } });
     });
   }

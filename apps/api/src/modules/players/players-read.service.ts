@@ -25,6 +25,8 @@ type Row = {
   status: "ACTIVE" | "SUSPENDED";
   createdAt: Date;
   lastActiveAt: Date | null;
+  leaderboardOptIn: boolean;
+  leaderboardHidden: boolean;
   levelsCleared: number;
   points: number;
 };
@@ -56,6 +58,7 @@ export class PlayersReadService {
     );
     const rows = await this.prisma.$queryRaw<Row[]>`
       SELECT u.id, u.email, u."displayName", u.status, u."createdAt", u."lastActiveAt",
+             u."leaderboardOptIn", u."leaderboardHidden",
              COALESCE(p.cleared, 0)::int AS "levelsCleared", COALESCE(l.points, 0)::int AS points
       FROM "User" u
       LEFT JOIN (SELECT "userId", count(*) AS cleared FROM "LevelProgress" GROUP BY 1) p
@@ -107,6 +110,10 @@ export class PlayersReadService {
         status: user.status,
         createdAt: user.createdAt.toISOString(),
         lastActiveAt: iso(user.lastActiveAt),
+        publicId: user.publicId,
+        leaderboardOptIn: user.leaderboardOptIn,
+        hideName: user.hideName,
+        leaderboardHidden: user.leaderboardHidden,
       },
       progress: progress.map((p) => ({
         levelSlug: p.levelSlug,
@@ -144,6 +151,14 @@ export class PlayersReadService {
       where: { userId: id },
       orderBy: { createdAt: "asc" },
     });
+    const [dailyResults, badges, shares] = await Promise.all([
+      this.prisma.dailyResult.findMany({ where: { userId: id }, orderBy: { date: "asc" } }),
+      this.prisma.playerAchievement.findMany({
+        where: { userId: id },
+        include: { achievement: { select: { slug: true, title: true } } },
+      }),
+      this.prisma.shareLink.findMany({ where: { userId: id }, orderBy: { createdAt: "asc" } }),
+    ]);
     await this.prisma.$transaction((tx) =>
       this.audit.record(tx, {
         userId: adminId,
@@ -166,6 +181,27 @@ export class PlayersReadService {
         program: s.program,
         createdAt: s.createdAt.toISOString(),
       })),
+      dailyResults: dailyResults.map((r) => ({
+        date: r.date,
+        levelSlug: r.levelSlug,
+        slots: r.slots,
+        steps: r.steps,
+        stars: r.stars,
+      })),
+      badges: badges.map((b) => ({
+        slug: b.achievement.slug,
+        title: b.achievement.title,
+        earnedAt: b.earnedAt.toISOString(),
+      })),
+      shareLinks: shares.map((s) => ({
+        code: s.code,
+        kind: s.kind,
+        levelSlug: s.levelSlug,
+        date: s.date,
+        slots: s.slots,
+        steps: s.steps,
+        createdAt: s.createdAt.toISOString(),
+      })),
     };
   }
 }
@@ -178,6 +214,8 @@ function toSummary(row: Row): PlayerSummary {
     status: row.status,
     createdAt: row.createdAt.toISOString(),
     lastActiveAt: iso(row.lastActiveAt),
+    leaderboardOptIn: row.leaderboardOptIn,
+    leaderboardHidden: row.leaderboardHidden,
     levelsCleared: row.levelsCleared,
     points: row.points,
   };

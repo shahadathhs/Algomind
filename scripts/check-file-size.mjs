@@ -27,6 +27,7 @@ const SKIP_DIRS = new Set([
 // Files allowed over the ceiling, with the reason (docs/README_CODE_STANDARDS.md, section 8).
 const EXEMPT = new Map([
   ["apps/api/src/modules/seed/starter-campaign.data.ts", "pure data, one entry per level"],
+  ["apps/api/src/modules/seed/daily-pool.data.ts", "pure data, one entry per level"],
   ["apps/game/scripts/contract/level_validator.gd", "contract mirror of validate.ts"],
   ["packages/level-contract/src/validate.ts", "contract mirror of level_validator.gd"],
 ]);
