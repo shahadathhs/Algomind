@@ -3,6 +3,7 @@ extends RefCounted
 ## Places the play screen's children for the current size and session state.
 
 const GAP := 10.0
+const ACTION_HEIGHT := 44.0
 
 
 static func apply(p: PlayScreen) -> void:
@@ -16,7 +17,13 @@ static func apply(p: PlayScreen) -> void:
 
 	var controls_y := p.size.y - p.inset_bottom() - m - control_h
 	var row_y := controls_y - 10.0 - control_h
-	var cursor := _tape_area(p, m, row_y - (10.0 if compact else 6.0), width, compact)
+	var tape_bottom := row_y - (10.0 if compact else 6.0)
+	if p._session.state == PlaySession.State.SUCCEEDED:
+		# Share and Ranking sit in a row of their own above the result figures.
+		var actions_y := row_y - 8.0 - ACTION_HEIGHT
+		_place_row([p._share, p._ranking], actions_y, ACTION_HEIGHT, width, m)
+		tape_bottom = actions_y - 8.0
+	var cursor := _tape_area(p, m, tape_bottom, width, compact)
 	var board_h := cursor - y
 	var side := minf(width, board_h)
 	p._board.size = Vector2(side, side)
@@ -118,7 +125,7 @@ static func _place_row(nodes: Array, row_y: float, height: float, width: float, 
 static func _place_controls(
 	p: PlayScreen, row_y: float, height: float, width: float, m: float
 ) -> void:
-	var rows: Array = p._control_plan()
+	var rows: Array = control_plan(p)
 	var total_weight := 0.0
 	for item: Array in rows:
 		total_weight += float(item[1])
@@ -129,3 +136,16 @@ static func _place_controls(
 		button.position = Vector2(x, row_y)
 		button.size = Vector2(w, height)
 		x += w + GAP
+
+
+## Which control buttons are shown in the bottom row, with relative widths.
+static func control_plan(p: PlayScreen) -> Array:
+	match p._session.state:
+		PlaySession.State.SUCCEEDED:
+			if p.app.campaign.next_after(p._entry["id"]).is_empty():
+				return [[p._levels, 0.4], [p._replay, 0.6]]
+			return [[p._levels, 0.27], [p._replay, 0.3], [p._next, 0.43]]
+		PlaySession.State.FAILED:
+			return [[p._reset, 0.38], [p._edit, 0.62]]
+		_:
+			return [[p._step, 0.28], [p._run, 0.44], [p._reset, 0.28]]

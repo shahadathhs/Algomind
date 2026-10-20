@@ -122,7 +122,7 @@ static func label(value: String, size: int, color: Color, spacing: int = 1) -> L
 
 ## Draws a command or control icon inside a square of side `s` centered on `c`.
 ## Kinds: move, left, right, back, play, pause, step, reset, plus, x, check, lock, prev, next,
-## menu, help, download, up, offline.
+## menu, help, download, up, offline, star.
 static func icon(canvas: CanvasItem, kind: String, c: Vector2, s: float, color: Color) -> void:
 	var w := maxf(2.0, s * 0.12)
 	match kind:
@@ -245,6 +245,8 @@ static func icon(canvas: CanvasItem, kind: String, c: Vector2, s: float, color: 
 		"up":
 			canvas.draw_rect(Rect2(c.x - w / 2.0, c.y - s * 0.06, w, s * 0.46), color)
 			_triangle(canvas, c + Vector2(0, -s * 0.4), Vector2(0, 1), s * 0.56, s * 0.4, color)
+		"star":
+			StarGlyph.draw(canvas, c, s * 0.5, color, true)
 		"offline":
 			for i in 3:
 				var radius := s * (0.12 + 0.14 * float(i + 1))

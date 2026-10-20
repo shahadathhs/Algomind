@@ -13,16 +13,26 @@ const SCREENS := {
 	"load_error": "res://scenes/load_error.tscn",
 	"update_required": "res://scenes/update_required.tscn",
 	"settings": "res://scenes/settings.tscn",
+	"profile": "res://scenes/profile.tscn",
+	"badges": "res://scenes/badges.tscn",
+	"leaderboard": "res://scenes/leaderboard.tscn",
+	"daily": "res://scenes/daily.tscn",
 }
 
 var _state: AppState
 var _screen: ScreenBase
+## Debug screenshots: kept here because a Callable does not keep its object alive.
+var _shot_servers: Array[ShotServer] = []
 
 
 func _ready() -> void:
-	var store := ProgressStore.new()
-	store.load_data()
 	var options := _debug_options()
+	# Screenshots use a clean store of their own, never the player's real files.
+	var store := ProgressStore.new(
+		"user://progress_shot.json" if options.has("shot") else "user://progress.json"
+	)
+	if not options.has("shot"):
+		store.load_data()
 	if options.has("shot"):
 		# Screenshots always use the bundled levels, never whatever is cached on this machine.
 		_state = AppState.new(
@@ -41,11 +51,16 @@ func _ready() -> void:
 	_state.account_client = AccountClient.new(account, api.send_json)
 	_state.account_sync = AccountSync.new(_state.account_client, store)
 	add_child(_state.account_sync)
+	_state.social = SocialClient.new(_state.account_client)
+	_state.daily = DailyStore.new()
+	_state.daily.load_data()
 	_state.request_sync()
 	for message in _state.campaign.errors:
 		push_warning(message)
 	_show("home", {})
 	_state.refresh_content()
+	if _state.has_social():
+		_state.refresh_daily()
 
 
 func _notification(what: int) -> void:
@@ -73,6 +88,10 @@ func _on_navigate(target: String, args: Dictionary) -> void:
 # godot --path apps/game -- --shot=out.png --screen=play --level=the-wall --theme=dark
 #   --size=390x844 --program=MMLMM --steps=-1 --done=3
 # Renders one screen into an off-screen viewport of the given size, saves a PNG, and quits.
+# The social screens use canned answers (ShotServer, no network): --account=you@example.com signs
+# a player in; --fake=ok|offline|empty|notopted|off_page|error picks the situation; --cached
+# loads the daily first and then goes offline; --daily=DATE plays the daily of that date;
+# --daily-slots=N, --streak=CURRENT,BEST, --newbadges=1 and --period=week fill in the rest.
 
 
 func _debug_options() -> Dictionary:
@@ -98,6 +117,7 @@ func _debug_screenshot(options: Dictionary) -> void:
 		shot_account.start(String(options["account"]), "shot-refresh-token")
 		shot_account.last_sync_at = Time.get_unix_time_from_system() - 120.0
 		_state.account = shot_account
+	await _fake_social(options)
 	_state.progress.settings.set_theme(String(options.get("theme", "light")))
 	_state.progress.settings.set_reduce_motion(true)
 	for i in int(options.get("done", "0")):
@@ -118,7 +138,12 @@ func _debug_screenshot(options: Dictionary) -> void:
 		"level_id": level_id,
 		"world": int(options.get("world", "0")),
 		"title": String(options.get("title", "Around the wall")),
+		"scope": String(options.get("scope", "points")),
+		"key": String(options.get("key", "")),
+		"period": String(options.get("period", "all")),
 	}
+	if options.has("daily"):
+		screen_args["daily"] = String(options["daily"])
 	screen.setup(_state, screen_args)
 	if target == "play":
 		screen.persist = false
@@ -127,9 +152,9 @@ func _debug_screenshot(options: Dictionary) -> void:
 	if target == "play" and options.has("program"):
 		screen.debug_show(String(options["program"]), int(options.get("steps", "0")))
 	if target == "play" and options.has("select"):
-		screen.debug_select(int(options["select"]))
+		PlayDebug.select(screen, int(options["select"]))
 	if target == "play" and options.has("overlay"):
-		screen.debug_overlay(String(options["overlay"]))
+		PlayDebug.overlay(screen, String(options["overlay"]))
 	# Controls settle their size over a few frames; wait before capturing.
 	for i in 8:
 		await get_tree().process_frame
@@ -137,3 +162,31 @@ func _debug_screenshot(options: Dictionary) -> void:
 	var image := viewport.get_texture().get_image()
 	image.save_png(String(options["shot"]))
 	get_tree().quit()
+
+
+## Debug only: a signed-in or signed-out player and a server that answers from ShotServer.
+func _fake_social(options: Dictionary) -> void:
+	var level: Dictionary = _state.campaign.entry_by_id("first-turn")["level"]
+	var online := ShotServer.new("ok", level)
+	var server := ShotServer.new(String(options.get("fake", "ok")), level)
+	_shot_servers.assign([online, server])
+	_state.fetcher = server.fetch
+	if _state.account == null:
+		_state.account = Account.new("user://account_shot.json")
+	_state.daily = DailyStore.new("user://daily_shot.json", "user://daily_shot")
+	_state.daily.content.clear()
+	if options.has("cached"):
+		await _state.daily.refresh(online.fetch)
+	_state.account_client = AccountClient.new(_state.account, server.send)
+	_state.social = SocialClient.new(_state.account_client)
+	var results := _state.progress.results
+	if options.has("daily-slots"):
+		results.daily_best[ShotServer.DATE] = {
+			"levelSlug": "daily-elm", "slots": int(options["daily-slots"])
+		}
+	if options.has("streak"):
+		var parts := String(options["streak"]).split(",")
+		results.streak = {"current": int(parts[0]), "best": int(parts[parts.size() - 1])}
+	if options.has("newbadges"):
+		results.badges = ["First clear", "Daily start"]
+	await _state.refresh_daily()

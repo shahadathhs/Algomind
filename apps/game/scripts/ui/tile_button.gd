@@ -20,6 +20,8 @@ var font_size := 20
 var disabled := false
 ## Icon above the label instead of beside it (level tiles).
 var stacked := false
+## 1 to 3 solid stars (of three) drawn in place of the icon of a stacked tile; 0 for none.
+var stars := 0
 ## Where a TERTIARY label sits in its box.
 var align := HORIZONTAL_ALIGNMENT_CENTER
 
@@ -102,6 +104,12 @@ func _draw() -> void:
 
 
 func _draw_content(rect: Rect2, color: Color) -> void:
+	if stacked and stars > 0:
+		var radius := clampf(rect.size.x * 0.1, 4.0, 8.0)
+		StarGlyph.row(self, Vector2(rect.size.x / 2.0, rect.size.y * 0.27), stars, 3, radius, color)
+		var below := Rect2(0, rect.size.y * 0.42, rect.size.x, rect.size.y * 0.5)
+		UiKit.text(self, label, below, font_size, color, 1)
+		return
 	if stacked and icon != "":
 		var small := float(font_size) * 0.7
 		UiKit.icon(self, icon, Vector2(rect.size.x / 2.0, rect.size.y * 0.3), small, color)

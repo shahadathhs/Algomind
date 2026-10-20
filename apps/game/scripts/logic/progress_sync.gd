@@ -5,8 +5,9 @@ extends RefCounted
 ## on the device; the merge is applied only after the server answered, and it only adds or
 ## improves (see ProgressStore.merge_completions), so running it twice gives the same result.
 ##
-## Programs the player solved are sent here too, one request per level, for the server to verify
-## and score (see PlayerResults). The client never sends a score, only the program.
+## Programs the player solved are sent here too, one request per level (and per daily date), for
+## the server to verify and score (see PlayerResults). The client never sends a score, only the
+## program.
 ##
 ## Result: { status } with status "synced", "signed_out", "offline", or "failed", plus `message`.
 
@@ -39,10 +40,24 @@ static func _failure(response: Dictionary) -> Dictionary:
 	return {"status": status, "message": str(response.get("message", ""))}
 
 
-## Sends each waiting program. A program the server will never accept (it is not valid, the level
-## is gone, or it is not offered) is dropped; a failure of the connection leaves it for the next
-## sync. Stops at the first failure so the retry wait applies.
+## Sends each waiting program, then each waiting daily result (with its date). A program the
+## server will never accept (it is not valid, the level is gone, or it is not offered) is dropped;
+## a failure of the connection leaves it for the next sync. Stops at the first failure so the
+## retry wait applies.
 static func _send_results(client: AccountClient, results: PlayerResults) -> Dictionary:
+	var failure := await _send_levels(client, results)
+	if failure.is_empty():
+		failure = await _send_dailies(client, results)
+	var saved := results.save()
+	if not failure.is_empty():
+		return failure
+	if not saved:
+		return {"status": "failed", "message": "COULD NOT SAVE ON THIS DEVICE"}
+	return {"status": "synced", "message": ""}
+
+
+## One request per level. {} when all were sent, else the failure.
+static func _send_levels(client: AccountClient, results: PlayerResults) -> Dictionary:
 	for slug in results.pending():
 		var entry: Dictionary = results.queue[slug]
 		var body := {
@@ -56,9 +71,30 @@ static func _send_results(client: AccountClient, results: PlayerResults) -> Dict
 			results.drop_if_unchanged(slug, entry)
 		else:
 			return _failure(response) if not response["ok"] else _failure({"error": "failed"})
-	if not results.save():
-		return {"status": "failed", "message": "COULD NOT SAVE ON THIS DEVICE"}
-	return {"status": "synced", "message": ""}
+	return {}
+
+
+## One request per day, claiming that day's challenge with `dailyDate`. {} when all were sent.
+static func _send_dailies(client: AccountClient, results: PlayerResults) -> Dictionary:
+	for date in results.pending_dailies():
+		var entry: Dictionary = results.daily_queue[date]
+		var body := {
+			"levelSlug": entry["levelSlug"],
+			"levelVersion": entry["levelVersion"],
+			"program": entry["program"],
+			"dailyDate": date,
+		}
+		var response := await client.call_authed("POST", "me/submissions", body)
+		if response["ok"] and typeof(response["json"]) == TYPE_DICTIONARY:
+			results.total = int(response["json"].get("total", results.total))
+			results.apply_daily(response["json"])
+			results.note_badges(response["json"])
+			results.drop_daily_if_unchanged(date, entry)
+		elif not response["ok"] and int(response.get("status", 0)) in [404, 409, 422]:
+			results.drop_daily_if_unchanged(date, entry)
+		else:
+			return _failure(response) if not response["ok"] else _failure({"error": "failed"})
+	return {}
 
 
 static func _request_body(progress: ProgressStore) -> Dictionary:

@@ -9,6 +9,7 @@ signal open_settings
 signal back_to_levels
 
 var level_caption := ""
+var back_label := "BACK TO LEVELS"
 
 var _caption: Label
 var _title: Label
@@ -26,7 +27,7 @@ func _ready() -> void:
 	_add_button(TileButton.Kind.SECONDARY, "RESTART LEVEL", 18, restart)
 	_add_button(TileButton.Kind.SECONDARY, "HOW TO PLAY", 18, how_to_play)
 	_add_button(TileButton.Kind.SECONDARY, "SETTINGS", 18, open_settings)
-	_add_button(TileButton.Kind.SECONDARY, "BACK TO LEVELS", 18, back_to_levels)
+	_add_button(TileButton.Kind.SECONDARY, back_label, 18, back_to_levels)
 	resized.connect(_place)
 	_place()
 

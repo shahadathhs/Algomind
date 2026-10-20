@@ -16,6 +16,14 @@ var queue: Dictionary = {}
 var total := -1
 ## { levelSlug: { stars, points } } as last reported by the server.
 var levels: Dictionary = {}
+## { date: { levelSlug, levelVersion, slots, program } } waiting to be sent as daily results.
+var daily_queue: Dictionary = {}
+## { date: { levelSlug, slots } } the best result on this device per daily.
+var daily_best: Dictionary = {}
+## { current, best } as the server last said, {} until a sync has told us.
+var streak: Dictionary = {}
+## Titles of badges earned and not shown yet.
+var badges: Array[String] = []
 
 
 func _init(save_path: String = "user://results.json") -> void:
@@ -26,6 +34,10 @@ func load_data() -> void:
 	queue = {}
 	total = -1
 	levels = {}
+	daily_queue = {}
+	daily_best = {}
+	streak = {}
+	badges = []
 	var parsed: Variant = AtomicFile.read_json(path)
 	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) != VERSION:
 		return
@@ -42,12 +54,21 @@ func load_data() -> void:
 					"stars": int(item.get("stars", 0)), "points": int(item.get("points", 0))
 				}
 	total = int(parsed.get("total", -1))
+	_load_daily(parsed)
 
 
 func save() -> bool:
-	return AtomicFile.write_json(
-		path, {"version": VERSION, "queue": queue, "total": total, "levels": levels}
-	)
+	var data := {
+		"version": VERSION,
+		"queue": queue,
+		"total": total,
+		"levels": levels,
+		"dailyQueue": daily_queue,
+		"dailyBest": daily_best,
+		"streak": streak,
+		"badges": badges,
+	}
+	return AtomicFile.write_json(path, data)
 
 
 ## Remembers a solved program to send at the next sync. Per level only the program with the fewest
@@ -83,6 +104,67 @@ func drop_if_unchanged(level_slug: String, sent: Dictionary) -> void:
 		queue.erase(level_slug)
 
 
+## Remembers a solved daily to send at the next sync. Per date the program with the fewest slots
+## is kept, so the queue stays small and the best result counts.
+func queue_daily(
+	date: String, level_slug: String, level_version: int, program: Array, slots: int
+) -> void:
+	var best: Dictionary = daily_best.get(date, {})
+	if best.is_empty() or slots < int(best["slots"]):
+		daily_best[date] = {"levelSlug": level_slug, "slots": slots}
+	var current: Variant = daily_queue.get(date)
+	if current != null and int(current["slots"]) <= slots:
+		return
+	daily_queue[date] = {
+		"levelSlug": level_slug, "levelVersion": level_version, "slots": slots, "program": program
+	}
+
+
+## Dates with a daily result waiting, oldest first.
+func pending_dailies() -> Array[String]:
+	var dates: Array[String] = []
+	for date: String in daily_queue:
+		dates.append(date)
+	dates.sort()
+	return dates
+
+
+## Removes a sent daily, unless a better one replaced it while the request was in flight.
+func drop_daily_if_unchanged(date: String, sent: Dictionary) -> void:
+	var current: Variant = daily_queue.get(date)
+	if current != null and int(current["slots"]) >= int(sent["slots"]):
+		daily_queue.erase(date)
+
+
+## Records the server's answer to a daily submission: the streak, when it counted the day.
+func apply_daily(result: Dictionary) -> void:
+	var daily: Variant = result.get("daily")
+	if typeof(daily) != TYPE_DICTIONARY or typeof(daily.get("streak")) != TYPE_DICTIONARY:
+		return
+	streak = {
+		"current": int(daily["streak"].get("current", 0)),
+		"best": int(daily["streak"].get("best", 0)),
+	}
+
+
+## Remembers the badges a submission earned, to be shown once.
+func note_badges(result: Dictionary) -> void:
+	var earned: Variant = result.get("achievements")
+	if typeof(earned) != TYPE_ARRAY:
+		return
+	for item: Variant in earned:
+		if typeof(item) == TYPE_DICTIONARY and not str(item.get("title", "")).is_empty():
+			if not badges.has(str(item["title"])):
+				badges.append(str(item["title"]))
+
+
+## The new badge titles, and forgets them: they are shown once.
+func take_badges() -> Array[String]:
+	var shown := badges.duplicate()
+	badges.clear()
+	return shown
+
+
 ## Records the server's answer to one submission.
 func apply_result(level_slug: String, result: Dictionary) -> void:
 	var stars := int(result.get("stars", 0))
@@ -92,6 +174,7 @@ func apply_result(level_slug: String, result: Dictionary) -> void:
 		"stars": maxi(int(known["stars"]), stars), "points": maxi(int(known["points"]), points)
 	}
 	total = int(result.get("total", total))
+	note_badges(result)
 
 
 func stars_for(level_slug: String) -> int:
@@ -102,6 +185,31 @@ func stars_for(level_slug: String) -> int:
 func clear_points() -> void:
 	total = -1
 	levels = {}
+	streak = {}
+	badges = []
+
+
+func _load_daily(parsed: Dictionary) -> void:
+	if typeof(parsed.get("dailyQueue")) == TYPE_DICTIONARY:
+		for date: String in parsed["dailyQueue"]:
+			var entry: Variant = parsed["dailyQueue"][date]
+			if DailyDates.is_valid(date) and _valid_entry(entry) and entry.has("levelSlug"):
+				daily_queue[date] = entry
+	if typeof(parsed.get("dailyBest")) == TYPE_DICTIONARY:
+		for date: String in parsed["dailyBest"]:
+			var item: Variant = parsed["dailyBest"][date]
+			if typeof(item) == TYPE_DICTIONARY and item.has("slots"):
+				daily_best[date] = {
+					"levelSlug": str(item.get("levelSlug", "")), "slots": int(item["slots"])
+				}
+	if typeof(parsed.get("streak")) == TYPE_DICTIONARY and parsed["streak"].has("current"):
+		streak = {
+			"current": int(parsed["streak"]["current"]),
+			"best": int(parsed["streak"].get("best", 0)),
+		}
+	if typeof(parsed.get("badges")) == TYPE_ARRAY:
+		for title: Variant in parsed["badges"]:
+			badges.append(str(title))
 
 
 static func _valid_entry(entry: Variant) -> bool:

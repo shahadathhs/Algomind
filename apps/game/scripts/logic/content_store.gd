@@ -25,14 +25,14 @@ func load_catalog() -> Variant:
 
 
 func save_level(slug: String, record: Dictionary) -> bool:
-	if not _is_safe_name(slug):
+	if not is_safe_name(slug):
 		return false
 	return _write(_level_path(slug), record)
 
 
 ## The cached record for a slug, or null when it is missing or unreadable.
 func load_level(slug: String) -> Variant:
-	if not _is_safe_name(slug):
+	if not is_safe_name(slug):
 		return null
 	var value: Variant = _read(_level_path(slug))
 	if typeof(value) != TYPE_DICTIONARY:
@@ -65,7 +65,7 @@ func _level_path(slug: String) -> String:
 
 
 ## Slugs come from the network; allow only the characters the contract allows.
-static func _is_safe_name(name: String) -> bool:
+static func is_safe_name(name: String) -> bool:
 	if name.is_empty() or name.length() > 64:
 		return false
 	for i in name.length():

@@ -4,7 +4,6 @@ extends ScreenBase
 ##
 ## Opened from the menu or from the pause menu; `args["back"]` names where Back returns to.
 
-const ROW_HEIGHT := 52.0
 const THEME_NAMES: Array[String] = ["system", "light", "dark"]
 const SPEED_NAMES: Array[String] = ["slow", "normal", "fast"]
 
@@ -34,19 +33,19 @@ func _build() -> void:
 	_scroll.add_child(_list)
 
 	var settings := app.progress.settings
-	_list.add_child(_caption("AUDIO AND TOUCH"))
-	_list.add_child(_toggle_row("SOUND", settings.sound(), _toggle_sound))
-	_list.add_child(_toggle_row("MUSIC", settings.music(), _toggle_music))
+	_list.add_child(UiRows.caption("AUDIO AND TOUCH"))
+	_list.add_child(UiRows.toggle_row("SOUND", settings.sound(), _toggle_sound))
+	_list.add_child(UiRows.toggle_row("MUSIC", settings.music(), _toggle_music))
 	# The browser build has no vibration and no link out: the site around it has both.
 	if not OS.has_feature("web"):
-		_list.add_child(_toggle_row("VIBRATION", settings.vibration(), _toggle_vibration))
-	_list.add_child(_gap(10.0))
-	_list.add_child(_caption("MOTION"))
-	_list.add_child(_toggle_row("REDUCE MOTION", settings.reduce_motion(), _toggle_motion))
-	_list.add_child(_segment_row("RUN SPEED", SPEED_NAMES, settings.run_speed(), _set_speed))
-	_list.add_child(_gap(10.0))
-	_list.add_child(_caption("LOOK"))
-	_list.add_child(_segment_row("THEME", THEME_NAMES, settings.theme(), _set_theme))
+		_list.add_child(UiRows.toggle_row("VIBRATION", settings.vibration(), _toggle_vibration))
+	_list.add_child(UiRows.gap(10.0))
+	_list.add_child(UiRows.caption("MOTION"))
+	_list.add_child(UiRows.toggle_row("REDUCE MOTION", settings.reduce_motion(), _toggle_motion))
+	_list.add_child(UiRows.segment_row("RUN SPEED", SPEED_NAMES, settings.run_speed(), _set_speed))
+	_list.add_child(UiRows.gap(10.0))
+	_list.add_child(UiRows.caption("LOOK"))
+	_list.add_child(UiRows.segment_row("THEME", THEME_NAMES, settings.theme(), _set_theme))
 
 	_restore_scroll.call_deferred()
 	if not OS.has_feature("web"):
@@ -84,58 +83,6 @@ func _layout() -> void:
 	_scroll.position = Vector2(m, list_top)
 	_scroll.size = Vector2(width, bottom - footer_h - 8.0 - list_top)
 	_list.custom_minimum_size = Vector2(width, 0)
-
-
-func _caption(value: String) -> Label:
-	return UiKit.label(value, 14, Palette.MUTE, 2)
-
-
-func _gap(height: float) -> Control:
-	var node := Control.new()
-	node.custom_minimum_size = Vector2(0, height)
-	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return node
-
-
-## A row with a label on the left and an ON/OFF tile on the right. ON is yellow with a check.
-func _toggle_row(caption: String, on: bool, handler: Callable) -> Control:
-	var row := HBoxContainer.new()
-	row.custom_minimum_size = Vector2(0, ROW_HEIGHT)
-	var label := UiKit.label(caption, 20, Palette.INK, 1)
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
-	var kind := TileButton.Kind.PRIMARY if on else TileButton.Kind.SECONDARY
-	var button := TileButton.make(kind, "ON" if on else "OFF", "check" if on else "", 18)
-	button.accessibility_name = "%s, %s" % [caption.capitalize(), "on" if on else "off"]
-	button.custom_minimum_size = Vector2(92.0, ROW_HEIGHT)
-	button.pressed.connect(handler)
-	row.add_child(button)
-	return row
-
-
-## A row with a label and a segmented choice: the selected segment is solid and checked.
-func _segment_row(
-	caption: String, names: Array[String], current: String, handler: Callable
-) -> Control:
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
-	box.add_child(UiKit.label(caption, 20, Palette.INK, 1))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	for option in names:
-		var selected := option == current
-		var kind := TileButton.Kind.SOLID if selected else TileButton.Kind.SECONDARY
-		var button := TileButton.make(kind, option.to_upper(), "check" if selected else "", 16)
-		button.accessibility_name = (
-			"%s %s%s" % [caption.capitalize(), option, ", selected" if selected else ""]
-		)
-		button.custom_minimum_size = Vector2(0, ROW_HEIGHT)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.pressed.connect(handler.bind(option))
-		row.add_child(button)
-	box.add_child(row)
-	return box
 
 
 func _changed() -> void:

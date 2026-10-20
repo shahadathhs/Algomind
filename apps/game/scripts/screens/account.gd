@@ -9,7 +9,8 @@ var _back: TileButton
 var _caption: Label
 var _title: Label
 var _status: _StatusRow
-var _stats: Array[_Stat] = []
+var _stats: Array[StatTile] = []
+var _links: Array[TileButton] = []
 var _note: Label
 var _password: TextField
 var _message: Label
@@ -34,7 +35,7 @@ func _build() -> void:
 	_status = _StatusRow.new()
 	add_child(_status)
 	for caption in ["SOLVED", "LEVELS", "POINTS"]:
-		var stat := _Stat.new()
+		var stat := StatTile.new()
 		stat.caption = caption
 		add_child(stat)
 		_stats.append(stat)
@@ -43,6 +44,7 @@ func _build() -> void:
 	)
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(_note)
+	_add_links()
 	_password = TextField.new()
 	_password.secret = true
 	_password.placeholder = "Your password"
@@ -65,6 +67,23 @@ func _build() -> void:
 	if app.account_sync != null:
 		app.account_sync.changed.connect(_refresh)
 	_refresh()
+
+
+## Profile, Badges, and Leaderboard: the social features, which need the server.
+func _add_links() -> void:
+	if not app.has_social():
+		return
+	var targets := [["PROFILE", "profile", {}], ["BADGES", "badges", {}]]
+	targets.append(["LEADERBOARD", "leaderboard", {"scope": "points"}])
+	for item: Array in targets:
+		var button := TileButton.make(TileButton.Kind.TERTIARY, item[0], "", 15)
+		var target_args: Dictionary = item[2].duplicate()
+		target_args["back"] = "account"
+		button.pressed.connect(func() -> void: navigate.emit(item[1], target_args))
+		add_child(button)
+		_links.append(button)
+	_links[0].align = HORIZONTAL_ALIGNMENT_LEFT
+	_links[2].align = HORIZONTAL_ALIGNMENT_RIGHT
 
 
 func _exit_tree() -> void:
@@ -103,6 +122,10 @@ func _layout() -> void:
 	_note.size = Vector2(width, 40.0)
 	_password.position = Vector2(m, stats_top + 140.0)
 	_password.size = Vector2(width, 52.0)
+	for i in _links.size():
+		var link_w := floorf(width / _links.size())
+		_links[i].position = Vector2(m + i * link_w, stats_top + 130.0)
+		_links[i].size = Vector2(link_w if i < _links.size() - 1 else width - i * link_w, 44.0)
 	_message.position = Vector2(m, stats_top + 200.0)
 	_message.size = Vector2(width, 44.0)
 	var bottom := size.y - inset_bottom() - m
@@ -132,6 +155,8 @@ func _refresh() -> void:
 		stat.queue_redraw()
 	if sync != null and state in ["offline", "failed"] and not sync.message.is_empty():
 		_message.text = sync.message
+	elif not _confirming and not app.progress.results.badges.is_empty():
+		_message.text = "NEW BADGES: %s" % ", ".join(app.progress.results.badges).to_upper()
 	_primary.set_disabled(_busy or state == "syncing")
 
 
@@ -203,6 +228,8 @@ func _set_confirming(value: bool) -> void:
 	_secondary.label = "CANCEL" if value else "SIGN OUT"
 	_secondary.accessibility_name = _secondary.label
 	_tertiary.visible = not value
+	for link in _links:
+		link.visible = not value
 	_primary.queue_redraw()
 	_secondary.queue_redraw()
 	if value:
@@ -257,21 +284,3 @@ class _StatusRow:
 			1,
 			HORIZONTAL_ALIGNMENT_LEFT
 		)
-
-
-## One figure: a large number over a small caption, in an outlined tile.
-class _Stat:
-	extends Control
-
-	var value := ""
-	var caption := ""
-
-	func _init() -> void:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	func _draw() -> void:
-		var rect := Rect2(Vector2.ZERO, size)
-		UiKit.fill_chamfer(self, rect, Palette.GROUND)
-		UiKit.outline_chamfer(self, rect, Palette.INK)
-		UiKit.text(self, value, Rect2(0.0, 6.0, size.x, 40.0), 34, Palette.INK, 0)
-		UiKit.text(self, caption, Rect2(0.0, 46.0, size.x, 20.0), 12, Palette.MUTE, 2)

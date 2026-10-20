@@ -15,11 +15,34 @@ static func show(p: PlayScreen, program_text: String, steps: int) -> void:
 		var count: int = p._session.trace().size() if steps < 0 else steps
 		for step in count:
 			p._session.advance()
-		if p._session.state == PlaySession.State.SUCCEEDED:
+		if p._session.state == PlaySession.State.SUCCEEDED and p._entry.has("daily"):
+			var results := p.app.progress.results
+			results.queue_daily(
+				str(p._entry["daily"]),
+				p._entry["id"],
+				int(p._level["levelVersion"]),
+				p._tape.program(),
+				p._tape.slots()
+			)
+		elif p._session.state == PlaySession.State.SUCCEEDED:
 			p.app.progress.record_completion(
 				p._entry["id"], int(p._level["levelVersion"]), p._tape.slots()
 			)
 	p._refresh()
+
+
+## Selects a tape cell, to show its tools.
+static func select(p: PlayScreen, index: int) -> void:
+	p._tape.toggle_select(index)
+	p._refresh()
+
+
+## Opens the "pause" or "hint" panel.
+static func overlay(p: PlayScreen, kind: String) -> void:
+	if kind == "pause":
+		p._open_pause()
+	elif kind == "hint":
+		p._open_hint()
 
 
 ## Letters are commands; "3{MRML}" is a loop of three rounds over that body.

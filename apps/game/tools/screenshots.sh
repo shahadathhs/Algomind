@@ -15,8 +15,14 @@ shot() {
 	theme="$3"
 	size="$4"
 	shift 4
+	# A bad argument can leave Godot running; a watchdog ends it after a minute.
 	"$GODOT" --path . --resolution 200x200 -- \
-		--shot="$OUT/$name-$theme-$size.png" --screen="$screen" --theme="$theme" --size="$size" "$@" >/dev/null
+		--shot="$OUT/$name-$theme-$size.png" --screen="$screen" --theme="$theme" --size="$size" "$@" >/dev/null &
+	pid=$!
+	(sleep 60 && kill -9 "$pid" 2>/dev/null) &
+	watchdog=$!
+	wait "$pid" || true
+	kill "$watchdog" 2>/dev/null || true
 }
 
 for size in 390x844 360x640 412x915; do
@@ -24,6 +30,7 @@ for size in 390x844 360x640 412x915; do
 		shot home home "$theme" "$size"
 		shot worlds worlds "$theme" "$size" --done=4
 		shot world world "$theme" "$size" --done=4 --world=1
+		shot world-stars world "$theme" "$size" --done=6 --world=0
 		shot settings settings "$theme" "$size"
 		shot how-to-play how_to_play "$theme" "$size"
 		shot load-error load_error "$theme" "$size" --title="Loops"
@@ -38,6 +45,29 @@ for size in 390x844 360x640 412x915; do
 		shot play-running play "$theme" "$size" --level=first-turn --program=MMMRMMM --steps=5
 		shot play-failed play "$theme" "$size" --level=first-turn --program=MMMMMM --steps=-1
 		shot play-solved play "$theme" "$size" --level=first-turn --program=MMMRMMM --steps=-1
+		# The social screens answer from canned data (ShotServer), no network.
+		who="--account=you@example.com"
+		shot profile profile "$theme" "$size" $who
+		shot profile-notopted profile "$theme" "$size" $who --fake=notopted
+		shot profile-offline profile "$theme" "$size" $who --fake=offline
+		shot profile-error profile "$theme" "$size" $who --fake=error
+		shot badges badges "$theme" "$size" $who --newbadges=1
+		shot badges-offline badges "$theme" "$size" $who --fake=offline
+		shot leaderboard leaderboard "$theme" "$size" $who
+		shot leaderboard-off-page leaderboard "$theme" "$size" $who --fake=off_page --period=week
+		shot leaderboard-level leaderboard "$theme" "$size" $who --scope=level --key=first-turn --title="First turn"
+		shot leaderboard-daily leaderboard "$theme" "$size" $who --scope=daily --key=2026-10-20 --fake=off_page
+		shot leaderboard-notopted leaderboard "$theme" "$size" $who --fake=notopted
+		shot leaderboard-empty leaderboard "$theme" "$size" $who --fake=empty
+		shot leaderboard-offline leaderboard "$theme" "$size" $who --fake=offline
+		shot leaderboard-signed-out leaderboard "$theme" "$size"
+		shot daily daily "$theme" "$size" $who --daily-slots=9 --streak=3,5
+		shot daily-fresh daily "$theme" "$size" $who
+		shot daily-signed-out daily "$theme" "$size"
+		shot daily-offline-cached daily "$theme" "$size" $who --cached --fake=offline
+		shot daily-offline-empty daily "$theme" "$size" $who --fake=offline
+		shot play-daily play "$theme" "$size" --daily=2026-10-20 --program=MMMRM
+		shot play-daily-solved play "$theme" "$size" --daily=2026-10-20 --program=MMMRMMM --steps=-1 $who
 		shot play-big play "$theme" "$size" --level=gauntlet --program=MMMMMM
 	done
 done

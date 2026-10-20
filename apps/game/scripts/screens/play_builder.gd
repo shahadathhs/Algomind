@@ -34,10 +34,17 @@ static func _build_header(p: PlayScreen) -> void:
 	p._back.accessibility_name = "Back to levels"
 	p._back.pressed.connect(p.go_back)
 	p.add_child(p._back)
-	p._caption = UiKit.label("LEVEL %02d" % p._entry["number"], 14, Palette.MUTE, 3)
+	var caption := "LEVEL %02d" % p._entry["number"]
+	var title := str(p._level["title"]).to_upper()
+	var title_px := 24
+	if p._entry.has("daily"):
+		caption = title
+		title = "DAILY %s" % p._entry["daily"]
+		title_px = 20
+	p._caption = UiKit.label(caption, 14, Palette.MUTE, 3)
 	p._caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	p.add_child(p._caption)
-	p._title = UiKit.label(str(p._level["title"]).to_upper(), 24, Palette.INK, 1)
+	p._title = UiKit.label(title, title_px, Palette.INK, 1)
 	p._title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	p._title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	p.add_child(p._title)
@@ -117,6 +124,10 @@ static func _build_controls(p: PlayScreen) -> void:
 	p._run = make_button(p, primary, "RUN", "play", p._on_run)
 	p._reset = make_button(p, secondary, "RESET", "reset", p._on_reset)
 	p._edit = make_button(p, primary, "EDIT PROGRAM", "", p._on_reset)
-	p._levels = make_button(p, secondary, "LEVELS", "", p.go_back)
+	p._levels = make_button(
+		p, secondary, "DAILY" if p._entry.has("daily") else "LEVELS", "", p.go_back
+	)
 	p._replay = make_button(p, secondary, "REPLAY", "reset", p._on_reset)
 	p._next = make_button(p, primary, "NEXT", "", p._on_next)
+	p._share = make_button(p, secondary, "SHARE", "", func() -> void: PlayShare.share(p))
+	p._ranking = make_button(p, secondary, "RANKING", "", func() -> void: PlayShare.ranking(p))

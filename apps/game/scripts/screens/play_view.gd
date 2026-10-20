@@ -50,6 +50,8 @@ static func counter_text(p: PlayScreen) -> String:
 			}
 		)
 	)
+	if p._entry.has("daily"):
+		return "%d / 3 STARS" % score["stars"]
 	return "%d / 3 STARS\n%d POINTS" % [score["stars"], score["levelScore"]]
 
 
@@ -66,6 +68,8 @@ static func message_text(p: PlayScreen) -> String:
 static func update_stats(p: PlayScreen) -> void:
 	var stats := p._stats
 	var best := p.app.progress.best_commands(p._entry["id"], int(p._level["levelVersion"]))
+	if p._entry.has("daily"):
+		best = int(p.app.progress.results.daily_best.get(p._entry["daily"], {}).get("slots", 0))
 	stats[0].value = "%d / %d" % [p._tape.slots(), p._tape.limit]
 	stats[1].value = str(int(p._session.result.get("steps", 0)))
 	var par: Dictionary = p._entry.get("par", {})

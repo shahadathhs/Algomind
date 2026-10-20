@@ -53,12 +53,18 @@ var _edit: TileButton
 var _levels: TileButton
 var _replay: TileButton
 var _next: TileButton
+var _share: TileButton
+var _ranking: TileButton
 
 
 func _build() -> void:
-	_entry = app.campaign.entry_by_id(str(args.get("level_id", "")))
+	_entry = (
+		DailyPlay.entry(app.daily, str(args["daily"]))
+		if args.has("daily")
+		else app.campaign.entry_by_id(str(args.get("level_id", "")))
+	)
 	if _entry.is_empty():
-		navigate.emit.call_deferred("worlds", {})
+		navigate.emit.call_deferred("daily" if args.has("daily") else "worlds", {})
 		return
 	_level = _entry["level"]
 	_session = PlaySession.new(_level)
@@ -66,7 +72,7 @@ func _build() -> void:
 	for op: String in _level["availableCommands"]:
 		available.append(op)
 	_tape = TapeModel.new(int(_level["constraints"]["maxCommands"]), available)
-	if persist:
+	if persist and not _entry.has("daily"):
 		app.progress.set_last_level(_entry["id"])
 		app.progress.save()
 
@@ -79,6 +85,9 @@ func go_back() -> void:
 		_close_overlay()
 		return
 	_run_id += 1
+	if _entry.has("daily"):
+		navigate.emit("daily", {})
+		return
 	navigate.emit("world", {"world": int(_entry["world"])})
 
 
@@ -96,19 +105,6 @@ func _layout() -> void:
 	PlayLayout.apply(self)
 
 
-## Which control buttons are shown in the bottom row, with relative widths.
-func _control_plan() -> Array:
-	match _session.state:
-		PlaySession.State.SUCCEEDED:
-			if app.campaign.next_after(_entry["id"]).is_empty():
-				return [[_levels, 0.4], [_replay, 0.6]]
-			return [[_levels, 0.27], [_replay, 0.3], [_next, 0.43]]
-		PlaySession.State.FAILED:
-			return [[_reset, 0.38], [_edit, 0.62]]
-		_:
-			return [[_step, 0.28], [_run, 0.44], [_reset, 0.28]]
-
-
 # ----- state to view --------------------------------------------------------------------------
 
 
@@ -116,7 +112,7 @@ func _control_plan() -> Array:
 func _refresh() -> void:
 	var state := _session.state
 	var finished := _session.is_finished()
-	var plan := _control_plan()
+	var plan := PlayLayout.control_plan(self)
 	for button: TileButton in [_step, _run, _reset, _edit, _levels, _replay, _next]:
 		button.visible = false
 	for item: Array in plan:
@@ -152,6 +148,8 @@ func _refresh() -> void:
 		_repeat_button.queue_redraw()
 	for stat in _stats:
 		stat.visible = solved
+	_share.visible = solved
+	_ranking.visible = solved and app.has_social()
 	if solved:
 		PlayView.update_stats(self)
 	_commands_caption.visible = not solved and size.y >= 760.0
@@ -388,17 +386,3 @@ func _after_step() -> void:
 ## Debug only (see main.gd): put a program on the tape and show the state after `steps` events.
 func debug_show(program_text: String, steps: int) -> void:
 	PlayDebug.show(self, program_text, steps)
-
-
-## Debug only: select a tape cell, to show its tools.
-func debug_select(index: int) -> void:
-	_tape.toggle_select(index)
-	_refresh()
-
-
-## Debug only: open the "pause" or "hint" panel.
-func debug_overlay(kind: String) -> void:
-	if kind == "pause":
-		_open_pause()
-	elif kind == "hint":
-		_open_hint()
