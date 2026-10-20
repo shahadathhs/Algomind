@@ -3,12 +3,16 @@ import {
   DIRECTION_DELTAS,
   LIMITS,
   PRIMITIVE_COMMANDS,
+  IF_OP,
   REPEAT_OP,
   REPEAT_UNTIL_OP,
+  SENSORS,
   UNTIL_CONDITIONS,
 } from "./constants.js";
 import type {
+  BodyInstruction,
   Direction,
+  IfInstruction,
   Level,
   Position,
   PrimitiveInstruction,
@@ -54,7 +58,35 @@ function isPrimitiveNode(node: unknown): node is PrimitiveInstruction {
   );
 }
 
-/** A loop the simulator can run: a whole count in range and a body of 1 to 8 primitives. */
+function isPrimitiveList(list: unknown, min: number, max: number): boolean {
+  return (
+    Array.isArray(list) && list.length >= min && list.length <= max && list.every(isPrimitiveNode)
+  );
+}
+
+/** An IF the simulator can run: a known sensor, 1 to 4 primitives to run, and 0 to 4 to run otherwise. */
+function isRunnableIf(node: unknown): node is IfInstruction {
+  if (typeof node !== "object" || node === null) return false;
+  const n = node as { op?: unknown; when?: unknown; then?: unknown; else?: unknown };
+  return (
+    n.op === IF_OP &&
+    typeof n.when === "string" &&
+    (SENSORS as readonly string[]).includes(n.when) &&
+    isPrimitiveList(n.then, LIMITS.ifThen.min, LIMITS.ifThen.max) &&
+    isPrimitiveList(n.else, LIMITS.ifElse.min, LIMITS.ifElse.max)
+  );
+}
+
+function isRunnableBody(body: unknown): body is BodyInstruction[] {
+  return (
+    Array.isArray(body) &&
+    body.length >= LIMITS.repeatBody.min &&
+    body.length <= LIMITS.repeatBody.max &&
+    body.every((item) => isPrimitiveNode(item) || isRunnableIf(item))
+  );
+}
+
+/** A loop the simulator can run: a whole count in range and a body of 1 to 8 primitives and IFs. */
 function isRunnableRepeat(node: unknown): node is RepeatInstruction {
   if (typeof node !== "object" || node === null) return false;
   const n = node as { op?: unknown; count?: unknown; body?: unknown };
@@ -64,23 +96,11 @@ function isRunnableRepeat(node: unknown): node is RepeatInstruction {
     Number.isInteger(n.count) &&
     n.count >= LIMITS.repeatCount.min &&
     n.count <= LIMITS.repeatCount.max &&
-    Array.isArray(n.body) &&
-    n.body.length >= LIMITS.repeatBody.min &&
-    n.body.length <= LIMITS.repeatBody.max &&
-    n.body.every(isPrimitiveNode)
+    isRunnableBody(n.body)
   );
 }
 
-function isRunnableBody(body: unknown): boolean {
-  return (
-    Array.isArray(body) &&
-    body.length >= LIMITS.repeatBody.min &&
-    body.length <= LIMITS.repeatBody.max &&
-    body.every(isPrimitiveNode)
-  );
-}
-
-/** A conditional loop the simulator can run: a known condition and a body of 1 to 8 primitives. */
+/** A conditional loop the simulator can run: a known condition and a body of 1 to 8 primitives and IFs. */
 function isRunnableRepeatUntil(node: unknown): node is RepeatUntilInstruction {
   if (typeof node !== "object" || node === null) return false;
   const n = node as { op?: unknown; until?: unknown; body?: unknown };
@@ -99,9 +119,12 @@ function isRunnableRepeatUntil(node: unknown): node is RepeatUntilInstruction {
  * call `validateProgram` first. An instruction that is not a known primitive or a well-formed REPEAT stops
  * the run with INVALID_INSTRUCTION (it is never skipped). `program` must be an array.
  *
- * Every executed primitive is one step; a REPEAT or REPEAT_UNTIL itself costs none. A REPEAT_UNTIL checks
+ * Every executed primitive is one step; a REPEAT, REPEAT_UNTIL or IF itself costs none, and choosing an IF's
+ * branch is free (the sensor is read when the IF is reached). A REPEAT_UNTIL checks
  * its condition before every round, so a loop whose way ahead is already blocked runs its body zero times; the
- * check is free and the loop ends only through the condition, the goal, a failure, or the step limit. The step limit is checked before each
+ * check is free and the loop ends only through the condition, the goal, a failure, or the step limit. A round of
+ * a REPEAT_UNTIL that runs no primitive at all (every IF chose an empty branch) would repeat for ever, so it
+ * stops the run with STEP_LIMIT. The step limit is checked before each
  * node and before each primitive inside a loop. The run succeeds the moment the goal cell is entered, even
  * in the middle of a loop.
  */
@@ -166,6 +189,32 @@ export function simulate(level: Level, program: Program): RunResult {
     return null;
   };
 
+  const isClear = (sensor: IfInstruction["when"]): boolean => {
+    const facing =
+      sensor === "CLEAR_AHEAD"
+        ? direction
+        : turn(direction, sensor === "CLEAR_LEFT" ? "left" : "right");
+    const cell = cellAhead(position, facing);
+    return isInsideBoard(level, cell) && !isWall(level, cell);
+  };
+
+  /** Runs one primitive or IF at `path`. Returns the final result when the run ends here, otherwise null. */
+  const runItem = (
+    item: BodyInstruction,
+    path: number[],
+    round: number | null,
+  ): RunResult | null => {
+    if (item.op !== IF_OP) return step(item.op, path, round);
+    const branch = isClear(item.when) ? item.then : item.else;
+    const offset = branch === item.then ? 0 : item.then.length;
+    for (let k = 0; k < branch.length; k += 1) {
+      if (atLimit()) return finish("FAILED", "STEP_LIMIT", null);
+      const result = step(branch[k]!.op, [...path, offset + k], round);
+      if (result) return result;
+    }
+    return null;
+  };
+
   for (let i = 0; i < program.length; i += 1) {
     const node: unknown = program[i];
     if (atLimit()) return finish("FAILED", "STEP_LIMIT", null);
@@ -175,15 +224,22 @@ export function simulate(level: Level, program: Program): RunResult {
       if (result) return result;
       continue;
     }
+    if (isRunnableIf(node)) {
+      const result = runItem(node, [i], null);
+      if (result) return result;
+      continue;
+    }
     if (isRunnableRepeatUntil(node)) {
       for (let round = 1; ; round += 1) {
-        const ahead = cellAhead(position, direction);
-        if (!isInsideBoard(level, ahead) || isWall(level, ahead)) break;
+        if (node.until === "BLOCKED" && !isClear("CLEAR_AHEAD")) break;
+        const before = trace.length;
         for (let j = 0; j < node.body.length; j += 1) {
-          if (atLimit()) return finish("FAILED", "STEP_LIMIT", null);
-          const result = step(node.body[j]!.op, [i, j], round);
+          const item = node.body[j]!;
+          if (item.op !== IF_OP && atLimit()) return finish("FAILED", "STEP_LIMIT", null);
+          const result = runItem(item, [i, j], round);
           if (result) return result;
         }
+        if (trace.length === before) return finish("FAILED", "STEP_LIMIT", null);
       }
       continue;
     }
@@ -191,8 +247,9 @@ export function simulate(level: Level, program: Program): RunResult {
 
     for (let round = 1; round <= node.count; round += 1) {
       for (let j = 0; j < node.body.length; j += 1) {
-        if (atLimit()) return finish("FAILED", "STEP_LIMIT", null);
-        const result = step(node.body[j]!.op, [i, j], round);
+        const item = node.body[j]!;
+        if (item.op !== IF_OP && atLimit()) return finish("FAILED", "STEP_LIMIT", null);
+        const result = runItem(item, [i, j], round);
         if (result) return result;
       }
     }

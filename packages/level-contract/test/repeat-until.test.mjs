@@ -72,7 +72,7 @@ test("slots: REPEAT_UNTIL is 1 plus its body", () => {
 test("REPEAT_UNTIL validation: condition, body, nesting, availability", () => {
   const lv = level({ maxC: 64 });
   assert.deepEqual(codes(lv, [{ op: "REPEAT_UNTIL", body: [M] }]), ["program[0].until|REQUIRED"]);
-  assert.deepEqual(codes(lv, [{ op: "REPEAT_UNTIL", until: "GOAL", body: [M] }]), [
+  assert.deepEqual(codes(lv, [{ op: "REPEAT_UNTIL", until: "NEAR", body: [M] }]), [
     "program[0].until|INVALID_VALUE",
   ]);
   assert.deepEqual(codes(lv, [{ op: "REPEAT_UNTIL", until: 3, body: [M] }]), [

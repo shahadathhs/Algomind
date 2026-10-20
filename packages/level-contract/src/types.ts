@@ -3,11 +3,13 @@ import type {
   DIFFICULTIES,
   DIRECTIONS,
   PRIMITIVE_COMMANDS,
+  SENSORS,
   UNTIL_CONDITIONS,
 } from "./constants.js";
 
 export type PrimitiveName = (typeof PRIMITIVE_COMMANDS)[number];
 export type CommandName = (typeof COMMAND_NAMES)[number];
+export type Sensor = (typeof SENSORS)[number];
 export type UntilCondition = (typeof UNTIL_CONDITIONS)[number];
 export type Direction = (typeof DIRECTIONS)[number];
 export type Difficulty = (typeof DIFFICULTIES)[number];
@@ -19,11 +21,20 @@ export type Position = [number, number];
 export interface PrimitiveInstruction {
   op: PrimitiveName;
 }
-/** A loop: `body` runs `count` times. The body holds primitives only. */
+/** A decision: `then` runs when the sensor is true, `else` (possibly empty) when it is false. */
+export interface IfInstruction {
+  op: "IF";
+  when: Sensor;
+  then: PrimitiveInstruction[];
+  else: PrimitiveInstruction[];
+}
+/** An item of a loop body: a primitive or an IF. */
+export type BodyInstruction = PrimitiveInstruction | IfInstruction;
+/** A loop: `body` runs `count` times. The body holds primitives and IFs, not loops. */
 export interface RepeatInstruction {
   op: "REPEAT";
   count: number;
-  body: PrimitiveInstruction[];
+  body: BodyInstruction[];
 }
 /**
  * A conditional loop: before each round it checks the condition, and the body runs again only while the
@@ -33,10 +44,11 @@ export interface RepeatInstruction {
 export interface RepeatUntilInstruction {
   op: "REPEAT_UNTIL";
   until: UntilCondition;
-  body: PrimitiveInstruction[];
+  body: BodyInstruction[];
 }
 /** One node of a program. Nodes (not bare strings) so a loop can hold a body. */
-export type Instruction = PrimitiveInstruction | RepeatInstruction | RepeatUntilInstruction;
+export type Instruction =
+  PrimitiveInstruction | IfInstruction | RepeatInstruction | RepeatUntilInstruction;
 export type Program = Instruction[];
 
 /** The public level definition served to the game. Never contains the reference solution. */
@@ -81,7 +93,8 @@ export type IssueCode =
   | "DUPLICATE_MECHANIC"
   | "COMMAND_NOT_AVAILABLE"
   | "TOO_MANY_COMMANDS"
-  | "NESTED_REPEAT";
+  | "NESTED_REPEAT"
+  | "NESTED_IF";
 
 export interface Issue {
   /** JSON-pointer-like location, e.g. "board.width" or "board.walls[2]". "" is the document root. */
@@ -118,7 +131,11 @@ export interface TraceEntry {
   /** 0-based index of the executed step. */
   index: number;
   op: PrimitiveName;
-  /** Where the instruction sits in the program: [i] at the top level, [i, j] inside the body of loop i. */
+  /**
+   * Where the instruction sits in the program: [i] at the top level, [i, j] inside the body of loop i,
+   * [i, k] inside the branches of the IF at i, and [i, j, k] inside the IF at body item j of loop i. k
+   * counts the `then` primitives first and the `else` primitives after them.
+   */
   node: number[];
   /** 1-based repetition of the loop the instruction ran in; null outside a loop. */
   round: number | null;

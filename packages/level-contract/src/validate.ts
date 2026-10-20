@@ -2,6 +2,8 @@ import {
   COMMAND_NAMES,
   REPEAT_OP,
   REPEAT_UNTIL_OP,
+  IF_OP,
+  SENSORS,
   UNTIL_CONDITIONS,
   DIFFICULTIES,
   DIRECTIONS,
@@ -483,9 +485,11 @@ function checkProgram(
     c.add(base, "INVALID_TYPE", `${base} must be an array of instructions.`);
     return;
   }
-  // Slots: a primitive is 1; a REPEAT or REPEAT_UNTIL is 1 plus the instructions in its body.
+  // Slots: a primitive is 1; a loop is 1 plus the slots of its body; an IF is 1 plus its branches.
   let slots = 0;
-  const checkOp = (node: Obj, path: string, inBody: boolean): CommandName | null => {
+  /** Where a node stands: at the top, as an item of a loop body, or inside an IF branch. */
+  type Place = "top" | "body" | "branch";
+  const checkOp = (node: Obj, path: string, place: Place): CommandName | null => {
     const opPath = `${path}.op`;
     if (!has(node, "op")) {
       c.add(opPath, "REQUIRED", `${opPath} is required.`);
@@ -500,8 +504,12 @@ function checkProgram(
       c.add(opPath, "UNKNOWN_COMMAND", `${opPath} is not a known command.`);
       return null;
     }
-    if (inBody && (op === REPEAT_OP || op === REPEAT_UNTIL_OP)) {
+    if (place !== "top" && (op === REPEAT_OP || op === REPEAT_UNTIL_OP)) {
       c.add(opPath, "NESTED_REPEAT", `${opPath}: a loop cannot contain a loop.`);
+      return null;
+    }
+    if (place === "branch" && op === IF_OP) {
+      c.add(opPath, "NESTED_IF", `${opPath}: an IF cannot contain an IF.`);
       return null;
     }
     if (limits.available && !limits.available.includes(op)) {
@@ -510,28 +518,76 @@ function checkProgram(
     return op;
   };
 
-  program.forEach((node, i) => {
-    const path = `${base}[${i}]`;
-    if (!isObject(node)) {
-      c.add(path, "INVALID_TYPE", `${path} must be an instruction object.`);
-      slots += 1;
-      return;
-    }
-    const op = typeof node["op"] === "string" ? node["op"] : null;
-    rejectUnknown(
-      c,
-      node,
-      path,
-      op === REPEAT_OP
-        ? ["op", "count", "body"]
-        : op === REPEAT_UNTIL_OP
-          ? ["op", "until", "body"]
-          : ["op"],
-    );
-    const known = checkOp(node, path, false);
-    slots += 1;
-    if (known !== REPEAT_OP && known !== REPEAT_UNTIL_OP) return;
+  const allowedKeys = (op: string | null): string[] =>
+    op === REPEAT_OP
+      ? ["op", "count", "body"]
+      : op === REPEAT_UNTIL_OP
+        ? ["op", "until", "body"]
+        : op === IF_OP
+          ? ["op", "when", "then", "else"]
+          : ["op"];
 
+  /** An array of instructions of one place: returns the objects, or null when it is not an array. */
+  const checkList = (
+    node: Obj,
+    key: string,
+    path: string,
+    range: { min: number; max: number },
+    required: boolean,
+  ): unknown[] | null => {
+    const listPath = `${path}.${key}`;
+    if (!has(node, key)) {
+      if (required) c.add(listPath, "REQUIRED", `${listPath} is required.`);
+      return null;
+    }
+    const list = node[key];
+    if (!Array.isArray(list)) {
+      c.add(listPath, "INVALID_TYPE", `${listPath} must be an array of instructions.`);
+      return null;
+    }
+    if (list.length < range.min || list.length > range.max) {
+      c.add(
+        listPath,
+        "LENGTH_OUT_OF_RANGE",
+        `${listPath} must have ${range.min} to ${range.max} instructions.`,
+      );
+    }
+    return list;
+  };
+
+  /** The fields and branches of an IF node whose op was already checked. */
+  const checkIf = (node: Obj, path: string): void => {
+    const whenPath = `${path}.when`;
+    if (!has(node, "when")) {
+      c.add(whenPath, "REQUIRED", `${whenPath} is required.`);
+    } else if (typeof node["when"] !== "string") {
+      c.add(whenPath, "INVALID_TYPE", `${whenPath} must be a string.`);
+    } else if (!(SENSORS as readonly string[]).includes(node["when"])) {
+      c.add(whenPath, "INVALID_VALUE", `${whenPath} must be one of ${SENSORS.join(", ")}.`);
+    }
+    for (const [key, range, required] of [
+      ["then", LIMITS.ifThen, true],
+      ["else", LIMITS.ifElse, true],
+    ] as const) {
+      const list = checkList(node, key, path, range, required);
+      if (!list) continue;
+      slots += list.length;
+      list.forEach((inner, j) => {
+        const innerPath = `${path}.${key}[${j}]`;
+        if (!isObject(inner)) {
+          c.add(innerPath, "INVALID_TYPE", `${innerPath} must be an instruction object.`);
+          return;
+        }
+        // A nested loop or IF is reported once, not field by field.
+        const innerOp = inner["op"];
+        const nested = innerOp === REPEAT_OP || innerOp === REPEAT_UNTIL_OP || innerOp === IF_OP;
+        if (!nested) rejectUnknown(c, inner, innerPath, ["op"]);
+        checkOp(inner, innerPath, "branch");
+      });
+    }
+  };
+
+  const checkLoop = (node: Obj, path: string, known: CommandName): void => {
     if (known === REPEAT_OP) {
       const countPath = `${path}.count`;
       if (!has(node, "count")) {
@@ -560,36 +616,39 @@ function checkProgram(
       }
     }
 
-    const bodyPath = `${path}.body`;
-    if (!has(node, "body")) {
-      c.add(bodyPath, "REQUIRED", `${bodyPath} is required.`);
-      return;
-    }
-    const body = node["body"];
-    if (!Array.isArray(body)) {
-      c.add(bodyPath, "INVALID_TYPE", `${bodyPath} must be an array of instructions.`);
-      return;
-    }
-    if (body.length < LIMITS.repeatBody.min || body.length > LIMITS.repeatBody.max) {
-      c.add(
-        bodyPath,
-        "LENGTH_OUT_OF_RANGE",
-        `${bodyPath} must have ${LIMITS.repeatBody.min} to ${LIMITS.repeatBody.max} instructions.`,
-      );
-    }
-    slots += body.length;
+    const body = checkList(node, "body", path, LIMITS.repeatBody, true);
+    if (!body) return;
     body.forEach((inner, j) => {
-      const innerPath = `${bodyPath}[${j}]`;
+      const innerPath = `${path}.body[${j}]`;
       if (!isObject(inner)) {
         c.add(innerPath, "INVALID_TYPE", `${innerPath} must be an instruction object.`);
+        slots += 1;
         return;
       }
+      const innerOp = typeof inner["op"] === "string" ? inner["op"] : null;
       // A nested loop is reported once, as NESTED_REPEAT, not field by field.
-      if (inner["op"] !== REPEAT_OP && inner["op"] !== REPEAT_UNTIL_OP) {
-        rejectUnknown(c, inner, innerPath, ["op"]);
+      if (innerOp !== REPEAT_OP && innerOp !== REPEAT_UNTIL_OP) {
+        rejectUnknown(c, inner, innerPath, allowedKeys(innerOp));
       }
-      checkOp(inner, innerPath, true);
+      const innerKnown = checkOp(inner, innerPath, "body");
+      slots += 1;
+      if (innerKnown === IF_OP) checkIf(inner, innerPath);
     });
+  };
+
+  program.forEach((node, i) => {
+    const path = `${base}[${i}]`;
+    if (!isObject(node)) {
+      c.add(path, "INVALID_TYPE", `${path} must be an instruction object.`);
+      slots += 1;
+      return;
+    }
+    const op = typeof node["op"] === "string" ? node["op"] : null;
+    rejectUnknown(c, node, path, allowedKeys(op));
+    const known = checkOp(node, path, "top");
+    slots += 1;
+    if (known === REPEAT_OP || known === REPEAT_UNTIL_OP) checkLoop(node, path, known);
+    else if (known === IF_OP) checkIf(node, path);
   });
   if (limits.max !== null && slots > limits.max) {
     c.add(

@@ -71,6 +71,10 @@ A loop's `count` is a whole number from 2 to 11 and its `body` is 1 to 8 primiti
 
 A second loop, `{ "op": "REPEAT_UNTIL", "until": "BLOCKED", "body": [...] }`, has no count: before each round it checks whether a wall or the board edge is straight ahead and runs the body again only while it is not. The condition is checked before the first round too, so the body can run zero times. A level offers it by listing `REPEAT_UNTIL` in `availableCommands` (the mechanic `repeat_until`). Its body rules, its slots (1 plus the body), and its step counting are those of `REPEAT`; a loop inside either loop is `NESTED_REPEAT`; `until` must be `BLOCKED` (`INVALID_VALUE`, `REQUIRED`, or `INVALID_TYPE` at `program[i].until`); a `count` on it, or an `until` on a `REPEAT`, is `UNKNOWN_FIELD`. A body that is never blocked runs until the step limit. A level offers loops by listing `REPEAT` in `availableCommands`; the mechanic name `repeat` is then required of the client (the API derives it from the command, so `requires.mechanics` does not repeat it). An empty program is valid.
 
+A third node, `{ "op": "IF", "when": "CLEAR_RIGHT", "then": [primitives], "else": [primitives] }`, is a decision. `when` is `CLEAR_AHEAD`, `CLEAR_LEFT`, or `CLEAR_RIGHT`: true when the cell on that side of the automaton is on the board and not a wall. `then` holds 1 to 4 primitives, `else` holds 0 to 4 (always present, possibly empty). An `IF` may stand at the top level or as an item of a loop body (a body is 1 to 8 items, each a primitive or an `IF`); an `IF` cannot hold an `IF` (`NESTED_IF`) or a loop (`NESTED_REPEAT`). Reading a sensor costs no step. An `IF` is 1 plus its branches in slots, and a loop is 1 plus the slots of its body items. A level offers it with `IF` in `availableCommands` (the mechanic `if`). Missing, mistyped or unknown `when` is `REQUIRED`, `INVALID_TYPE`, `INVALID_VALUE` at `program[i].when`; a branch outside its length is `LENGTH_OUT_OF_RANGE` at `program[i].then` or `.else`; a missing branch is `REQUIRED`. `REPEAT_UNTIL` also accepts `until: "GOAL"`, which is never true at the start of a round, so that loop runs until the goal, a failure, or the step limit. A round of a `REPEAT_UNTIL` in which no primitive runs would repeat for ever and stops the run with `STEP_LIMIT`. In the trace, a primitive inside an `IF` has `node` `[i, k]` (top level) or `[i, j, k]` (body item `j` of loop `i`), where `k` counts the `then` primitives first and the `else` primitives after them.
+
+The solver does not search `IF` programs. With `IF` offered it still finds the best program without one (loops included); par for such a level is the author's reference solution, which the publish gate runs.
+
 **Slots.** The command limit counts slots: a primitive is 1, a `REPEAT` is 1 plus the number of instructions in its body. `REPEAT 6 { MOVE_FORWARD, TURN_RIGHT, MOVE_FORWARD, TURN_LEFT }` is 5 slots. `programSlots(program)` computes it.
 
 ### Limits
@@ -88,7 +92,7 @@ All are inclusive. Lengths of strings are counted in Unicode code points (not UT
 | `requires.mechanics`          | at most 8 entries, unique, each 1 to 32 characters matching `^[a-z][a-z0-9_]*$`                          |
 | `board.width`, `board.height` | integer, 3 to 12                                                                                         |
 | `board.walls`                 | at most 100 unique cells                                                                                 |
-| `availableCommands`           | 1 to 5 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, `REPEAT`, `REPEAT_UNTIL`           |
+| `availableCommands`           | 1 to 6 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, `REPEAT`, `REPEAT_UNTIL`, `IF`     |
 | `REPEAT` `count`              | integer, 2 to 11                                                                                         |
 | `REPEAT` `body`               | 1 to 8 primitive instructions (no `REPEAT`)                                                              |
 | `constraints.maxCommands`     | integer, 1 to 64                                                                                         |
@@ -130,6 +134,7 @@ Each issue is `{ path, code, message }`, matching the error contract in `docs/RE
 | `COMMAND_NOT_AVAILABLE`      | a known `op` that the level's `availableCommands` does not offer                            |
 | `TOO_MANY_COMMANDS`          | a program that uses more slots than `constraints.maxCommands`; reported at the program path |
 | `NESTED_REPEAT`              | a `REPEAT` inside the body of a `REPEAT`; reported at the inner `op`                        |
+| `NESTED_IF`                  | an `IF` inside the branch of an `IF`; reported at the inner `op`                            |
 
 ### Exact validation rules
 

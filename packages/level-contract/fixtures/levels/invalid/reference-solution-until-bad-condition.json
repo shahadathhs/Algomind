@@ -60,7 +60,7 @@
     "referenceSolution": [
       {
         "op": "REPEAT_UNTIL",
-        "until": "GOAL",
+        "until": "NEAR",
         "body": [
           {
             "op": "MOVE_FORWARD"
