@@ -52,6 +52,15 @@ Required behavior:
 - Prevent the player from accidentally editing the sequence while a run is executing, or define and test a clear edit-during-run behavior.
 - Preserve the current sequence when a run fails so the player can inspect it.
 
+Loops (rules in [README_GAME_RULES.md](README_GAME_RULES.md) sections 3.1 and 3.2):
+
+- The commands row shows a **Repeat** tile when a level offers `REPEAT` and a **Repeat until** tile (label UNTIL) when it offers `REPEAT_UNTIL`, side by side when both are offered. With five tiles the icon sits above the label.
+- Tapping a loop tile starts a loop and opens it; commands tapped next go into its body (at most 8). The same tile now reads END LOOP and closes it; an empty loop cannot be closed and is not a program (Run and Step stay off and the message asks for a command). Only one loop is open at a time, and a loop cannot hold a loop, so the other loop tile waits while one is open.
+- A Repeat loop starts at two rounds; selecting its count tile shows minus and plus (2 to 11). A Repeat until loop has no count: its header reads UNTIL BLOCKED, selecting it shows only the move and remove tools, and the loop is ended by the wall or board edge, not by the player.
+- A loop costs 1 slot plus one per body command, in the editor, the command counter, the result and the score.
+- While a run is shown, a Repeat header reads round/count and a Repeat until header reads ROUND and the round number; a failure inside a body shows the X on that body tile. A Repeat until loop that never meets a wall is stopped by the step limit and the message says the loop never reached a wall.
+- The how-to-play screen explains both loops.
+
 ### 3.3 Deterministic simulation
 
 - Commands execute in a defined order.

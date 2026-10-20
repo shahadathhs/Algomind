@@ -103,9 +103,9 @@ Do not implement these all at once. Introduce each command only when the level d
 
 A program is an ordered list of instruction nodes (not bare strings), so `REPEAT` and `IF_FRONT_BLOCKED` can contain nested instructions later without breaking the level format. The same representation is used by the player's program, the reference solution, and the shared fixtures.
 
-### 3.1 REPEAT (specified, not built)
+### 3.1 REPEAT
 
-> **Status:** proposed. The par search was prototyped and measured (bodies up to 8 instructions on boards up to 12 by 12 solve in 3 to 70 ms; allowing a loop inside a loop costs 0.4 to 1.8 s for little gain). Nothing in the contract, either simulator, the editor, or the game implements it yet.
+> **Status:** built (contract, both simulators, the editors, world 3). Original note: The par search was prototyped and measured (bodies up to 8 instructions on boards up to 12 by 12 solve in 3 to 70 ms; allowing a loop inside a loop costs 0.4 to 1.8 s for little gain). Nothing in the contract, either simulator, the editor, or the game implements it yet.
 
 A program node is either a primitive (`MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`) or a loop:
 
@@ -131,6 +131,34 @@ A program node is either a primitive (`MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`)
 4. **Check par with the solver, never by eye.** On open boards the solver finds patterns the author did not intend (a free 10 by 10 board was solved by `REPEAT 9 { M R M L }`).
 
 **Editing:** the palette gains a Repeat tile. Tapping it appends a group with a count of 2 and an empty body that takes the next tapped commands until it is closed; the count is changed with minus and plus tiles on the group. A group is drawn as a count tile followed by its body tiles inside one outlined bracket (dashed while the loop is open). While a loop is open the Repeat tile reads End loop and works once the body has a command; a loop with an empty body is not a program, so Run and Step stay off and the message says to add a command. The limit counter counts slots, one per tape cell. While a program runs, the count tile shows the round ("2/6"); when a run fails inside a loop the X sits on the blocked body tile and the count tile shows the round it failed in. Visual rules are in [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md) (to be updated when this is built).
+
+### 3.2 REPEAT_UNTIL (world 4)
+
+> **Status:** the contract, the TypeScript simulator and solver, and the shared fixtures are built; the dashboard editor and the public how-to-play page are built; the GDScript validator and simulator and the game editor are built.
+
+A conditional loop, the second loop node:
+
+```json
+{ "op": "REPEAT_UNTIL", "until": "BLOCKED", "body": [{ "op": "MOVE_FORWARD" }] }
+```
+
+- **Condition:** `until` is `BLOCKED`, true when a wall or the board edge is straight ahead of the automaton. It is the only condition in version 1 (`IF` sensors in world 5 add more, as separate data).
+- **When it is checked:** before every round, never in the middle of one. The body runs again only while the condition is false, so a loop whose way ahead is already blocked runs its body zero times, and a loop ends the first time a round starts blocked. The check costs no step and no slot.
+- **Body:** one to 8 primitives, as for `REPEAT`. A loop cannot contain a loop of either kind (`NESTED_REPEAT`). There is no `count`; a `count` is an unknown field.
+- **Availability:** a level lists `REPEAT_UNTIL` in `availableCommands`. The mechanic `repeat_until` is derived from that, as for `repeat`.
+- **Slots and steps:** 1 plus the body for the slots; each executed primitive is one step; the loop node costs none. The step limit is checked before every primitive, which is what stops a loop that is never blocked (a body of only turns): the run fails with the step-limit outcome.
+- **Reaching the goal** inside the loop succeeds at once, as in `REPEAT`. A failure in the body sits on that body node, and the trace carries the 1-based round.
+- **Par:** the solver adds `REPEAT_UNTIL(BLOCKED, body)` edges for every body, after the counted loops of the same body, and only when `REPEAT_UNTIL` is offered; ties go to the counted loop.
+- **Why it matters:** the loop does not need the distance. `REPEAT_UNTIL BLOCKED { MOVE_FORWARD }` runs any corridor to its end, so one program serves boards of every size, which is the point of world 7 (generalize).
+
+**Level design rules for world 4:**
+
+1. A level offers `REPEAT_UNTIL` and not `REPEAT`, so the player learns the condition, not a count to measure.
+2. Flat par must be above the limit and `REPEAT_UNTIL` par at or below it, as for loops.
+3. Corridors are long (7 to 12 cells) and their lengths are never needed: the point is turning at the wall, so the player reads the shape, not the distance.
+4. The goal is at a corner or a dead end, or beside the end of a corridor, never in the middle of a run (a loop would pass through it and the level would teach nothing).
+
+**Editing:** the palette gains a Repeat until tile beside Repeat when a level offers it. A group shows "UNTIL BLOCKED" instead of a count, with no plus and minus tiles; the body is built as for Repeat. While it runs, the group shows the round. Visual rules are in [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md).
 
 ## 4. Execution model and feedback
 
@@ -184,7 +212,7 @@ Teach concepts progressively rather than making early levels arbitrarily difficu
 | 1   | Basics     | Sequencing and turning               | Step-by-step execution: trace a program by hand and predict where it ends                            | nothing new                                                                | 8      |
 | 2   | Routes     | Planning and budgets                 | Shortest-path search (turns cost too) and working backward from the goal                             | nothing new                                                                | 10     |
 | 3   | Loops      | Repeating a pattern                  | Pattern detection (find the repeating unit); split a route into loops plus the moves between them    | `REPEAT n` (specified in 3.1; rules package built, no editor UI yet)       | 8-10   |
-| 4   | Until      | One program for any distance         | Scan until a condition holds (linear search with a stop condition); reason about when a loop ends    | `REPEAT UNTIL` (blocked, or at the goal)                                   | 8-10   |
+| 4   | Until      | One program for any distance         | Scan until a condition holds (linear search with a stop condition); reason about when a loop ends    | `REPEAT_UNTIL` (built; section 3.2: until blocked)                         | 8      |
 | 5   | Decisions  | Choosing by what you sense           | Wall-following (the right-hand rule) and a greedy local rule; decisions based on the current state   | `IF` sensors (wall ahead, goal ahead)                                      | 8-10   |
 | 6   | Procedures | Naming and reusing steps             | Abstraction and decomposition: build big solutions from small named parts                            | named procedures                                                           | 8      |
 | 7   | Generalize | One program, many boards             | Generalization and edge cases: the solution must work on every test board, including the tricky ones | multi-board levels (below)                                                 | 8      |
