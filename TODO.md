@@ -13,7 +13,8 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [ ] Tap flows in the running game: report confirm, MORE paging, COPIED, clipboard; the browser build hides Daily, Leaderboard, Profile and Badges
 - [ ] Dashboard in a real browser: the Repeat until and If editors, the par wording for If levels, Daily, Badges, Reports, Statistics (`make web-smoke` does not cover them)
 - [ ] An Android device: install the build against the production API
-- [ ] Playtest the 16 levels of worlds 4 and 5 with real people
+- [ ] Procedures (world 6): the palette with up to ten tiles in two rows at 360 px, definition groups at the start of the tape, the CALL highlight while running, scrolling a long program
+- [ ] Playtest the 24 levels of worlds 4 to 6 with real people
 
 ## Now: step 1, worlds 1 and 2 (18 levels)
 
@@ -90,7 +91,8 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [x] Step 5a: world 4, Until (`REPEAT_UNTIL`): contract, both simulators, solver, fixtures, dashboard and game editors, 8 levels in 2 chapters (see [docs/README_GAME_RULES.md](docs/README_GAME_RULES.md), section 3.2). Open: look at the new tile and header on screen at all three sizes in both themes, and playtest the 8 levels with real people
 - [x] Step 5b: world 5, Decisions (`IF` sensors, `REPEAT_UNTIL GOAL`): contract, both simulators, editors, 8 levels in 2 chapters (see [docs/README_GAME_RULES.md](docs/README_GAME_RULES.md), section 3.3). Open: look at the new tape (nested IF brackets, six-tile palette) at all three sizes in both themes, and playtest the 16 levels of worlds 4 and 5 with real people
 - [x] Step 6: leaderboards, daily challenge, sharing, badges, level statistics, profile, stars on tiles (see [docs/README_SOCIAL_PLAN.md](docs/README_SOCIAL_PLAN.md), section 6). Open: look at the new game screens at all three sizes in both themes (a screenshot run needs a window; only 360x640 was reviewed), try the tap flows in the running game (report confirm, MORE paging, COPIED, clipboard), and test the browser build hides the four screens
-- [ ] Step 7: worlds 6 to 10
+- [x] Step 7a: world 6, Procedures (`PROC` and `CALL`): contract, both simulators, editors, 8 levels in 2 chapters (see [docs/README_GAME_RULES.md](docs/README_GAME_RULES.md), section 3.4)
+- [ ] Step 7b: worlds 7 to 10 (generalize, counters, memory, sweep)
 
 ## Open items
 

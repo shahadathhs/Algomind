@@ -134,7 +134,7 @@ A program node is either a primitive (`MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`)
 
 ### 3.2 REPEAT_UNTIL (world 4)
 
-> **Status:** the contract, the TypeScript simulator and solver, and the shared fixtures are built; the dashboard editor and the public how-to-play page are built; the GDScript validator and simulator and the game editor are built.
+> **Status:** built (contract, both simulators, the dashboard and game editors, world 4).
 
 A conditional loop, the second loop node:
 
@@ -162,7 +162,7 @@ A conditional loop, the second loop node:
 
 ### 3.3 IF and the sensors (world 5)
 
-> **Status:** specified 2026-10-20; the contract (TypeScript), both simulators (TypeScript and GDScript), the shared fixtures and the game editor are built; the dashboard editor and world 5 levels follow (see TODO.md).
+> **Status:** built (contract, both simulators, the dashboard and game editors, world 5).
 
 A decision node, the third kind of instruction:
 
@@ -188,6 +188,35 @@ A decision node, the third kind of instruction:
 3. Mazes are simply connected (every wall joined to the outer wall), so the right-hand rule is guaranteed to finish; `maxSteps` is at least twice the steps of the reference run.
 
 **Editing:** the palette gains an If tile. Tapping it opens an `IF` group with the sensor `CLEAR_AHEAD`; tapping the sensor tile on the group cycles through the three sensors. The next tapped commands go to the `then` branch; the palette's Else tile switches to the `else` branch; End if (the If tile while a group is open) closes it. Inside an open loop an `IF` is one of its items; at most one `IF` and one loop are open at the same time, and the loop closes last. An `IF` with an empty `then` is not a program.
+
+### 3.4 PROC and CALL (world 6)
+
+> **Status:** built (contract, both simulators, the dashboard and game editors, world 6).
+
+Two more nodes. A procedure is a named piece of program, defined once and run from several places:
+
+```json
+{ "op": "PROC", "name": "A", "body": [{ "op": "MOVE_FORWARD" }, { "op": "TURN_RIGHT" }] }
+{ "op": "CALL", "name": "A" }
+```
+
+- **Names:** `A`, `B`, or `C`. A name is defined at most once (`DUPLICATE_PROCEDURE` at the later `name`), and a `CALL` to a name no `PROC` defines is `UNDEFINED_PROCEDURE`. A `CALL` may come before the definition in the list.
+- **Where they stand:** a `PROC` only at the top level (`NESTED_PROC` elsewhere). A `CALL` at the top level or as an item of a loop body of the main program. A procedure cannot call a procedure (no recursion in version 1), so a `CALL` inside a `PROC` body, inside an `IF` branch, or inside a loop that stands in a procedure is `CALL_NOT_ALLOWED`.
+- **A procedure body:** 1 to 8 items, each a primitive, an `IF`, or a loop (`REPEAT` or `REPEAT_UNTIL`, with the bodies and rules they already have; a loop still cannot hold a loop).
+- **Running:** a `PROC` is not run where it stands. The main program is the other top-level nodes in order; a `CALL` runs the body of the first `PROC` of that name and then goes on. A `PROC` costs no step and a `CALL` itself costs none.
+- **Slots:** a `CALL` is 1; a `PROC` is 1 plus the slots of its body items. The whole program, definitions included, is bounded by `maxCommands`. Reuse is what pays: a six-instruction procedure used three times costs 7 + 3 slots instead of 18.
+- **Trace:** a primitive run inside a procedure has `node` `[p, j, ...]`, where `p` is the index of the `PROC` in the program and the path goes on as if the `PROC` were a loop. Every trace entry has `call`: the path of the `CALL` that is running it, or `null` in the main program. `round` is the round of the innermost loop the instruction stands in (null for a procedure's own top-level items).
+- **Availability:** a level lists `PROC` in `availableCommands`; that offers both the definition and the call. The mechanic is `procedures`.
+- **Par:** as for `IF`, the exact search does not cover procedures. Par for a level that offers `PROC` is the slots and steps of its reference solution. The publish gate also runs the exact solver without `PROC`, and the level is accepted as needing procedures only when that best program does not fit `maxCommands`.
+
+**Level design rules for world 6:**
+
+1. The idea is a shape that comes back at uneven intervals: the same sequence of moves and turns appears three or four times along the route with different runs between, so a counted loop cannot say it once but a named procedure can.
+2. The limit is the slots of the reference solution, and the best program without procedures is at least 1.3 times the limit.
+3. Levels offer `REPEAT` and `PROC` (not `REPEAT_UNTIL` and `IF`), so the player decomposes the route and does not solve it with a wall follower.
+4. Later chapters use two procedures (`A` and `B`) and a procedure that contains a loop.
+
+**Editing:** the palette gains a Proc tile. Tapping it starts the next free name (A, then B, then C) as a definition group drawn at the top of the tape with its name; tapped commands go into it until the tile (now reading End proc) is tapped. While no definition is open, each defined name has a Call tile that appends a call to the main program. The main program is drawn below the definitions. A definition with an empty body is not a program.
 
 ## 4. Execution model and feedback
 
@@ -243,7 +272,7 @@ Teach concepts progressively rather than making early levels arbitrarily difficu
 | 3   | Loops      | Repeating a pattern                  | Pattern detection (find the repeating unit); split a route into loops plus the moves between them    | `REPEAT n` (specified in 3.1; rules package built, no editor UI yet)       | 8-10   |
 | 4   | Until      | One program for any distance         | Scan until a condition holds (linear search with a stop condition); reason about when a loop ends    | `REPEAT_UNTIL` (built; section 3.2: until blocked)                         | 8      |
 | 5   | Decisions  | Choosing by what you sense           | Wall-following (the right-hand rule) and a greedy local rule; decisions based on the current state   | `IF` sensors (wall ahead, goal ahead)                                      | 8-10   |
-| 6   | Procedures | Naming and reusing steps             | Abstraction and decomposition: build big solutions from small named parts                            | named procedures                                                           | 8      |
+| 6   | Procedures | Naming and reusing steps             | Abstraction and decomposition: build big solutions from small named parts                            | `PROC` and `CALL` (built; 3.4)                                             | 8      |
 | 7   | Generalize | One program, many boards             | Generalization and edge cases: the solution must work on every test board, including the tricky ones | multi-board levels (below)                                                 | 8      |
 | 8   | Counters   | Remembering a number and changing it | Accumulation: a value that grows each round (spirals, widening stairs, count to n then act)          | one counter variable: set, add one, use as a loop count                    | 8      |
 | 9   | Memory     | Marking where you have been          | Depth-first search with backtracking (the Tremaux idea): explore, mark, return, never repeat a path  | markers: `DROP MARK`, `IF MARK AHEAD` (the board changes during a run)     | 8      |

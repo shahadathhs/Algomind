@@ -70,6 +70,14 @@ If (rules in section 3.3):
 - An If costs 1 slot plus one per command in then and else; the Else divider on the tape is not a slot and has no number. Selecting the header and removing deletes the whole If; moving it moves the group. Commands move only within their own branch.
 - While a run is shown, a command in a branch that was not taken stays outlined; the X of a failure sits on the command that was blocked, inside whichever branch ran.
 
+Procedures (rules in section 3.4 of the game rules):
+
+- The commands row shows a **Proc** tile when a level offers `PROC`. Tapping it opens the next free definition (A, then B, then C) at the start of the tape and selects its header. Commands tapped next, including Repeat, Repeat until and If groups with their usual open rules, go into the definition. The Proc tile reads END PROC with a check while a definition is open and closes it once it holds a command; when A, B and C all exist it is disabled. A definition with no command is not a program (Run and Step stay off and the message asks for a command).
+- While no definition is open, each defined name has a **Call** tile (CALL A, CALL B, CALL C) that appends a CALL to the main program, or into an open main-program loop. No Call tile shows while a definition is open, and a Call is disabled while an If is open. A definition has at most 8 items; a CALL is 1 slot and a definition is 1 plus its items.
+- Definitions always come first on the tape, then the main program. Selecting a header and removing deletes the whole definition; its CALL tiles stay, Run and Step turn off, and the message reads "Procedure A is not defined" until the definition is made again or the calls are removed. A definition moves only among the definitions, and a main-program command never moves into them.
+- While a run is shown, the tile of the definition that is running is current, and so is the CALL tile that started it. A loop in the main program that holds the running CALL shows its count. When a run fails inside a definition the X sits on that command in the definition.
+- The how-to-play screen explains Proc and Call.
+
 ### 3.3 Deterministic simulation
 
 - Commands execute in a defined order.
