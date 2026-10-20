@@ -91,6 +91,23 @@
           "levels": ["small-maze", "wide-maze", "square-maze", "long-maze", "big-maze"]
         }
       ]
+    },
+    {
+      "id": "procedures",
+      "title": "Procedures",
+      "summary": "Name a part and use it again.",
+      "chapters": [
+        {
+          "id": "name-it",
+          "title": "Name it",
+          "levels": ["first-part", "used-again", "third-time", "part-with-a-loop"]
+        },
+        {
+          "id": "parts",
+          "title": "Parts",
+          "levels": ["loop-inside", "longer-part", "two-parts", "two-parts-longer"]
+        }
+      ]
     }
   ],
   "par": {
@@ -269,6 +286,38 @@
     "big-maze": {
       "commands": 37,
       "steps": 65
+    },
+    "first-part": {
+      "commands": 20,
+      "steps": 27
+    },
+    "used-again": {
+      "commands": 22,
+      "steps": 32
+    },
+    "third-time": {
+      "commands": 26,
+      "steps": 37
+    },
+    "part-with-a-loop": {
+      "commands": 24,
+      "steps": 43
+    },
+    "loop-inside": {
+      "commands": 26,
+      "steps": 35
+    },
+    "longer-part": {
+      "commands": 40,
+      "steps": 48
+    },
+    "two-parts": {
+      "commands": 27,
+      "steps": 50
+    },
+    "two-parts-longer": {
+      "commands": 29,
+      "steps": 40
     }
   }
 }

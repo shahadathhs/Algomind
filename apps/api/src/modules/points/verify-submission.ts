@@ -40,6 +40,7 @@ type HashNode = {
   count?: number;
   until?: string;
   when?: string;
+  name?: string;
   body?: HashNode[];
   then?: HashNode[];
   else?: HashNode[];
@@ -54,7 +55,11 @@ export function programHash(program: HashNode[]) {
         ? { op: n.op, until: n.until, body: (n.body ?? []).map(canonicalNode) }
         : n.op === "IF"
           ? { op: n.op, when: n.when, then: ops(n.then), else: ops(n.else) }
-          : { op: n.op };
+          : n.op === "PROC"
+            ? { op: n.op, name: n.name, body: (n.body ?? []).map(canonicalNode) }
+            : n.op === "CALL"
+              ? { op: n.op, name: n.name }
+              : { op: n.op };
   const canonical = program.map(canonicalNode);
   return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
 }

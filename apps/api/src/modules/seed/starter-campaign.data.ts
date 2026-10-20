@@ -1,4 +1,4 @@
-// The starter campaign: five worlds, ten chapters, forty-four levels, in play order.
+// The starter campaign: six worlds, twelve chapters, fifty-two levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
@@ -10,7 +10,8 @@
 // limit equals the loop par: the plain program is longer than the limit, so each level needs its
 // loop (a test checks this). World 5 offers Repeat until and If; its levels carry the reference
 // `solution` (the exact solver does not search If), the limit is that solution's slots, and the
-// best program without If is at least 1.5 times the limit.
+// best program without If is at least 1.5 times the limit. World 6 offers Repeat and Proc, carries the
+// reference `solution` the same way, and the best program without Proc is at least 1.3 times the limit.
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -1416,6 +1417,744 @@ export const CAMPAIGN = {
                       ]
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Procedures",
+      "description": "Name a part and use it again.",
+      "chapters": [
+        {
+          "title": "Name it",
+          "levels": [
+            {
+              "slug": "first-part",
+              "title": "First part",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 14,
+              "maxSteps": 100,
+              "rows": [
+                "G#########",
+                ".#####...#",
+                "..#....#.#",
+                "#...####..",
+                "#########^"
+              ],
+              "hints": [
+                "Find the part that comes back. Name it once, then call it where it belongs.",
+                "Proc defines a part and Call runs it. A call costs one slot."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_LEFT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "used-again",
+              "title": "Used again",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 16,
+              "maxSteps": 100,
+              "rows": [
+                "#######...#",
+                "###.....#.#",
+                "....#####.#",
+                ".########..",
+                "..########.",
+                "#.########G",
+                "#^#########"
+              ],
+              "hints": [
+                "Find the part that comes back. Name it once, then call it where it belongs.",
+                "Proc defines a part and Call runs it. A call costs one slot."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "third-time",
+              "title": "Third time",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 19,
+              "maxSteps": 100,
+              "rows": [
+                "#.....######",
+                "#.###...####",
+                "..#####.####",
+                ".######.####",
+                "^#####..####",
+                "######.#####",
+                "######....##",
+                "#########..G"
+              ],
+              "hints": [
+                "Find the part that comes back. Name it once, then call it where it belongs.",
+                "Proc defines a part and Call runs it. A call costs one slot."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_LEFT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "part-with-a-loop",
+              "title": "Part with a loop",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 12,
+              "maxSteps": 100,
+              "rows": [
+                "##.....##",
+                "#..###..#",
+                "..#####..",
+                ".#######.",
+                "^#######.",
+                "########.",
+                "#######..",
+                "######..#",
+                "####G..##"
+              ],
+              "hints": [
+                "Look for a part you can say with a loop, then name the whole part.",
+                "A loop can stand inside a procedure."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "REPEAT",
+                      "count": 3,
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_RIGHT"
+                        },
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Parts",
+          "levels": [
+            {
+              "slug": "loop-inside",
+              "title": "Loop inside",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 14,
+              "maxSteps": 100,
+              "rows": [
+                "G#########",
+                "...#######",
+                "##..######",
+                "###.######",
+                "###...####",
+                "#####..###",
+                "######.###",
+                "######.###",
+                "######...#",
+                "########..",
+                "#########^"
+              ],
+              "hints": [
+                "Look for a part you can say with a loop, then name the whole part.",
+                "A loop can stand inside a procedure."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "REPEAT",
+                      "count": 2,
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_LEFT"
+                        },
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "longer-part",
+              "title": "Longer part",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 20,
+              "maxSteps": 110,
+              "rows": [
+                "######...###",
+                "######.#..##",
+                "####...##.##",
+                "###..####...",
+                "###.#######.",
+                "#...######..",
+                "..######^..#",
+                ".###########",
+                "G###########"
+              ],
+              "hints": [
+                "Look for a part you can say with a loop, then name the whole part.",
+                "A loop can stand inside a procedure."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "REPEAT",
+                      "count": 2,
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_LEFT"
+                        },
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_LEFT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_LEFT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "two-parts",
+              "title": "Two parts",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 19,
+              "maxSteps": 110,
+              "rows": [
+                "###.....####",
+                "###.###..###",
+                "##..####..##",
+                "#..######...",
+                "..#########.",
+                "^#########..",
+                "#########..#",
+                "########..##",
+                "########.###",
+                "#######G.###"
+              ],
+              "hints": [
+                "Two different parts come back. Give each its own name.",
+                "The procedures are A and B. Define a part before you call it."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "REPEAT",
+                      "count": 3,
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_RIGHT"
+                        },
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "PROC",
+                  "name": "B",
+                  "body": [
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "B"
+                },
+                {
+                  "op": "CALL",
+                  "name": "B"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "two-parts-longer",
+              "title": "Two parts, longer",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 20,
+              "maxSteps": 100,
+              "rows": [
+                "###.....##",
+                "##..###.##",
+                "...####..#",
+                ".#######..",
+                "^########.",
+                "#######...",
+                "######..##",
+                "####G..###"
+              ],
+              "hints": [
+                "Two different parts come back. Give each its own name.",
+                "The procedures are A and B. Define a part before you call it."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "REPEAT",
+                      "count": 2,
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_LEFT"
+                        },
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "PROC",
+                  "name": "B",
+                  "body": [
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "B"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "B"
                 }
               ]
             }

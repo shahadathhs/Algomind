@@ -14,13 +14,14 @@ const referenceOf = (entry: (typeof built)[number]): readonly unknown[] =>
   entry.def.solution ?? solve(entry.level)!.program;
 
 describe("the starter campaign", () => {
-  it("has five worlds, ten chapters, and forty-four levels in a fixed order", () => {
+  it("has six worlds, twelve chapters, and fifty-two levels in a fixed order", () => {
     expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual([
       "Basics",
       "Routes",
       "Loops",
       "Until",
       "Decisions",
+      "Procedures",
     ]);
     expect(CAMPAIGN.worlds.flatMap((w) => w.chapters.map((c) => c.title))).toEqual([
       "Moves",
@@ -33,8 +34,10 @@ describe("the starter campaign", () => {
       "Corridors",
       "Look",
       "Follow the wall",
+      "Name it",
+      "Parts",
     ]);
-    expect(LEVELS).toHaveLength(44);
+    expect(LEVELS).toHaveLength(52);
   });
 
   it("uses each slug, title, and board once", () => {
@@ -60,22 +63,27 @@ describe("the starter campaign", () => {
     "%s offers only the commands it needs, and hints that fit",
     (_slug, entry) => {
       const used = new Set<string>();
-      for (const node of referenceOf(entry) as Program) {
-        used.add(node.op);
-        for (const inner of ("body" in node ? node.body : []) as { op: string }[])
-          used.add(inner.op);
-      }
+      const walk = (node: { op: string; body?: unknown[]; then?: unknown[]; else?: unknown[] }) => {
+        used.add(node.op === "CALL" ? "PROC" : node.op);
+        for (const list of [node.body, node.then, node.else]) {
+          for (const inner of (list ?? []) as (typeof node)[]) walk(inner);
+        }
+      };
+      for (const node of referenceOf(entry) as Program) walk(node);
       // Every offered command is a real choice: the shortest program does not have to use all of
       // them, but none may be missing.
       for (const op of used) expect(entry.def.commands).toContain(op);
       // Each loop and decision belongs to its world: Repeat to world 3, Repeat until to worlds 4 and 5,
       // If to world 5, none of them earlier.
       const world = entry.world.title;
-      expect(entry.def.commands.includes("REPEAT")).toBe(world === "Loops");
+      expect(entry.def.commands.includes("REPEAT")).toBe(
+        world === "Loops" || world === "Procedures",
+      );
       expect(entry.def.commands.includes("REPEAT_UNTIL")).toBe(
         world === "Until" || world === "Decisions",
       );
       expect(entry.def.commands.includes("IF")).toBe(world === "Decisions");
+      expect(entry.def.commands.includes("PROC")).toBe(world === "Procedures");
       expect(entry.def.hints?.length ?? 0).toBeGreaterThanOrEqual(1);
       expect(entry.def.hints?.length ?? 0).toBeLessThanOrEqual(3);
       for (const hint of entry.def.hints ?? []) expect(hint.length).toBeLessThanOrEqual(140);
@@ -88,6 +96,7 @@ describe("the starter campaign", () => {
       Loops: ["REPEAT"],
       Until: ["REPEAT_UNTIL"],
       Decisions: ["REPEAT_UNTIL", "IF"],
+      Procedures: ["REPEAT", "PROC"],
     };
     for (const entry of built) {
       const expected = [...movement, ...(extra[entry.world.title] ?? [])];
@@ -118,6 +127,7 @@ describe("the starter campaign", () => {
     { world: "Loops", ratio: 2, strip: ["REPEAT", "REPEAT_UNTIL"], uses: "REPEAT" },
     { world: "Until", ratio: 1.5, strip: ["REPEAT", "REPEAT_UNTIL"], uses: "REPEAT_UNTIL" },
     { world: "Decisions", ratio: 1.5, strip: ["IF"], uses: "IF" },
+    { world: "Procedures", ratio: 1.3, strip: ["PROC"], uses: "PROC" },
   ];
 
   it.each(loopWorlds)("makes every $world level need its tool", ({ world, ratio, strip }) => {
@@ -145,8 +155,8 @@ describe("the starter campaign", () => {
     },
   );
 
-  it("gives every Decisions level step room for twice its reference run", () => {
-    for (const entry of built.filter((b) => b.world.title === "Decisions")) {
+  it("gives every level with a reference solution step room for twice its run", () => {
+    for (const entry of built.filter((b) => b.def.solution)) {
       const run = simulate(entry.level, referenceOf(entry) as Program);
       expect(run.steps * 2, entry.def.slug).toBeLessThanOrEqual(entry.level.constraints.maxSteps);
     }
