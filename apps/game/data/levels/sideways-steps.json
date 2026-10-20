@@ -1,0 +1,50 @@
+{
+  "goal": {
+    "type": "reach_tile",
+    "position": [0, 3]
+  },
+  "slug": "sideways-steps",
+  "board": {
+    "walls": [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [4, 0],
+      [5, 0],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1],
+      [0, 2],
+      [1, 2],
+      [5, 2],
+      [6, 2],
+      [3, 3],
+      [4, 3],
+      [5, 3],
+      [6, 3]
+    ],
+    "width": 7,
+    "height": 4
+  },
+  "hints": ["Follow the corridor and find the part that repeats."],
+  "title": "Sideways steps",
+  "levelId": "b390db04-6910-4221-9010-a751819adf3a",
+  "requires": {
+    "mechanics": []
+  },
+  "difficulty": "medium",
+  "constraints": {
+    "maxSteps": 100,
+    "maxCommands": 6
+  },
+  "description": "",
+  "initialState": {
+    "position": [6, 0],
+    "direction": "south"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT"]
+}

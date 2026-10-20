@@ -3,6 +3,7 @@ import type { Prisma } from "../../generated/prisma/client.js";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
 import { unprocessable } from "../../core/http/errors.js";
 import { PasswordService } from "../auth/password.service.js";
+import { deleteReportsOf } from "../leaderboards/reports.service.js";
 import { mergeCompletion, shouldReplaceSettings } from "./me.merge.js";
 import type { ProgressView, SettingsPayload, SyncBody } from "./me.schemas.js";
 
@@ -31,6 +32,10 @@ export class MeService {
 
   async sync(userId: string, input: SyncBody): Promise<ProgressView> {
     return this.prisma.$transaction(async (tx) => {
+      // Two syncs of one player (two devices, or a retry) take turns: the second reads what the
+      // first wrote instead of merging from the same stale snapshot.
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
+      await tx.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } });
       const stored = new Map(
         (await tx.levelProgress.findMany({ where: { userId } })).map((row) => [row.levelSlug, row]),
       );
@@ -77,7 +82,7 @@ export class MeService {
     return (await this.settings(userId)) as SettingsPayload;
   }
 
-  /** Deletes the account and, by cascade, its sessions, progress, and settings. */
+  /** Deletes the account and, by cascade, its sessions, progress, results, badges, and share links. */
   async deleteAccount(userId: string, password: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) return true;
@@ -92,7 +97,10 @@ export class MeService {
         { path: "password", code: "INCORRECT", message: "The password is incorrect." },
       ]);
     }
-    await this.prisma.user.delete({ where: { id: userId } });
+    await this.prisma.$transaction(async (tx) => {
+      await deleteReportsOf(tx, userId, user.publicId);
+      await tx.user.delete({ where: { id: userId } });
+    });
     return true;
   }
 

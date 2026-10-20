@@ -7,6 +7,9 @@ extends RefCounted
 ## refresh token); a refresh the server rejects ends the session on this device. Every method
 ## returns { ok, message, ... } and never throws.
 
+## Emitted when a refresh that other callers were waiting for has ended.
+signal refresh_finished
+
 ## How early before it expires an access token is replaced, in seconds.
 const EXPIRY_MARGIN := 30.0
 
@@ -15,6 +18,7 @@ var account: Account
 ## as ApiClient.send_json returns it). Replaced by a fake in tests.
 var _send: Callable
 var _access_token := ""
+var _refreshing := false
 var _access_expires_at := 0.0
 
 
@@ -123,14 +127,33 @@ func _accept_session(body: Variant) -> bool:
 	return true
 
 
+## A usable access token, refreshing it when needed. Only one refresh runs at a time: a second
+## caller that arrives meanwhile waits for it and uses its result. Two refreshes with the same
+## refresh token would make the server see a reused (stolen) token and end the session.
 func _fresh_access_token() -> String:
 	if not account.signed_in():
 		return ""
-	if (
+	if _is_fresh():
+		return _access_token
+	if _refreshing:
+		await refresh_finished
+		return _access_token if _is_fresh() else ""
+	_refreshing = true
+	var token := await _refresh()
+	_refreshing = false
+	refresh_finished.emit()
+	return token
+
+
+func _is_fresh() -> bool:
+	return (
 		not _access_token.is_empty()
 		and Time.get_unix_time_from_system() < _access_expires_at - EXPIRY_MARGIN
-	):
-		return _access_token
+	)
+
+
+## Exchanges the refresh token for a new pair. "" when it fails; a rejection ends the session.
+func _refresh() -> String:
 	var result: Dictionary = await _send.call(
 		"POST", "auth/refresh", {"refreshToken": account.refresh_token}, ""
 	)

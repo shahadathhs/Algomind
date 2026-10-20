@@ -1,10 +1,18 @@
-import { COMMAND_NAMES, DIRECTIONS, DIRECTION_DELTAS } from "./constants.js";
+import {
+  DIRECTIONS,
+  DIRECTION_DELTAS,
+  LIMITS,
+  PRIMITIVE_COMMANDS,
+  REPEAT_OP,
+} from "./constants.js";
 import type {
-  CommandName,
   Direction,
   Level,
   Position,
+  PrimitiveInstruction,
+  PrimitiveName,
   Program,
+  RepeatInstruction,
   RunResult,
   TraceEntry,
 } from "./types.js";
@@ -32,12 +40,44 @@ export function isInsideBoard(level: Level, cell: Position): boolean {
   );
 }
 
+const PRIMITIVES = PRIMITIVE_COMMANDS as readonly string[];
+
+function isPrimitiveNode(node: unknown): node is PrimitiveInstruction {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    typeof (node as { op?: unknown }).op === "string" &&
+    PRIMITIVES.includes((node as { op: string }).op)
+  );
+}
+
+/** A loop the simulator can run: a whole count in range and a body of 1 to 8 primitives. */
+function isRunnableRepeat(node: unknown): node is RepeatInstruction {
+  if (typeof node !== "object" || node === null) return false;
+  const n = node as { op?: unknown; count?: unknown; body?: unknown };
+  return (
+    n.op === REPEAT_OP &&
+    typeof n.count === "number" &&
+    Number.isInteger(n.count) &&
+    n.count >= LIMITS.repeatCount.min &&
+    n.count <= LIMITS.repeatCount.max &&
+    Array.isArray(n.body) &&
+    n.body.length >= LIMITS.repeatBody.min &&
+    n.body.length <= LIMITS.repeatBody.max &&
+    n.body.every(isPrimitiveNode)
+  );
+}
+
 /**
  * Runs `program` on `level`. Deterministic and pure: the inputs are not modified.
  *
  * It expects a level that passed `validateLevel` and does not check `availableCommands` or `maxCommands`;
- * call `validateProgram` first. An instruction whose op is not one of the three known commands stops the
- * run with INVALID_INSTRUCTION (it is never skipped). `program` must be an array.
+ * call `validateProgram` first. An instruction that is not a known primitive or a well-formed REPEAT stops
+ * the run with INVALID_INSTRUCTION (it is never skipped). `program` must be an array.
+ *
+ * Every executed primitive is one step; a REPEAT itself costs none. The step limit is checked before each
+ * node and before each primitive inside a loop. The run succeeds the moment the goal cell is entered, even
+ * in the middle of a loop.
  */
 export function simulate(level: Level, program: Program): RunResult {
   if (!Array.isArray(program)) throw new TypeError("program must be an array");
@@ -60,68 +100,64 @@ export function simulate(level: Level, program: Program): RunResult {
     trace,
   });
 
-  for (const node of program) {
-    if (trace.length >= level.constraints.maxSteps) return finish("FAILED", "STEP_LIMIT", null);
+  const atLimit = (): boolean => trace.length >= level.constraints.maxSteps;
 
-    const op: unknown = typeof node === "object" && node !== null ? node.op : undefined;
-    if (typeof op !== "string" || !(COMMAND_NAMES as readonly string[]).includes(op)) {
-      return finish("FAILED", "INVALID_INSTRUCTION", null);
-    }
-    const command = op as CommandName;
+  /** Runs one primitive. Returns the final result when the run ends here, otherwise null. */
+  const step = (command: PrimitiveName, node: number[], round: number | null): RunResult | null => {
     const index = trace.length;
+    const entry = (event: TraceEntry["event"]): TraceEntry => ({
+      index,
+      op: command,
+      node,
+      round,
+      position: [position[0], position[1]],
+      direction,
+      event,
+    });
 
     if (command === "TURN_LEFT" || command === "TURN_RIGHT") {
       direction = turn(direction, command === "TURN_LEFT" ? "left" : "right");
-      trace.push({
-        index,
-        op: command,
-        position: [position[0], position[1]],
-        direction,
-        event: "TURNED",
-      });
-      continue;
+      trace.push(entry("TURNED"));
+      return null;
     }
 
     // MOVE_FORWARD
     const target = cellAhead(position, direction);
     if (!isInsideBoard(level, target)) {
-      trace.push({
-        index,
-        op: command,
-        position: [position[0], position[1]],
-        direction,
-        event: "BLOCKED_BY_BOUNDARY",
-      });
+      trace.push(entry("BLOCKED_BY_BOUNDARY"));
       return finish("FAILED", "BLOCKED_BY_BOUNDARY", target);
     }
     if (isWall(level, target)) {
-      trace.push({
-        index,
-        op: command,
-        position: [position[0], position[1]],
-        direction,
-        event: "BLOCKED_BY_WALL",
-      });
+      trace.push(entry("BLOCKED_BY_WALL"));
       return finish("FAILED", "BLOCKED_BY_WALL", target);
     }
     position = target;
     if (position[0] === goal[0] && position[1] === goal[1]) {
-      trace.push({
-        index,
-        op: command,
-        position: [position[0], position[1]],
-        direction,
-        event: "GOAL_REACHED",
-      });
+      trace.push(entry("GOAL_REACHED"));
       return finish("SUCCEEDED", "GOAL_REACHED", null);
     }
-    trace.push({
-      index,
-      op: command,
-      position: [position[0], position[1]],
-      direction,
-      event: "MOVED",
-    });
+    trace.push(entry("MOVED"));
+    return null;
+  };
+
+  for (let i = 0; i < program.length; i += 1) {
+    const node: unknown = program[i];
+    if (atLimit()) return finish("FAILED", "STEP_LIMIT", null);
+
+    if (isPrimitiveNode(node)) {
+      const result = step(node.op, [i], null);
+      if (result) return result;
+      continue;
+    }
+    if (!isRunnableRepeat(node)) return finish("FAILED", "INVALID_INSTRUCTION", null);
+
+    for (let round = 1; round <= node.count; round += 1) {
+      for (let j = 0; j < node.body.length; j += 1) {
+        if (atLimit()) return finish("FAILED", "STEP_LIMIT", null);
+        const result = step(node.body[j]!.op, [i, j], round);
+        if (result) return result;
+      }
+    }
   }
 
   return finish("FAILED", "PROGRAM_ENDED", null);

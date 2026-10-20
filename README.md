@@ -136,6 +136,8 @@ make test               # TypeScript tests
 make game-test          # GDScript tests (GUT, includes the contract fixtures); make game-docker-test runs them in a container
 make tokens-check       # fail if generated design-token files are out of date
 make colors-check       # fail if a color is hand-written outside the design tokens
+make size-check         # fail if a source file is over 450 lines (lists files over 300)
+make web-smoke          # browser test of the dashboard publish flow (running API and web, Chrome, E2E_EMAIL and E2E_PASSWORD)
 make db-reset           # throw away the local database and start fresh
 make game-apk           # build a debug APK (in the Godot container)
 make version v=0.2.0    # bump the version everywhere (no git); make release also commits and pushes
@@ -175,7 +177,10 @@ scripts/           Version bump and repository checks
 - [Gameplay and features](docs/README_GAMEPLAY_FEATURES.md)
 - [Visual design](docs/README_VISUAL_DESIGN.md) and [screens](docs/design/SCREENS.md)
 - [Architecture](docs/README_ARCHITECTURE.md)
+- [Code standards](docs/README_CODE_STANDARDS.md): file size, module structure, reuse rules
 - [Public website plan](docs/README_WEB_PLAN.md) and [admin dashboard plan](docs/README_DASHBOARD_PLAN.md)
+- [Roadmap](docs/README_ROADMAP.md) and [TODO](TODO.md)
+- [Points, leaderboards, daily challenge, and sharing plan](docs/README_SOCIAL_PLAN.md)
 - [Implementation plan](docs/README_IMPLEMENTATION_PLAN.md)
 - [CI, CD, and releases](docs/CI.md) and [deployment](docs/DEPLOY.md)
 

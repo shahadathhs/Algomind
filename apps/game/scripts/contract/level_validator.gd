@@ -545,32 +545,110 @@ static func _check_program(
 		return
 	var nodes: Array = program
 	var available: Variant = limits["available"]
+	# Slots: a primitive is 1; a REPEAT is 1 plus the instructions in its body.
+	var slots := 0
 	for i in nodes.size():
 		var path := "%s[%d]" % [base, i]
 		var node: Variant = nodes[i]
 		if typeof(node) != TYPE_DICTIONARY:
 			_add(issues, path, "INVALID_TYPE", "%s must be an instruction object." % path)
+			slots += 1
 			continue
 		var node_dict: Dictionary = node
-		_reject_unknown(issues, node_dict, path, ["op"])
-		var op_path := path + ".op"
-		if not node_dict.has("op"):
-			_add(issues, op_path, "REQUIRED", "%s is required." % op_path)
+		var is_loop: bool = ContractLimits.is_repeat(node_dict.get("op"))
+		var allowed: Array[String] = ["op"]
+		if is_loop:
+			allowed = ["op", "count", "body"]
+		_reject_unknown(issues, node_dict, path, allowed)
+		var op: Variant = _check_op(issues, node_dict, path, available, false)
+		slots += 1
+		if not ContractLimits.is_repeat(op):
 			continue
-		var op: Variant = node_dict["op"]
-		if typeof(op) != TYPE_STRING:
-			_add(issues, op_path, "INVALID_TYPE", "%s must be a string." % op_path)
-		elif not _is_command_name(op):
-			_add(issues, op_path, "UNKNOWN_COMMAND", "%s is not a known command." % op_path)
-		elif available != null and not (available as Array).has(op):
-			_add(
-				issues, op_path, "COMMAND_NOT_AVAILABLE", "%s is not available in this level." % op
-			)
+		slots += _check_loop(issues, node_dict, path, available)
 	var max_commands: Variant = limits["max"]
-	if max_commands != null and nodes.size() > int(max_commands):
+	if max_commands != null and slots > int(max_commands):
 		_add(
 			issues,
 			base,
 			"TOO_MANY_COMMANDS",
-			"%s has %d instructions; this level allows %d." % [base, nodes.size(), max_commands]
+			"%s uses %d slots; this level allows %d." % [base, slots, max_commands]
 		)
+
+
+## Checks the op of one instruction. Returns the op when it is a known command, else null.
+static func _check_op(
+	issues: Array[Dictionary], node: Dictionary, path: String, available: Variant, in_body: bool
+) -> Variant:
+	var op_path := path + ".op"
+	if not node.has("op"):
+		_add(issues, op_path, "REQUIRED", "%s is required." % op_path)
+		return null
+	var op: Variant = node["op"]
+	if typeof(op) != TYPE_STRING:
+		_add(issues, op_path, "INVALID_TYPE", "%s must be a string." % op_path)
+		return null
+	if not _is_command_name(op):
+		_add(issues, op_path, "UNKNOWN_COMMAND", "%s is not a known command." % op_path)
+		return null
+	if in_body and ContractLimits.is_repeat(op):
+		_add(issues, op_path, "NESTED_REPEAT", "%s: a loop cannot contain a loop." % op_path)
+		return null
+	if available != null and not (available as Array).has(op):
+		_add(issues, op_path, "COMMAND_NOT_AVAILABLE", "%s is not available in this level." % op)
+	return op
+
+
+## Checks the count and body of a REPEAT. Returns the number of body instructions (for slots).
+static func _check_loop(
+	issues: Array[Dictionary], node: Dictionary, path: String, available: Variant
+) -> int:
+	var count_path := path + ".count"
+	if not node.has("count"):
+		_add(issues, count_path, "REQUIRED", "%s is required." % count_path)
+	elif not _is_int(node["count"]):
+		_add(issues, count_path, "INVALID_TYPE", "%s must be an integer." % count_path)
+	else:
+		var count := int(node["count"])
+		if count < ContractLimits.REPEAT_COUNT_MIN or count > ContractLimits.REPEAT_COUNT_MAX:
+			_add(
+				issues,
+				count_path,
+				"OUT_OF_RANGE",
+				(
+					"%s must be from %d to %d."
+					% [count_path, ContractLimits.REPEAT_COUNT_MIN, ContractLimits.REPEAT_COUNT_MAX]
+				)
+			)
+
+	var body_path := path + ".body"
+	if not node.has("body"):
+		_add(issues, body_path, "REQUIRED", "%s is required." % body_path)
+		return 0
+	if typeof(node["body"]) != TYPE_ARRAY:
+		_add(issues, body_path, "INVALID_TYPE", "%s must be an array of instructions." % body_path)
+		return 0
+	var body: Array = node["body"]
+	if body.size() < ContractLimits.REPEAT_BODY_MIN or body.size() > ContractLimits.REPEAT_BODY_MAX:
+		_add(
+			issues,
+			body_path,
+			"LENGTH_OUT_OF_RANGE",
+			(
+				"%s must have %d to %d instructions."
+				% [body_path, ContractLimits.REPEAT_BODY_MIN, ContractLimits.REPEAT_BODY_MAX]
+			)
+		)
+	for j in body.size():
+		var inner_path := "%s[%d]" % [body_path, j]
+		var inner: Variant = body[j]
+		if typeof(inner) != TYPE_DICTIONARY:
+			_add(
+				issues, inner_path, "INVALID_TYPE", "%s must be an instruction object." % inner_path
+			)
+			continue
+		var inner_dict: Dictionary = inner
+		# A nested loop is reported once, as NESTED_REPEAT, not field by field.
+		if not ContractLimits.is_repeat(inner_dict.get("op")):
+			_reject_unknown(issues, inner_dict, inner_path, ["op"])
+		_check_op(issues, inner_dict, inner_path, available, true)
+	return body.size()

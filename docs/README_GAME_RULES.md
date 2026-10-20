@@ -97,11 +97,40 @@ Do not implement these all at once. Introduce each command only when the level d
 - If the automaton tries to move into a wall or outside the board, execution stops with a clear explanation. This is a failure.
 - A maximum execution-step limit prevents infinite or unexpectedly long programs.
 - Invalid commands are never silently ignored.
-- A loop counts as one authored program slot; its nested instructions have their own limit.
+- A `REPEAT` counts as one slot plus one slot for each instruction in its body (section 3.1), so the command limit bounds the whole program.
 
 ### Program representation
 
 A program is an ordered list of instruction nodes (not bare strings), so `REPEAT` and `IF_FRONT_BLOCKED` can contain nested instructions later without breaking the level format. The same representation is used by the player's program, the reference solution, and the shared fixtures.
+
+### 3.1 REPEAT (specified, not built)
+
+> **Status:** proposed. The par search was prototyped and measured (bodies up to 8 instructions on boards up to 12 by 12 solve in 3 to 70 ms; allowing a loop inside a loop costs 0.4 to 1.8 s for little gain). Nothing in the contract, either simulator, the editor, or the game implements it yet.
+
+A program node is either a primitive (`MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`) or a loop:
+
+```json
+{ "op": "REPEAT", "count": 6, "body": [{ "op": "MOVE_FORWARD" }, { "op": "TURN_RIGHT" }] }
+```
+
+- **Body:** one to 8 primitive instructions. A loop cannot contain a loop in version 1. Nesting would be a separate mechanic (`nested_repeat`) with its own client release.
+- **Count:** a whole number from 2 to 11. One repetition is just the body, and 11 is the most that can matter on the largest board (12 cells a side).
+- **Availability:** a level lists `REPEAT` in `availableCommands`. The mechanic `repeat` is derived from that (the API adds it to the required mechanics), so a client that does not declare `repeat` shows the update screen for that level and never starts it. A loop in the program of a level that does not list `REPEAT` is a content error, never silently skipped.
+- **Slots (the command limit):** a primitive is 1. A `REPEAT` is 1 plus the number of instructions in its body. `maxCommands` limits the total. `REPEAT 6 { MOVE_FORWARD, TURN_RIGHT, MOVE_FORWARD, TURN_LEFT }` is 5 slots.
+- **Steps:** each executed primitive is one step, as before. The `REPEAT` node itself costs no step. The step limit is checked before every primitive, including inside the loop.
+- **Reaching the goal:** the run succeeds the moment the automaton enters the goal, even in the middle of an iteration or of a loop. The rest of the program does not run and is not counted. A body or iteration may therefore be left unfinished.
+- **Failure:** a blocked move inside a loop stops the run. The failing tile is the body instruction that was blocked. The message and the tape also show the iteration ("Round 3 of 6").
+- **Par:** the fewest slots of any program that solves the level, searched exactly over loop bodies of up to 8 instructions. The solver is TypeScript only (the API publish gate and the dashboard); the game never needs it. The reference solution may use `REPEAT`.
+- **Why the metric is slots, not steps:** a loop that repeats a body costs 1 plus the body, whatever the count. A long straight corridor is cheap (`REPEAT 9 { MOVE_FORWARD }` is 2 slots), so a level only needs an algorithm when its structure repeats in a way a plain run of moves cannot capture (stairs, notches, repeated rooms).
+
+**Level design rules for loop levels** (checked by the candidate generator, and by the publish gate where it can be checked mechanically):
+
+1. **Loop par below flat par:** the shortest program without `REPEAT` must be larger than `maxCommands`, so a loop is required, not merely allowed.
+2. **The limit sits at or just above loop par.** The intended pattern must fit; the corridor shortcut must not.
+3. **No accidental shortcuts:** cells on a corridor must not touch another part of the path, or the board solves with a plain run. The solver finds these (a "teeth" candidate with flat par 6 and loop par 2 was caught this way).
+4. **Check par with the solver, never by eye.** On open boards the solver finds patterns the author did not intend (a free 10 by 10 board was solved by `REPEAT 9 { M R M L }`).
+
+**Editing:** the palette gains a Repeat tile. Tapping it appends a group with a count of 2 and an empty body that takes the next tapped commands until it is closed; the count is changed with minus and plus tiles on the group. A group is drawn as a count tile followed by its body tiles inside one outlined bracket (dashed while the loop is open). While a loop is open the Repeat tile reads End loop and works once the body has a command; a loop with an empty body is not a program, so Run and Step stay off and the message says to add a command. The limit counter counts slots, one per tape cell. While a program runs, the count tile shows the round ("2/6"); when a run fails inside a loop the X sits on the blocked body tile and the count tile shows the round it failed in. Visual rules are in [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md) (to be updated when this is built).
 
 ## 4. Execution model and feedback
 
@@ -148,18 +177,28 @@ The simulation engine is separate from visual animation. Animations display simu
 
 The campaign is a tree: **worlds** (one concept each), **chapters** (small groups within a world), and **levels**. Levels unlock sequentially along the flattened order (world, then chapter, then level). The stages below map onto worlds. Placement is campaign data managed in the dashboard, not part of a level's definition.
 
-Teach concepts progressively rather than making early levels arbitrarily difficult.
+Teach concepts progressively rather than making early levels arbitrarily difficult. Each world teaches one idea, and from world 3 on each world needs a mechanic the game must implement first (section 3 and its subsections). The first two worlds need nothing new and are built first; the later worlds are a roadmap, designed one at a time as each is reached.
 
-| Stage | Concept                | Example challenge                               |
-| ----- | ---------------------- | ----------------------------------------------- |
-| 1     | Sequencing             | Move straight to the goal.                      |
-| 2     | Direction              | Turn before moving.                             |
-| 3     | Combining instructions | Navigate a simple corner.                       |
-| 4     | Planning               | Route around a wall.                            |
-| 5     | Constraints            | Solve using a limited number of commands.       |
-| 6     | Loops                  | Replace repeated instructions with `REPEAT(n)`. |
-| Later | Conditions             | Make decisions based on the environment.        |
-| Later | Optimization           | Find a shorter or more efficient solution.      |
+| #   | World      | Idea                                 | Algorithm the player uses                                                                            | Needs                                                                      | Levels |
+| --- | ---------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------ |
+| 1   | Basics     | Sequencing and turning               | Step-by-step execution: trace a program by hand and predict where it ends                            | nothing new                                                                | 8      |
+| 2   | Routes     | Planning and budgets                 | Shortest-path search (turns cost too) and working backward from the goal                             | nothing new                                                                | 10     |
+| 3   | Loops      | Repeating a pattern                  | Pattern detection (find the repeating unit); split a route into loops plus the moves between them    | `REPEAT n` (specified in 3.1; rules package built, no editor UI yet)       | 8-10   |
+| 4   | Until      | One program for any distance         | Scan until a condition holds (linear search with a stop condition); reason about when a loop ends    | `REPEAT UNTIL` (blocked, or at the goal)                                   | 8-10   |
+| 5   | Decisions  | Choosing by what you sense           | Wall-following (the right-hand rule) and a greedy local rule; decisions based on the current state   | `IF` sensors (wall ahead, goal ahead)                                      | 8-10   |
+| 6   | Procedures | Naming and reusing steps             | Abstraction and decomposition: build big solutions from small named parts                            | named procedures                                                           | 8      |
+| 7   | Generalize | One program, many boards             | Generalization and edge cases: the solution must work on every test board, including the tricky ones | multi-board levels (below)                                                 | 8      |
+| 8   | Counters   | Remembering a number and changing it | Accumulation: a value that grows each round (spirals, widening stairs, count to n then act)          | one counter variable: set, add one, use as a loop count                    | 8      |
+| 9   | Memory     | Marking where you have been          | Depth-first search with backtracking (the Tremaux idea): explore, mark, return, never repeat a path  | markers: `DROP MARK`, `IF MARK AHEAD` (the board changes during a run)     | 8      |
+| 10  | Sweep      | Covering everything efficiently      | Systematic coverage (the lawnmower sweep) and efficiency: the same job in far fewer steps            | goal type "visit every floor cell"; step budgets that scale with the board | 8      |
+
+Worlds 1 and 2 hold 18 levels, so a player meets the first algorithmic idea (loops) after about 18 short levels. The budget ideas ("the limit equals par") live in the last chapter of world 2.
+
+**Decisions for the later worlds** (2026-10-19): the counter in world 8 is a single variable. World 9 may change the board during a run, so a run's state then includes the marks and the trace records them. "Visit every floor cell" is its own goal type, not a combination with reaching a tile. Recursion (a procedure that calls itself) and delivery puzzles (pick up and drop items) were considered and left for later.
+
+**Multi-board levels (world 7 onward).** A level may carry several test boards, and one program must solve every one of them. The simulator is unchanged (it runs one board); the level, validator, and publish gates check the program against each board and name the first board that fails. With conditions and procedures, par is no longer an exact shortest-program search: it is the author's best known solution, verified on every test board. Bodies, counts, and the step limit stay bounded as in 3.1.
+
+**Boundary.** This is a set of taught, puzzle-specific tools, never a general-purpose programming language (see the not-included list in [README_PROJECT_OVERVIEW.md](README_PROJECT_OVERVIEW.md)).
 
 The game accepts any valid solution unless a level explicitly introduces an optimization challenge. Players must not feel that one particular sequence is required when several correct solutions exist.
 

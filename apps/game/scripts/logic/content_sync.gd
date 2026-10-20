@@ -99,7 +99,7 @@ static func refresh(fetch: Callable, store: ContentStore) -> Dictionary:
 		if not detail["ok"]:
 			result["errors"].append("Level %s could not be downloaded." % slug)
 			continue
-		var problem := _store_level(store, slug, detail["json"])
+		var problem := store_level(store, slug, detail["json"])
 		if problem.is_empty():
 			fetched_any = true
 			result["updated"] += 1
@@ -116,7 +116,7 @@ static func refresh(fetch: Callable, store: ContentStore) -> Dictionary:
 
 
 ## Validates a level response and stores it. Returns "" on success, else why it was refused.
-static func _store_level(store: ContentStore, slug: String, body: Variant) -> String:
+static func store_level(store: ContentStore, slug: String, body: Variant) -> String:
 	if typeof(body) != TYPE_DICTIONARY or typeof(body.get("content")) != TYPE_DICTIONARY:
 		return "the response was not a level"
 	var content: Dictionary = body["content"]

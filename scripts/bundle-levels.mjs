@@ -9,6 +9,7 @@
 // made from their titles, so running it again gives the same files.
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { solve } from "../packages/level-contract/dist/index.js";
 
 const base = (process.argv[2] ?? process.env.API_BASE_URL ?? "http://localhost:8000/v1").replace(
   /\/$/,
@@ -34,6 +35,7 @@ if (!Array.isArray(catalog.worlds) || catalog.worlds.length === 0) {
 
 const worlds = [];
 const levels = new Map();
+const pars = {};
 for (const world of catalog.worlds) {
   const chapters = [];
   for (const chapter of world.chapters) {
@@ -41,6 +43,8 @@ for (const world of catalog.worlds) {
     for (const summary of chapter.levels) {
       const detail = await get(`/levels/${encodeURIComponent(summary.slug)}`);
       levels.set(summary.slug, detail.content);
+      if (detail.par)
+        pars[summary.slug] = { commands: detail.par.commands, steps: detail.par.steps };
       slugs.push(summary.slug);
     }
     chapters.push({ id: slug(chapter.title), title: chapter.title, levels: slugs });
@@ -57,8 +61,13 @@ await mkdir(`${dataDir}levels`, { recursive: true });
 for (const file of await readdir(`${dataDir}levels`)) {
   if (file.endsWith(".json")) await rm(`${dataDir}levels/${file}`);
 }
+// Par is what the solver finds for the level, the same call the server makes when it publishes.
+for (const [slug, content] of levels) {
+  const best = solve(content);
+  if (best) pars[slug] = { commands: best.commands, steps: best.steps };
+}
 for (const [slug, content] of levels) {
   await writeFile(`${dataDir}levels/${slug}.json`, `${JSON.stringify(content, null, 2)}\n`);
 }
-await writeFile(`${dataDir}campaign.json`, `${JSON.stringify({ worlds }, null, 2)}\n`);
+await writeFile(`${dataDir}campaign.json`, `${JSON.stringify({ worlds, par: pars }, null, 2)}\n`);
 console.log(`Bundled ${levels.size} levels in ${worlds.length} worlds from ${base}`);

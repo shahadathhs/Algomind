@@ -210,6 +210,7 @@ export class CampaignService {
             chapterId: true,
             orderInChapter: true,
             currentPublishedVersionId: true,
+            dailyPool: true,
           },
         }),
       ]);
@@ -289,6 +290,16 @@ export class CampaignService {
           code: "INCOMPLETE",
           message: "Every chapter must be listed.",
         });
+      }
+      // A daily-pool level is kept out of the campaign so players meet it only on its day.
+      for (const level of levels) {
+        if (level.dailyPool && levelIds.has(level.id)) {
+          problems.push({
+            path: "worlds",
+            code: "IN_DAILY_POOL",
+            message: `Level ${level.slug} is in the daily pool, so it cannot be placed in a chapter.`,
+          });
+        }
       }
       if (problems.length > 0) {
         throw unprocessable("INVALID_ORDER", "The campaign order is not valid.", problems);

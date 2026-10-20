@@ -1,0 +1,38 @@
+{
+  "goal": {
+    "type": "reach_tile",
+    "position": [4, 2]
+  },
+  "slug": "two-ways",
+  "board": {
+    "walls": [
+      [7, 1],
+      [4, 4],
+      [5, 4],
+      [6, 4],
+      [7, 4],
+      [7, 6]
+    ],
+    "width": 8,
+    "height": 8
+  },
+  "hints": ["Two routes work. One needs fewer tiles."],
+  "title": "Two ways",
+  "levelId": "ff4670bd-8f0e-47f3-850a-8e8e7b53f557",
+  "requires": {
+    "mechanics": []
+  },
+  "difficulty": "medium",
+  "constraints": {
+    "maxSteps": 100,
+    "maxCommands": 15
+  },
+  "description": "",
+  "initialState": {
+    "position": [7, 7],
+    "direction": "east"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+}

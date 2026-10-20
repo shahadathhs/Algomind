@@ -51,6 +51,8 @@ type ChannelMessage = { type: "activity"; at: number } | { type: "logout"; reaso
 const SESSION_BASE = "/admin/api/session";
 const PROXY_BASE = "/admin/api/proxy";
 const LOCK_NAME = "algomind-admin-refresh";
+/** The longest wait between refresh retries while the API is unreachable. */
+const MAX_RETRY_MS = 5 * 60_000;
 const ACTIVITY_BROADCAST_MS = 5_000;
 
 export class SessionManager {
@@ -64,6 +66,7 @@ export class SessionManager {
   private inactivityTimer: unknown = null;
   private channel: ChannelLike | null = null;
   private inflight: Promise<RefreshResult> | null = null;
+  private retryAttempts = 0;
 
   constructor(private readonly deps: SessionDeps) {
     this.lastActivity = deps.now();
@@ -176,17 +179,20 @@ export class SessionManager {
 
   // --- refresh --------------------------------------------------------------------------
 
-  /** Single-flight: concurrent callers share one request. */
-  refresh(): Promise<RefreshResult> {
+  /**
+   * Single-flight: concurrent callers share one request. `quiet` is for a speculative look at
+   * the cookie: a rejection just means there is no session, not that one ended.
+   */
+  refresh(options: { quiet?: boolean } = {}): Promise<RefreshResult> {
     if (!this.inflight) {
-      this.inflight = this.doRefresh().finally(() => {
+      this.inflight = this.doRefresh(options.quiet === true).finally(() => {
         this.inflight = null;
       });
     }
     return this.inflight;
   }
 
-  private async doRefresh(): Promise<RefreshResult> {
+  private async doRefresh(quiet: boolean): Promise<RefreshResult> {
     const run = async (): Promise<RefreshResult> => {
       let res: Response;
       try {
@@ -208,16 +214,28 @@ export class SessionManager {
     };
     // The lock makes tabs take turns, so each one presents the cookie the previous tab rotated.
     const result = this.deps.locks ? await this.deps.locks.request(LOCK_NAME, run) : await run();
-    if (result === "rejected") {
+    if (result === "rejected" && quiet) {
+      this.setState({ status: "anonymous" });
+    } else if (result === "rejected") {
       this.endSession("expired", { broadcast: true });
     } else if (result === "transient") {
-      this.scheduleRefresh(this.deps.retryMs ?? 5_000);
+      // Back off while the API is down, so open tabs do not hammer it every few seconds.
+      const base = this.deps.retryMs ?? 5_000;
+      this.scheduleRefresh(Math.min(base * 2 ** this.retryAttempts, MAX_RETRY_MS));
+      this.retryAttempts += 1;
       if (this.state.status === "loading") this.setState({ status: "loading", offline: true });
     }
     return result;
   }
 
+  /** After arriving from the sign-in page: look for a valid cookie once, without announcing an ended session. */
+  async restoreQuietly(): Promise<void> {
+    if (this.state.status !== "anonymous" || this.inflight) return;
+    await this.refresh({ quiet: true });
+  }
+
   private applySession(payload: SessionPayload): void {
+    this.retryAttempts = 0;
     this.accessToken = payload.accessToken;
     this.expiresAt = this.deps.now() + payload.expiresIn * 1000;
     const lead = Math.min(this.deps.refreshLeadMs ?? 60_000, (payload.expiresIn * 1000) / 2);

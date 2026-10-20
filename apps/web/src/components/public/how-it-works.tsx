@@ -1,30 +1,30 @@
 import { Caption } from "@/components/ui/caption";
 import { Section } from "@/components/ui/section";
 import { TapeView } from "@/components/ui/tape-view";
-import { FAILED_PROGRAM, SOLUTION } from "@/lib/sample-screens";
+import { FAILED_PROGRAM, READY_COUNT, RUNNING_STEP, SOLUTION } from "@/lib/sample-screens";
 import { tapeFromProgram } from "@/lib/tape";
 
 const STEPS = [
   {
     title: "Build",
-    text: "Pick instructions and arrange them on the tape. Move, turn left, turn right.",
-    label: "A tape with four instructions and an empty slot to add more.",
-    tiles: tapeFromProgram(SOLUTION.slice(0, 4), { emptySlot: "plus" }),
+    text: "Pick instructions and arrange them on the tape. Move, turn left, turn right, and repeat a group.",
+    label: `A tape with ${READY_COUNT} instructions and an empty slot to add more.`,
+    tiles: tapeFromProgram(SOLUTION.slice(0, READY_COUNT), { emptySlot: "plus" }),
     head: undefined,
   },
   {
     title: "Run",
     text: "Run it at a readable speed or step through one instruction at a time.",
-    label: "A tape mid-run: two instructions done, the third under the read-head.",
-    tiles: tapeFromProgram(SOLUTION, { current: 4 }),
-    head: 4,
+    label: `A tape mid-run: ${RUNNING_STEP} instructions done, the next under the read-head.`,
+    tiles: tapeFromProgram(SOLUTION, { current: RUNNING_STEP }),
+    head: RUNNING_STEP,
   },
   {
     title: "Debug",
     text: "A failed run says what happened. Edit the program and try again.",
     label: "A tape after a failed run: the failing instruction is marked with a cross.",
-    tiles: tapeFromProgram(FAILED_PROGRAM, { current: 3, failed: true }),
-    head: 3,
+    tiles: tapeFromProgram(FAILED_PROGRAM, { current: FAILED_PROGRAM.length - 1, failed: true }),
+    head: FAILED_PROGRAM.length - 1,
   },
 ];
 

@@ -16,6 +16,8 @@ var path: String
 var data: Dictionary = default_data()
 ## Typed access to data["settings"].
 var settings := Settings.new(self)
+## Programs waiting to be verified by the server and its answers; a separate small file.
+var results: PlayerResults
 ## True when the main file was unreadable and the backup was used.
 var recovered_from_backup := false
 ## True when neither file was usable (or none existed) and the data is the defaults.
@@ -24,6 +26,7 @@ var started_fresh := true
 
 func _init(save_path: String = "user://progress.json") -> void:
 	path = save_path
+	results = PlayerResults.new(save_path.get_basename() + "_results.json")
 
 
 static func default_data() -> Dictionary:
@@ -46,6 +49,7 @@ static func default_data() -> Dictionary:
 
 
 func load_data() -> void:
+	results.load_data()
 	recovered_from_backup = false
 	started_fresh = true
 	data = default_data()
@@ -66,22 +70,7 @@ func load_data() -> void:
 ## Writes the data atomically. Returns false when the write failed; the previous save is then
 ## still in place.
 func save() -> bool:
-	var tmp := path + ".tmp"
-	var file := FileAccess.open(tmp, FileAccess.WRITE)
-	if file == null:
-		return false
-	file.store_string(JSON.stringify(data))
-	file.flush()
-	file.close()
-	if _read(tmp) == null:
-		DirAccess.remove_absolute(tmp)
-		return false
-	if _read(path) != null:
-		DirAccess.copy_absolute(path, path + ".bak")
-	if DirAccess.rename_absolute(tmp, path) != OK:
-		DirAccess.remove_absolute(path)
-		return DirAccess.rename_absolute(tmp, path) == OK
-	return true
+	return AtomicFile.write_json(path, data, true)
 
 
 func is_completed(level_id: String) -> bool:
@@ -213,13 +202,7 @@ func level_to_play(campaign: Campaign) -> int:
 ## Parsed, sanitized data from a file; null when the file is missing, unreadable, or from a
 ## newer version than this build understands.
 func _read(file_path: String) -> Variant:
-	var file := FileAccess.open(file_path, FileAccess.READ)
-	if file == null:
-		return null
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK:
-		return null
-	return _sanitize(json.data)
+	return _sanitize(AtomicFile.read_json(file_path))
 
 
 ## Keeps only well-formed parts. Bad entries are dropped one by one instead of failing the file.

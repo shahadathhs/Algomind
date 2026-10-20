@@ -12,7 +12,7 @@ func test_append_adds_in_order() -> void:
 	var tape := _tape()
 	tape.append("MOVE_FORWARD")
 	tape.append("TURN_LEFT")
-	assert_eq(tape.ops, ["MOVE_FORWARD", "TURN_LEFT"] as Array[String])
+	assert_eq(tape.program(), [{"op": "MOVE_FORWARD"}, {"op": "TURN_LEFT"}])
 
 
 func test_append_stops_at_the_limit() -> void:
@@ -21,13 +21,13 @@ func test_append_stops_at_the_limit() -> void:
 	assert_true(tape.append("MOVE_FORWARD"))
 	assert_true(tape.is_full())
 	assert_false(tape.append("MOVE_FORWARD"))
-	assert_eq(tape.size(), 2)
+	assert_eq(tape.slots(), 2)
 
 
 func test_append_refuses_a_command_the_level_does_not_offer() -> void:
 	var tape := TapeModel.new(4, ["MOVE_FORWARD"] as Array[String])
 	assert_false(tape.append("TURN_LEFT"))
-	assert_eq(tape.size(), 0)
+	assert_eq(tape.slots(), 0)
 
 
 func test_selecting_a_tile_twice_clears_the_selection() -> void:
@@ -55,7 +55,7 @@ func test_remove_selected_removes_that_tile_only() -> void:
 		tape.append(op)
 	tape.toggle_select(1)
 	assert_true(tape.remove_selected())
-	assert_eq(tape.ops, ["MOVE_FORWARD", "TURN_RIGHT"] as Array[String])
+	assert_eq(tape.program(), [{"op": "MOVE_FORWARD"}, {"op": "TURN_RIGHT"}])
 	assert_eq(tape.selected, -1)
 
 
@@ -63,7 +63,7 @@ func test_remove_without_a_selection_does_nothing() -> void:
 	var tape := _tape()
 	tape.append("MOVE_FORWARD")
 	assert_false(tape.remove_selected())
-	assert_eq(tape.size(), 1)
+	assert_eq(tape.slots(), 1)
 
 
 func test_removing_frees_a_slot() -> void:
@@ -80,7 +80,7 @@ func test_move_selected_swaps_and_the_selection_follows() -> void:
 		tape.append(op)
 	tape.toggle_select(0)
 	assert_true(tape.move_selected(1))
-	assert_eq(tape.ops, ["TURN_LEFT", "MOVE_FORWARD", "TURN_RIGHT"] as Array[String])
+	assert_eq(tape.program(), [{"op": "TURN_LEFT"}, {"op": "MOVE_FORWARD"}, {"op": "TURN_RIGHT"}])
 	assert_eq(tape.selected, 1)
 	assert_true(tape.move_selected(-1))
 	assert_eq(tape.selected, 0)

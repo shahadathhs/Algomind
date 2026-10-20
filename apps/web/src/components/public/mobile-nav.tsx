@@ -38,7 +38,7 @@ export function MobileNav({
   }, []);
 
   return (
-    <details ref={details} className="mobile-nav group sm:hidden">
+    <details ref={details} className="mobile-nav group md:hidden">
       <summary
         aria-label="Menu"
         className="inline-flex h-11 w-11 list-none items-center justify-center [&::-webkit-details-marker]:hidden"

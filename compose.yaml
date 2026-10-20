@@ -54,8 +54,10 @@ services:
       dockerfile: apps/web/Dockerfile
     ports:
       - "${WEB_PORT:-3000}:3000"
+    # Start the site only once the API answers: the levels page caches a failed load for a minute.
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     environment:
       API_BASE_URL: http://api:8000/v1
       REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}

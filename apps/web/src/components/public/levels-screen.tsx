@@ -2,24 +2,10 @@ import { ButtonGraphic } from "@/components/ui/button-graphic";
 import { CommandIcon } from "@/components/ui/command-icon";
 import { TileGraphic } from "@/components/ui/tile-graphic";
 import { SCREEN_HEIGHT, SCREEN_WIDTH } from "@/components/public/game-screen";
+import { LANDING_WORLD } from "@/lib/landing-level";
 import { TILE_TONE, type TileVariant } from "@/lib/tile-variants";
 
 type LevelState = "solved" | "current" | "locked" | "download";
-
-const STATES: LevelState[] = [
-  "solved",
-  "solved",
-  "solved",
-  "solved",
-  "solved",
-  "current",
-  "locked",
-  "locked",
-  "locked",
-  "locked",
-  "download",
-  "download",
-];
 
 const VARIANT: Record<LevelState, TileVariant> = {
   solved: "solid",
@@ -28,67 +14,131 @@ const VARIANT: Record<LevelState, TileVariant> = {
   download: "dashed",
 };
 
-const LEGEND: { state: LevelState; label: string }[] = [
-  { state: "solved", label: "05 SOLVED" },
-  { state: "current", label: "01 CURRENT" },
-  { state: "locked", label: "04 LOCKED" },
-  { state: "download", label: "02 NOT DOWNLOADED" },
-];
-
-const TILE = 78.5;
-const GAP = 12;
+const TILE = 58;
+const GAP = 10;
+const PER_ROW = 5;
 const TEXT = { strokeWidth: 0 } as const;
 
-/** The campaign screen: level tiles in four states, each with a shape or icon as well as a look. */
+type Placed = { number: number; state: LevelState; x: number; y: number };
+
+/**
+ * The state of level `index` (zero-based) in the world: the first three are solved, the next is
+ * current, the last two are not downloaded, and the rest are locked. It shows the four states the
+ * game has; it is an illustration, not anyone's progress.
+ */
+function stateOf(index: number, total: number): LevelState {
+  if (index < 3) return "solved";
+  if (index === 3) return "current";
+  return index >= total - 2 ? "download" : "locked";
+}
+
+/** Tile positions and chapter captions for the real world: its chapters and level numbers. */
+function layout() {
+  const total = LANDING_WORLD.chapters.reduce((sum, chapter) => sum + chapter.levels, 0);
+  const tiles: Placed[] = [];
+  const captions: { text: string; y: number }[] = [];
+  let y = 188;
+  let n = 0;
+  LANDING_WORLD.chapters.forEach((chapter, c) => {
+    captions.push({ text: `CHAPTER ${c + 1} · ${chapter.title.toUpperCase()}`, y });
+    for (let i = 0; i < chapter.levels; i += 1) {
+      tiles.push({
+        number: LANDING_WORLD.first + n,
+        state: stateOf(n, total),
+        x: 20 + (i % PER_ROW) * (TILE + GAP),
+        y: y + 14 + Math.floor(i / PER_ROW) * (TILE + GAP),
+      });
+      n += 1;
+    }
+    y += 14 + Math.ceil(chapter.levels / PER_ROW) * (TILE + GAP) + 18;
+  });
+  return { tiles, captions, bottom: y };
+}
+
+const { tiles, captions, bottom } = layout();
+const count = (state: LevelState) => tiles.filter((t) => t.state === state).length;
+const current = tiles.find((t) => t.state === "current")!;
+
+const LEGEND: { state: LevelState; label: string }[] = [
+  { state: "solved", label: `${count("solved")} SOLVED` },
+  { state: "current", label: `${count("current")} CURRENT` },
+  { state: "locked", label: `${count("locked")} LOCKED` },
+  { state: "download", label: `${count("download")} NOT DOWNLOADED` },
+];
+
+/** The world screen: the real world's chapters with a tile per level, in four states that each
+ * carry a shape or icon as well as a look. */
 export function LevelsScreen({ className }: { className?: string }) {
   return (
     <svg
       viewBox={`0 0 ${SCREEN_WIDTH} ${SCREEN_HEIGHT}`}
       role="img"
-      aria-label="Levels screen: twelve level tiles. Five are solved, one is current, four are locked and two are not downloaded. A Play level 6 button sits at the bottom."
+      aria-label={`World ${LANDING_WORLD.number}, ${LANDING_WORLD.title}: ${tiles.length} level tiles in ${captions.length} chapters. ${count("solved")} are solved, one is current, ${count("locked")} are locked and ${count("download")} are not downloaded. A Play level ${current.number} button sits at the bottom.`}
       className={className ?? "block h-auto w-full"}
     >
       <TileGraphic x={20} y={22} w={40} h={40} variant="ghost" chamfer={8}>
         <CommandIcon kind="back" cx={40} cy={42} size={18} tone={TILE_TONE.ghost} />
       </TileGraphic>
       <text x={20} y={104} fontSize={10} letterSpacing={2} className="fill-mute" {...TEXT}>
-        CAMPAIGN
+        {`WORLD ${String(LANDING_WORLD.number).padStart(2, "0")}`}
       </text>
       <text x={20} y={138} fontSize={32} letterSpacing={0.5} className="fill-ink" {...TEXT}>
-        LEVELS
+        {LANDING_WORLD.title.toUpperCase()}
       </text>
-      {STATES.map((state, i) => {
-        const x = 20 + (i % 4) * (TILE + GAP);
-        const y = 168 + Math.floor(i / 4) * (TILE + GAP);
-        const variant = VARIANT[state];
+      <text x={20} y={160} fontSize={9} letterSpacing={1} className="fill-mute" {...TEXT}>
+        {LANDING_WORLD.summary.toUpperCase().replace(/\.$/, "")}
+      </text>
+      {captions.map((caption) => (
+        <text
+          key={caption.text}
+          x={20}
+          y={caption.y + 6}
+          fontSize={9}
+          letterSpacing={2}
+          className="fill-mute"
+          {...TEXT}
+        >
+          {caption.text}
+        </text>
+      ))}
+      {tiles.map((tile) => {
+        const variant = VARIANT[tile.state];
         return (
-          <TileGraphic key={i} x={x} y={y} w={TILE} h={TILE} variant={variant} chamfer={15}>
-            {state === "download" ? (
+          <TileGraphic
+            key={tile.number}
+            x={tile.x}
+            y={tile.y}
+            w={TILE}
+            h={TILE}
+            variant={variant}
+            chamfer={12}
+          >
+            {tile.state === "download" ? (
               <CommandIcon
                 kind="download"
-                cx={x + TILE / 2}
-                cy={y + TILE / 2}
-                size={24}
+                cx={tile.x + TILE / 2}
+                cy={tile.y + TILE / 2}
+                size={22}
                 tone={TILE_TONE.dashed}
               />
             ) : (
               <text
-                x={x + TILE / 2}
-                y={y + TILE / 2}
+                x={tile.x + TILE / 2}
+                y={tile.y + TILE / 2}
                 dy="0.35em"
                 textAnchor="middle"
-                fontSize={24}
+                fontSize={20}
                 className={TILE_TONE[variant]}
                 {...TEXT}
               >
-                {String(i + 1).padStart(2, "0")}
+                {String(tile.number).padStart(2, "0")}
               </text>
             )}
           </TileGraphic>
         );
       })}
       {LEGEND.map((item, i) => {
-        const y = 470 + i * 24;
+        const y = bottom + 6 + i * 24;
         return (
           <g key={item.state}>
             <TileGraphic
@@ -114,10 +164,25 @@ export function LevelsScreen({ className }: { className?: string }) {
           </g>
         );
       })}
-      <text x={20} y={584} fontSize={10} letterSpacing={1.5} className="fill-mute" {...TEXT}>
+      <text
+        x={20}
+        y={bottom + 6 + LEGEND.length * 24 + 18}
+        fontSize={10}
+        letterSpacing={1.5}
+        className="fill-mute"
+        {...TEXT}
+      >
         OFFLINE. CONNECT TO GET NEW LEVELS.
       </text>
-      <ButtonGraphic x={20} y={714} w={350} h={56} label="PLAY LEVEL 06" primary fontSize={15} />
+      <ButtonGraphic
+        x={20}
+        y={714}
+        w={350}
+        h={56}
+        label={`PLAY LEVEL ${String(current.number).padStart(2, "0")}`}
+        primary
+        fontSize={15}
+      />
     </svg>
   );
 }

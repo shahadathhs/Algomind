@@ -1,7 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { notFound } from "../../core/http/errors.js";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
 import { asPar } from "../levels/level-views.js";
+import type { Par } from "../levels/levels.schemas.js";
 import type { Campaign, CatalogLevel, LevelList, PublicLevel } from "./catalog.schemas.js";
 
 /** Only levels with a live version AND a chapter reach players. */
@@ -13,6 +14,8 @@ const PLAYABLE = {
 
 @Injectable()
 export class CatalogService {
+  private readonly logger = new Logger(CatalogService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   private async playable() {
@@ -27,7 +30,14 @@ export class CatalogService {
         a.orderInChapter - b.orderInChapter ||
         a.slug.localeCompare(b.slug),
     );
-    return rows.flatMap((row, index): { row: typeof row; item: CatalogLevel }[] => {
+    // One row without a usable par (published before the column existed, or edited by hand) must
+    // not turn the two endpoints every client depends on into a 500: leave it out and say so.
+    const usable = rows.filter((row) => {
+      const ok = row.currentPublishedVersion && asPar(row.currentPublishedVersion.par);
+      if (!ok) this.logger.error(`Level ${row.slug} is published without a par and was left out.`);
+      return Boolean(ok);
+    });
+    return usable.flatMap((row, index): { row: typeof row; item: CatalogLevel }[] => {
       const version = row.currentPublishedVersion;
       const chapter = row.chapter;
       if (!version || !chapter) return [];
@@ -47,7 +57,7 @@ export class CatalogService {
             chapterId: chapter.id,
             levelVersion: version.versionNumber,
             schemaVersion: version.schemaVersion,
-            par: asPar(version.par)!,
+            par: asPar(version.par) as Par,
             maxCommands: constraints.maxCommands,
             requiredMechanics: summary?.requiredMechanics ?? [],
           },
@@ -88,12 +98,24 @@ export class CatalogService {
   }
 
   async level(slug: string): Promise<{ body: PublicLevel; versionId: string }> {
+    // A daily-pool level has no chapter but may be fetched by slug: the game gets its slug from the
+    // daily endpoint. The campaign and the level list never include it.
     const row = await this.prisma.level.findFirst({
-      where: { slug, ...PLAYABLE },
+      where: {
+        slug,
+        status: "PUBLISHED",
+        currentPublishedVersionId: { not: null },
+        OR: [{ chapterId: { not: null } }, { dailyPool: true }],
+      },
       include: { currentPublishedVersion: true },
     });
     const version = row?.currentPublishedVersion;
     if (!row || !version) throw notFound("The level");
+    const par = asPar(version.par);
+    if (!par) {
+      this.logger.error(`Level ${row.slug} is published without a par; answering 404.`);
+      throw notFound("The level");
+    }
     const summary = version.validationSummary as { requiredMechanics?: string[] } | null;
     return {
       versionId: version.id,
@@ -102,7 +124,7 @@ export class CatalogService {
         slug: row.slug,
         schemaVersion: version.schemaVersion,
         levelVersion: version.versionNumber,
-        par: asPar(version.par)!,
+        par,
         requiredMechanics: summary?.requiredMechanics ?? [],
         publishedAt: version.publishedAt!.toISOString(),
         content: version.content as Record<string, unknown>,

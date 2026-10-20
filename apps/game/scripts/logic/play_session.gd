@@ -113,14 +113,15 @@ func blocked_cell() -> Variant:
 	return Vector2i(int(cell[0]), int(cell[1]))
 
 
-## Index of the tape tile that caused a failure, or -1 (program ended, step limit).
-func failing_index() -> int:
+## The program node ([i] or [i, j] in a loop) that caused a failure, or an empty Array when no
+## instruction did (program ended, step limit).
+func failing_node() -> Array:
 	if state != State.FAILED:
-		return -1
+		return []
 	var reason: String = result.get("reason", "")
 	if reason == "BLOCKED_BY_WALL" or reason == "BLOCKED_BY_BOUNDARY":
-		return trace().size() - 1
-	return -1
+		return trace()[trace().size() - 1]["node"]
+	return []
 
 
 func _finish_if_done() -> void:

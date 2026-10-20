@@ -1,5 +1,4 @@
 import { ApiError, NetworkError, readApiError, SessionEndedError } from "./errors";
-import type { ApiUser } from "./types";
 
 /** Sends an authenticated request through the session (see lib/admin/session-manager.ts). */
 export type Requester = (path: string, init?: RequestInit) => Promise<Response>;
@@ -34,16 +33,11 @@ export function createApiClient(request: Requester) {
     post: <T>(path: string, body?: unknown) => call<T>("POST", path, body),
     put: <T>(path: string, body?: unknown) => call<T>("PUT", path, body),
     patch: <T>(path: string, body?: unknown) => call<T>("PATCH", path, body),
-    delete: <T>(path: string) => call<T>("DELETE", path),
+    delete: <T>(path: string, body?: unknown) => call<T>("DELETE", path, body),
   };
 }
 
 export type ApiClient = ReturnType<typeof createApiClient>;
-
-/** Typed calls for the auth area. */
-export function authApi(client: ApiClient) {
-  return { me: () => client.get<ApiUser>("auth/me") };
-}
 
 export type Readiness = "ready" | "database-down" | "unreachable";
 

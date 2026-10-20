@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   explainResult,
+  programSlots,
   type AuthoringLevel,
   type CommandName,
   simulate,
@@ -14,6 +15,7 @@ export const COMMAND_MECHANICS: Record<CommandName, string> = {
   MOVE_FORWARD: "move",
   TURN_LEFT: "turn",
   TURN_RIGHT: "turn",
+  REPEAT: "repeat",
 };
 
 export type Analysis = {
@@ -123,12 +125,30 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
         message: `The command limit is ${level.constraints.maxCommands}; the shortest solution needs only ${best.commands}.`,
       });
     }
-    if (referenceSolved && program.length > best.commands) {
+    if (referenceSolved && programSlots(program) > best.commands) {
       warnings.push({
         gate: "par",
         path: "referenceSolution",
         code: "REFERENCE_LONGER_THAN_PAR",
-        message: `The reference solution uses ${program.length} commands; the shortest uses ${best.commands}.`,
+        message: `The reference solution uses ${programSlots(program)} commands; the shortest uses ${best.commands}.`,
+      });
+    }
+  }
+
+  // A level that offers REPEAT should need it: if the shortest program without loops already fits
+  // the limit, a loop is optional and the level does not teach loops. A warning, not an error:
+  // an introductory level may allow either.
+  if (level.availableCommands.includes("REPEAT") && best) {
+    const flat = solve({
+      ...level,
+      availableCommands: level.availableCommands.filter((c) => c !== "REPEAT"),
+    });
+    if (flat && flat.commands <= level.constraints.maxCommands) {
+      warnings.push({
+        gate: "par",
+        path: "constraints.maxCommands",
+        code: "LOOP_NOT_REQUIRED",
+        message: `The shortest program without REPEAT needs ${flat.commands} commands and the limit is ${level.constraints.maxCommands}, so a loop is optional here.`,
       });
     }
   }

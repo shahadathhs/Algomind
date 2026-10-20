@@ -12,6 +12,18 @@ export function setupApp(app: INestApplication): void {
   // Every JSON body is small (a level is a few kB, a full campaign order a few tens); reject
   // anything larger before it is parsed.
   (app as NestExpressApplication).useBodyParser("json", { limit: "64kb" });
+  // Cheap response headers every JSON API should send. HSTS only where HTTPS is certain.
+  (app as NestExpressApplication).use(
+    (_req: unknown, res: { setHeader(name: string, value: string): void }, next: () => void) => {
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Referrer-Policy", "no-referrer");
+      res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+      if (config.nodeEnv === "production") {
+        res.setHeader("Strict-Transport-Security", "max-age=15552000; includeSubDomains");
+      }
+      next();
+    },
+  );
   // Admin, auth, and account responses are per user and never cached.
   (app as NestExpressApplication).use(
     ["/v1/admin", "/v1/auth", "/v1/me"],

@@ -56,6 +56,8 @@
       {
         "index": 0,
         "op": "TURN_LEFT",
+        "node": [0],
+        "round": null,
         "position": [0, 1],
         "direction": "north",
         "event": "TURNED"
@@ -63,6 +65,8 @@
       {
         "index": 1,
         "op": "TURN_LEFT",
+        "node": [1],
+        "round": null,
         "position": [0, 1],
         "direction": "west",
         "event": "TURNED"
@@ -70,6 +74,8 @@
       {
         "index": 2,
         "op": "TURN_LEFT",
+        "node": [2],
+        "round": null,
         "position": [0, 1],
         "direction": "south",
         "event": "TURNED"

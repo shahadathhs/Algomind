@@ -7,10 +7,11 @@ extends Node
 
 signal changed
 
-const DEBOUNCE_SECONDS := 2.0
 const FIRST_RETRY_SECONDS := 30.0
 const MAX_RETRY_SECONDS := 900.0
 
+## Seconds a request waits so several close together become one sync.
+var debounce_seconds := 2.0
 ## "idle", "syncing", "synced", "offline", "failed", or "signed_out".
 var status := "idle"
 var message := ""
@@ -20,6 +21,8 @@ var _progress: ProgressStore
 var _timer: Timer
 var _wait := FIRST_RETRY_SECONDS
 var _running := false
+## A sync was requested while one was running; it runs as soon as that one ends.
+var _pending := false
 
 
 func _init(client: AccountClient = null, store: ProgressStore = null) -> void:
@@ -38,12 +41,18 @@ func _ready() -> void:
 func request() -> void:
 	if _client == null or not _client.account.signed_in() or _timer == null:
 		return
-	_timer.start(DEBOUNCE_SECONDS)
+	if _running:
+		_pending = true
+		return
+	_timer.start(debounce_seconds)
 
 
 ## Syncs now. Returns when it is done.
 func sync_now() -> void:
-	if _client == null or _running:
+	if _client == null:
+		return
+	if _running:
+		_pending = true
 		return
 	_running = true
 	status = "syncing"
@@ -58,11 +67,21 @@ func sync_now() -> void:
 	elif status in ["offline", "failed"] and _timer != null:
 		_timer.start(_wait)
 		_wait = minf(_wait * 2.0, MAX_RETRY_SECONDS)
+	if _pending and status == "synced" and _timer != null:
+		# What changed during the sync is not in it; send it now.
+		_pending = false
+		_timer.start(debounce_seconds)
+	else:
+		_pending = false
 	changed.emit()
 
 
 ## Forget the state after signing out or deleting the account.
 func reset() -> void:
+	if _progress != null:
+		# The points were the old account's; programs still waiting stay for the next sign-in.
+		_progress.results.clear_points()
+		_progress.results.save()
 	status = "signed_out"
 	message = ""
 	_wait = FIRST_RETRY_SECONDS

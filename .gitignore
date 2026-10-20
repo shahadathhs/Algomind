@@ -40,3 +40,6 @@ apps/api/src/generated/
 
 # Browser build of the game, fetched or exported for the /play page
 apps/web/public/play-build/
+
+# Level lab output (candidates and contact sheets)
+scripts/level-lab/out/

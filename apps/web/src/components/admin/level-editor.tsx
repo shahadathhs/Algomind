@@ -1,34 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, SessionEndedError } from "@/lib/api/errors";
-import type { Instruction, LevelContent, LevelView } from "@/lib/admin/admin-api";
-import { clearBackup, readBackup, writeBackup } from "@/lib/admin/level-model";
-import {
-  BoardPanel,
-  ChecksPanel,
-  DetailsPanel,
-  LimitsPanel,
-  PlaytestPanel,
-  PreviewPanel,
-  SolutionPanel,
-} from "./editor-panels";
+import { useState } from "react";
+import { BoardPanel } from "./editor/board-panel";
+import { ChecksPanel } from "./editor/checks-panel";
+import { DetailsPanel } from "./editor/details-panel";
+import { EditorTabs, type TabId } from "./editor/editor-tabs";
+import { LimitsPanel } from "./editor/limits-panel";
+import { PlaytestPanel } from "./editor/playtest-panel";
+import { PreviewPanel } from "./editor/preview-panel";
+import { SolutionPanel } from "./editor/solution-panel";
+import { UnpublishControl } from "./editor/unpublish-control";
+import { useLevelDraft, type SaveState } from "./editor/use-level-draft";
 import { Notice, OutlineAction, PrimaryAction, StatusTile } from "./ui";
-import { useAdminApi } from "./use-admin-api";
 
-const TABS = [
-  { id: "details", label: "Details" },
-  { id: "board", label: "Board" },
-  { id: "limits", label: "Commands and limits" },
-  { id: "solution", label: "Solution" },
-  { id: "preview", label: "Preview" },
-  { id: "playtest", label: "Playtest" },
-  { id: "checks", label: "Checks" },
-] as const;
-type TabId = (typeof TABS)[number]["id"];
-
-type SaveState = "saved" | "unsaved" | "saving" | "failed";
 const SAVE_LABEL: Record<SaveState, string> = {
   saved: "Saved",
   unsaved: "Unsaved changes",
@@ -36,172 +21,28 @@ const SAVE_LABEL: Record<SaveState, string> = {
   failed: "Save failed",
 };
 
-type Load = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready" };
-
-function errorText(err: unknown): string {
-  return err instanceof ApiError ? err.message : "The server could not be reached.";
-}
-
 /** The level editor: tabs over one draft, an explicit Save draft, and edits that survive a reload. */
 export function LevelEditor({ levelId }: { levelId: string }) {
-  const api = useAdminApi();
-  const [load, setLoad] = useState<Load>({ kind: "loading" });
-  const [level, setLevel] = useState<LevelView | null>(null);
-  const [content, setContent] = useState<LevelContent | null>(null);
-  const [solution, setSolution] = useState<Instruction[]>([]);
-  const [baseUpdatedAt, setBaseUpdatedAt] = useState("");
-  const [save, setSave] = useState<SaveState>("saved");
-  const [notice, setNotice] = useState<{ kind: "error" | "info"; text: string } | null>(null);
-  const [conflict, setConflict] = useState(false);
-  const [restorable, setRestorable] = useState<ReturnType<typeof readBackup>>(null);
+  const {
+    load,
+    level,
+    content,
+    solution,
+    save,
+    notice,
+    conflict,
+    restorable,
+    fetchLevel,
+    edit,
+    saveDraft,
+    startDraft,
+    unpublish,
+    discardDraft,
+    restoreBackup,
+    dropBackup,
+  } = useLevelDraft(levelId);
   const [tab, setTab] = useState<TabId>("details");
   const [playtestKey, setPlaytestKey] = useState(0);
-  const [unpublishing, setUnpublishing] = useState(false);
-  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-
-  const adopt = useCallback((view: LevelView) => {
-    setLevel(view);
-    if (view.draft) {
-      setContent(view.draft.content);
-      setSolution(view.draft.referenceSolution);
-      setBaseUpdatedAt(view.draft.updatedAt);
-    } else {
-      setContent(null);
-      setSolution([]);
-      setBaseUpdatedAt("");
-    }
-    setSave("saved");
-    setConflict(false);
-  }, []);
-
-  const fetchLevel = useCallback(async () => {
-    setLoad({ kind: "loading" });
-    try {
-      const view = await api.getLevel(levelId);
-      adopt(view);
-      if (view.draft) {
-        const backup = readBackup(levelId);
-        setRestorable(backup && backup.baseUpdatedAt === view.draft.updatedAt ? backup : null);
-        if (backup && backup.baseUpdatedAt !== view.draft.updatedAt) clearBackup(levelId);
-      }
-      setLoad({ kind: "ready" });
-    } catch (err) {
-      if (err instanceof SessionEndedError) return;
-      setLoad({ kind: "error", message: errorText(err) });
-    }
-  }, [api, levelId, adopt]);
-
-  useEffect(() => {
-    // Loading starts the fetch; the setState calls inside run after the request, not synchronously.
-    // oxlint-disable-next-line react-hooks/set-state-in-effect
-    void fetchLevel();
-  }, [fetchLevel]);
-
-  // Warn before leaving with unsaved edits.
-  useEffect(() => {
-    if (save !== "unsaved" && save !== "failed") return;
-    const handler = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [save]);
-
-  function edit(nextContent: LevelContent, nextSolution: Instruction[]) {
-    setContent(nextContent);
-    setSolution(nextSolution);
-    setSave("unsaved");
-    setNotice(null);
-    setRestorable(null);
-    writeBackup(levelId, {
-      savedAt: Date.now(),
-      baseUpdatedAt,
-      content: nextContent,
-      referenceSolution: nextSolution,
-    });
-  }
-
-  async function saveDraft() {
-    if (!content) return;
-    setSave("saving");
-    setNotice(null);
-    try {
-      const view = await api.saveDraft(levelId, {
-        expectedUpdatedAt: baseUpdatedAt,
-        content,
-        referenceSolution: solution,
-      });
-      setLevel(view);
-      if (view.draft) setBaseUpdatedAt(view.draft.updatedAt);
-      clearBackup(levelId);
-      setSave("saved");
-    } catch (err) {
-      if (err instanceof SessionEndedError) {
-        setSave("failed");
-        setNotice({
-          kind: "error",
-          text: "The session ended. Your edits are kept on this device.",
-        });
-        return;
-      }
-      setSave("failed");
-      if (err instanceof ApiError && err.code === "DRAFT_CONFLICT") {
-        setConflict(true);
-        setNotice({
-          kind: "error",
-          text: "A newer version of this draft was saved elsewhere. Nothing was overwritten.",
-        });
-      } else {
-        setNotice({ kind: "error", text: errorText(err) });
-      }
-    }
-  }
-
-  async function startDraft() {
-    setNotice(null);
-    try {
-      adopt(await api.startDraft(levelId));
-    } catch (err) {
-      if (!(err instanceof SessionEndedError)) setNotice({ kind: "error", text: errorText(err) });
-    }
-  }
-
-  async function unpublish(archive: boolean) {
-    setNotice(null);
-    setUnpublishing(false);
-    try {
-      adopt(await api.unpublishLevel(levelId, archive));
-      setNotice({
-        kind: "info",
-        text: archive
-          ? "The level is archived and no longer offered to players."
-          : "The level is no longer offered to players.",
-      });
-    } catch (err) {
-      if (!(err instanceof SessionEndedError)) setNotice({ kind: "error", text: errorText(err) });
-    }
-  }
-
-  async function discardDraft() {
-    setNotice(null);
-    try {
-      clearBackup(levelId);
-      adopt(await api.discardDraft(levelId));
-    } catch (err) {
-      if (!(err instanceof SessionEndedError)) setNotice({ kind: "error", text: errorText(err) });
-    }
-  }
-
-  function onTabKey(e: React.KeyboardEvent, index: number) {
-    let next = index;
-    if (e.key === "ArrowRight") next = (index + 1) % TABS.length;
-    else if (e.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
-    else if (e.key === "Home") next = 0;
-    else if (e.key === "End") next = TABS.length - 1;
-    else return;
-    e.preventDefault();
-    const target = TABS[next]!;
-    setTab(target.id);
-    tabRefs.current[target.id]?.focus();
-  }
 
   if (load.kind === "loading") {
     return (
@@ -283,29 +124,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
       )}
       {level.status === "PUBLISHED" && (
         <div className="mb-6">
-          {unpublishing ? (
-            <div className="grid max-w-[640px] gap-3">
-              <p className="text-base font-semibold">
-                Unpublishing removes the level from what players fetch from now on. Copies already
-                downloaded to devices stay there; this does not delete them.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <OutlineAction type="button" onClick={() => void unpublish(false)}>
-                  Confirm unpublish
-                </OutlineAction>
-                <OutlineAction type="button" onClick={() => void unpublish(true)}>
-                  Unpublish and archive
-                </OutlineAction>
-                <OutlineAction type="button" onClick={() => setUnpublishing(false)}>
-                  Cancel
-                </OutlineAction>
-              </div>
-            </div>
-          ) : (
-            <OutlineAction type="button" onClick={() => setUnpublishing(true)}>
-              Unpublish
-            </OutlineAction>
-          )}
+          <UnpublishControl onUnpublish={(archive) => void unpublish(archive)} />
         </div>
       )}
       {conflict && (
@@ -324,22 +143,10 @@ export function LevelEditor({ levelId }: { levelId: string }) {
             Unsaved edits from {new Date(restorable.savedAt).toLocaleString()} were found on this
             device.
           </p>
-          <OutlineAction
-            type="button"
-            onClick={() => {
-              edit(restorable.content, restorable.referenceSolution);
-              setRestorable(null);
-            }}
-          >
+          <OutlineAction type="button" onClick={restoreBackup}>
             Restore them
           </OutlineAction>
-          <OutlineAction
-            type="button"
-            onClick={() => {
-              clearBackup(levelId);
-              setRestorable(null);
-            }}
-          >
+          <OutlineAction type="button" onClick={dropBackup}>
             Discard them
           </OutlineAction>
         </div>
@@ -359,30 +166,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
         </div>
       ) : (
         <>
-          <div role="tablist" aria-label="Level sections" className="mb-8 flex flex-wrap gap-2">
-            {TABS.map((t, i) => (
-              <button
-                key={t.id}
-                ref={(el) => {
-                  tabRefs.current[t.id] = el;
-                }}
-                type="button"
-                role="tab"
-                id={`tab-${t.id}`}
-                aria-selected={tab === t.id}
-                aria-controls={`panel-${t.id}`}
-                tabIndex={tab === t.id ? 0 : -1}
-                onClick={() => setTab(t.id)}
-                onKeyDown={(e) => onTabKey(e, i)}
-                className={`tile inline-flex h-11 items-center px-5 text-[13px] tracking-[2px] uppercase ${
-                  tab === t.id ? "bg-ink text-on-ink" : "bg-strip text-ink"
-                }`}
-                style={{ ["--chamfer" as string]: "10px" }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <EditorTabs tab={tab} onSelect={setTab} />
           <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
             {tab === "details" && (
               <DetailsPanel
@@ -404,7 +188,9 @@ export function LevelEditor({ levelId }: { levelId: string }) {
                 onSolution={(s) => edit(content, s)}
               />
             )}
-            {tab === "preview" && <PreviewPanel content={content} solution={solution} />}
+            {tab === "preview" && (
+              <PreviewPanel key={JSON.stringify(solution)} content={content} solution={solution} />
+            )}
             {tab === "playtest" && (
               <PlaytestPanel
                 key={playtestKey}

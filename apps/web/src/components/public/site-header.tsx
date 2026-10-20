@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/ui/wordmark";
 const NAV: readonly NavItem[] = [
   { href: "/levels", label: "Levels" },
   { href: "/how-to-play", label: "How to play" },
+  { href: "/play", label: "Play" },
   { href: "/download", label: "Download" },
 ];
 
@@ -22,13 +23,13 @@ export function SiteHeader() {
         <Link href="/" aria-label="Algomind home" className="inline-flex min-h-11 items-center">
           <Wordmark />
         </Link>
-        <div className="flex items-center gap-2 min-[340px]:gap-3 sm:gap-7">
-          <nav aria-label="Main" className="hidden items-center gap-7 sm:flex">
+        <div className="flex items-center gap-2 min-[340px]:gap-3 md:gap-7">
+          <nav aria-label="Main" className="hidden items-center gap-7 md:flex">
             {NAV.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="inline-flex min-h-11 items-center text-sm tracking-[2px] uppercase"
+                className="inline-flex min-h-11 items-center text-sm tracking-[2px] whitespace-nowrap uppercase"
               >
                 {item.label}
               </Link>

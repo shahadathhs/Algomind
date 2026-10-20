@@ -4,7 +4,7 @@ Language-neutral JSON test data for the level contract. The TypeScript tests and
 
 Every file is one JSON object and has a `description` string explaining what the case shows. Adding a case means adding a file; no test code changes. File names (without `.json`) are unique within a directory and are used only in test names.
 
-Coordinates are `[x, y]`, x grows right, y grows down. Programs are lists of `{ "op": "<COMMAND>" }` nodes. Numbers are JSON integers.
+Coordinates are `[x, y]`, x grows right, y grows down. Programs are lists of `{ "op": "<COMMAND>" }` nodes, where a loop is `{ "op": "REPEAT", "count": 3, "body": [ ...primitive nodes ] }`. Numbers are JSON integers.
 
 ## `levels/valid/*.json`
 
@@ -60,7 +60,7 @@ Coordinates are `[x, y]`, x grows right, y grows down. Programs are lists of `{ 
 - `level` always passes `validateLevel`.
 - `programIssues`: the `(path, code)` pairs `validateProgram(level, program)` must return, compared as a set (empty list means the program is valid). The path prefix is `program`.
 - `expected`: the exact result of `simulate(level, program)`. **`simulate` runs the program even when `programIssues` is not empty** (it checks neither `availableCommands` nor `maxCommands`); the fixtures `disallowed-command` and `max-commands-exceeded` pin this down. An unknown `op` is the exception: it stops the run with `INVALID_INSTRUCTION`.
-- Compare every field. `blockedCell` is `null` unless the reason is `BLOCKED_BY_WALL` or `BLOCKED_BY_BOUNDARY`. `trace` has one entry per executed step in order, `steps` equals its length, and each entry has exactly `index`, `op`, `position`, `direction`, `event`. `position` and `direction` in a trace entry and in `finalState` are the state **after** the step; a blocked move leaves the position unchanged. For field values and semantics (what counts as a step, when the limit is checked, what ends a run) see "The simulator" in `../README.md`.
+- Compare every field. `blockedCell` is `null` unless the reason is `BLOCKED_BY_WALL` or `BLOCKED_BY_BOUNDARY`. `trace` has one entry per executed step in order, `steps` equals its length, and each entry has exactly `index`, `op`, `node`, `round`, `position`, `direction`, `event` (`node` is `[i]` or `[i, j]` inside a loop; `round` is `null` outside a loop). `position` and `direction` in a trace entry and in `finalState` are the state **after** the step; a blocked move leaves the position unchanged. For field values and semantics (what counts as a step, when the limit is checked, what ends a run) see "The simulator" in `../README.md`.
 
 ## `solver/*.json`
 
@@ -80,13 +80,36 @@ Coordinates are `[x, y]`, x grows right, y grows down. Programs are lists of `{ 
 - `expected` is either `null` (the goal cannot be reached; `solve` must return nothing/null) or an object. Compare `commands`, `steps`, `fitsConstraints`, and the **exact** `program` (same ops in the same order). Different programs of the same length are a failure: the tie-breaking rule in "The solver" in `../README.md` makes the program unique.
 - `fitsConstraints` is `commands <= constraints.maxCommands && steps <= constraints.maxSteps`.
 
+## `scoring/*.json`
+
+```json
+{
+  "description": "...",
+  "rules": {
+    "version": 1,
+    "base": { "easy": 10, "medium": 20, "hard": 30 },
+    "parFull": 10,
+    "parNear": 5,
+    "nearSlots": 2,
+    "stepsBonus": 5,
+    "firstClear": 10
+  },
+  "input": { "difficulty": "easy", "par": { "commands": 5, "steps": 5 }, "slots": 5, "steps": 5 },
+  "expected": { "stars": 3, "points": 25, "levelScore": 35 }
+}
+```
+
+- `expected` is the exact result of `scoreResult(rules, input)`: stars (3 at par slots or better, 2 within `nearSlots`, otherwise 1), `points` (base by difficulty plus the par bonus plus the steps bonus) and `levelScore` (`points` plus `firstClear`).
+- The game mirrors it in `scripts/contract/scoring.gd` for the provisional score shown offline.
+
 ## Pass criteria for an implementation
 
 1. Every `levels/valid` file validates with no issues in its `mode`.
 2. Every `levels/invalid` file fails with exactly its `expectedIssues`.
 3. Every `runs` file gives exactly its `programIssues` and `expected`.
 4. Every `solver` file gives exactly its `expected`.
+5. Every `scoring` file gives exactly its `expected`.
 
-The GDScript implementation (`apps/game/scripts/contract/`) satisfies criteria 1 to 3 and deliberately skips 4: the game gets par from the server and has no solver. It reads these files through `make game-fixtures`, which copies this directory into `apps/game/tests/contract_fixtures/` (git-ignored) before the game's checks and tests run.
+The GDScript implementation (`apps/game/scripts/contract/`) satisfies criteria 1 to 3 and 5 and deliberately skips 4: the game gets par from the server and has no solver. It reads these files through `make game-fixtures`, which copies this directory into `apps/game/tests/contract_fixtures/` (git-ignored) before the game's checks and tests run.
 
 The two implementations also share the rule that **the fixtures win**: if an implementation disagrees with a fixture, fix the implementation (or, if the rule itself is wrong, change the README, the fixture, and both implementations together).

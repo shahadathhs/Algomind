@@ -1,5 +1,6 @@
 import {
   COMMAND_NAMES,
+  REPEAT_OP,
   DIFFICULTIES,
   DIRECTIONS,
   GOAL_TYPES,
@@ -480,32 +481,93 @@ function checkProgram(
     c.add(base, "INVALID_TYPE", `${base} must be an array of instructions.`);
     return;
   }
-  program.forEach((node, i) => {
-    const path = `${base}[${i}]`;
-    if (!isObject(node)) {
-      c.add(path, "INVALID_TYPE", `${path} must be an instruction object.`);
-      return;
-    }
-    rejectUnknown(c, node, path, ["op"]);
+  // Slots: a primitive is 1; a REPEAT is 1 plus the instructions in its body.
+  let slots = 0;
+  const checkOp = (node: Obj, path: string, inBody: boolean): CommandName | null => {
     const opPath = `${path}.op`;
     if (!has(node, "op")) {
       c.add(opPath, "REQUIRED", `${opPath} is required.`);
-      return;
+      return null;
     }
     const op = node["op"];
     if (typeof op !== "string") {
       c.add(opPath, "INVALID_TYPE", `${opPath} must be a string.`);
-    } else if (!isCommandName(op)) {
+      return null;
+    }
+    if (!isCommandName(op)) {
       c.add(opPath, "UNKNOWN_COMMAND", `${opPath} is not a known command.`);
-    } else if (limits.available && !limits.available.includes(op)) {
+      return null;
+    }
+    if (inBody && op === REPEAT_OP) {
+      c.add(opPath, "NESTED_REPEAT", `${opPath}: a loop cannot contain a loop.`);
+      return null;
+    }
+    if (limits.available && !limits.available.includes(op)) {
       c.add(opPath, "COMMAND_NOT_AVAILABLE", `${op} is not available in this level.`);
     }
+    return op;
+  };
+
+  program.forEach((node, i) => {
+    const path = `${base}[${i}]`;
+    if (!isObject(node)) {
+      c.add(path, "INVALID_TYPE", `${path} must be an instruction object.`);
+      slots += 1;
+      return;
+    }
+    const op = typeof node["op"] === "string" ? node["op"] : null;
+    rejectUnknown(c, node, path, op === REPEAT_OP ? ["op", "count", "body"] : ["op"]);
+    const known = checkOp(node, path, false);
+    slots += 1;
+    if (known !== REPEAT_OP) return;
+
+    const countPath = `${path}.count`;
+    if (!has(node, "count")) {
+      c.add(countPath, "REQUIRED", `${countPath} is required.`);
+    } else if (!isInt(node["count"])) {
+      c.add(countPath, "INVALID_TYPE", `${countPath} must be an integer.`);
+    } else if (node["count"] < LIMITS.repeatCount.min || node["count"] > LIMITS.repeatCount.max) {
+      c.add(
+        countPath,
+        "OUT_OF_RANGE",
+        `${countPath} must be from ${LIMITS.repeatCount.min} to ${LIMITS.repeatCount.max}.`,
+      );
+    }
+
+    const bodyPath = `${path}.body`;
+    if (!has(node, "body")) {
+      c.add(bodyPath, "REQUIRED", `${bodyPath} is required.`);
+      return;
+    }
+    const body = node["body"];
+    if (!Array.isArray(body)) {
+      c.add(bodyPath, "INVALID_TYPE", `${bodyPath} must be an array of instructions.`);
+      return;
+    }
+    if (body.length < LIMITS.repeatBody.min || body.length > LIMITS.repeatBody.max) {
+      c.add(
+        bodyPath,
+        "LENGTH_OUT_OF_RANGE",
+        `${bodyPath} must have ${LIMITS.repeatBody.min} to ${LIMITS.repeatBody.max} instructions.`,
+      );
+    }
+    slots += body.length;
+    body.forEach((inner, j) => {
+      const innerPath = `${bodyPath}[${j}]`;
+      if (!isObject(inner)) {
+        c.add(innerPath, "INVALID_TYPE", `${innerPath} must be an instruction object.`);
+        return;
+      }
+      // A nested loop is reported once, as NESTED_REPEAT, not field by field.
+      if (inner["op"] !== REPEAT_OP) rejectUnknown(c, inner, innerPath, ["op"]);
+      checkOp(inner, innerPath, true);
+    });
   });
-  if (limits.max !== null && program.length > limits.max) {
+  if (limits.max !== null && slots > limits.max) {
     c.add(
       base,
       "TOO_MANY_COMMANDS",
-      `${base} has ${program.length} instructions; this level allows ${limits.max}.`,
+      `${base} uses ${slots} slots; this level allows ${limits.max}.`,
     );
   }
 }

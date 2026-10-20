@@ -19,6 +19,12 @@ var feedback: Feedback
 var account: Account
 var account_client: AccountClient
 var account_sync: AccountSync
+## Profile, boards, badges, and share links (needs an account); null in tests.
+var social: SocialClient
+## The daily challenges kept on the device; null in tests.
+var daily: DailyStore
+## Replaces the API for public reads in debug screenshots: Callable(path) -> result.
+var fetcher: Callable
 ## "bundled" or "downloaded": where the current campaign came from.
 var source := "bundled"
 ## "idle", "loading", "updated", "unchanged", "offline", "disabled", or "invalid".
@@ -52,6 +58,28 @@ func signed_in() -> bool:
 func request_sync() -> void:
 	if account_sync != null:
 		account_sync.request()
+
+
+## Whether the social features (daily, boards, profile, badges) exist in this build: not in the
+## browser try-out, which is offline-only.
+func has_social() -> bool:
+	return not OS.has_feature("web") and (fetcher.is_valid() or (api != null and api.is_enabled()))
+
+
+## A public read of the API (see ApiClient.fetch_json), or a canned one in debug screenshots.
+func fetch_public(path: String) -> Dictionary:
+	if fetcher.is_valid():
+		return await fetcher.call(path)
+	if api == null:
+		return {"ok": false, "status": 0, "json": null, "error": "disabled"}
+	return await api.fetch_json(path)
+
+
+## Brings the cached daily challenges up to date. The game plays them offline from the cache.
+func refresh_daily() -> Dictionary:
+	if daily == null:
+		return {"status": "disabled", "errors": []}
+	return await daily.refresh(fetch_public)
 
 
 ## Plays a named sound effect when sound is on.

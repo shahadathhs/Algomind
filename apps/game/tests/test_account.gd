@@ -13,7 +13,7 @@ func after_each() -> void:
 
 
 func _remove() -> void:
-	for suffix in ["", ".tmp"]:
+	for suffix in ["", ".tmp", ".bak"]:
 		if FileAccess.file_exists(PATH + suffix):
 			DirAccess.remove_absolute(PATH + suffix)
 
@@ -54,6 +54,19 @@ func test_a_file_with_the_wrong_shape_means_signed_out() -> void:
 	var account := Account.new(PATH)
 	account.load_data()
 	assert_false(account.signed_in())
+
+
+func test_a_damaged_file_falls_back_to_the_last_good_copy() -> void:
+	var account := Account.new(PATH)
+	account.start("a@example.com", "refresh-1")
+	account.save()  # a second save, so the first is kept as the backup
+	var file := FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string("{broken")
+	file.close()
+	var again := Account.new(PATH)
+	again.load_data()
+	assert_true(again.signed_in(), "the session is not lost to a damaged file")
+	assert_eq(again.refresh_token, "refresh-1")
 
 
 func test_clearing_forgets_the_session_on_disk_too() -> void:

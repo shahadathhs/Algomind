@@ -5,7 +5,12 @@ extends RefCounted
 
 const SCHEMA_VERSION := 1
 
-const COMMAND_NAMES: Array[String] = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+## The commands that move or turn the automaton, in the canonical order.
+const PRIMITIVE_COMMANDS: Array[String] = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+## The loop instruction: a count and a body of primitives. A loop cannot contain a loop.
+const REPEAT_OP := "REPEAT"
+## Every command a level can offer, in the canonical order.
+const COMMAND_NAMES: Array[String] = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT"]
 ## Clockwise order: turning right moves one step forward in this list.
 const DIRECTIONS: Array[String] = ["north", "east", "south", "west"]
 const DIFFICULTIES: Array[String] = ["easy", "medium", "hard"]
@@ -32,6 +37,10 @@ const MAX_COMMANDS_MIN := 1
 const MAX_COMMANDS_MAX := 64
 const MAX_STEPS_MIN := 1
 const MAX_STEPS_MAX := 1000
+const REPEAT_BODY_MIN := 1
+const REPEAT_BODY_MAX := 8
+const REPEAT_COUNT_MIN := 2
+const REPEAT_COUNT_MAX := 11
 const HINTS_MAX_COUNT := 5
 const HINT_MIN := 1
 const HINT_MAX := 140
@@ -43,3 +52,8 @@ const DIRECTION_DELTAS := {
 	"south": [0, 1],
 	"west": [-1, 0],
 }
+
+
+## True when op is the loop instruction. Safe for any value (comparing mismatched types errors).
+static func is_repeat(op: Variant) -> bool:
+	return typeof(op) == TYPE_STRING and op == REPEAT_OP

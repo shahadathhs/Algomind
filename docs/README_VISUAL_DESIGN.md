@@ -129,6 +129,7 @@ If height runs out, the board shrinks last; the tape and commands compress first
 - A continuous strip. The read-head is fixed at its center (a yellow line with a downward triangle). The strip slides so the current instruction sits under the head.
 - **Tile states:** executed = solid ink; current = yellow; upcoming = outlined; empty slot = dashed. Step numbers sit under each tile.
 - **Ready (editing):** the strip is left-aligned with no head and a dashed plus slot at the end. Tap a command to append; tap a tile to select it for removal or reordering. Dragging is optional, never required.
+- **Loops:** a loop is a **count tile** (outlined, "x3") followed by its body tiles inside one 2 px ink bracket with the chamfered corner; the bracket is dashed while the loop is open and takes the next command. The count tile turns solid ink when selected, and while running it reads "round/count" ("2/6"). Tiles in a body are numbered like any others: one number per slot. Selecting a count tile shows minus and plus tools; Remove deletes the whole loop and moving it moves its body. The Repeat command tile uses a two-arrow icon and reads End loop (with a check) while a loop is open. With four commands in the row, labels drop to 14 px.
 - **Failure:** the failing tile shows an X; the wall that was hit turns yellow-striped; the message names what happened.
 - **Solved:** all tiles are executed; a result block shows commands used, steps, and best; Next is the one primary action.
 
@@ -166,6 +167,16 @@ Avoid “Wrong!”, “You failed!”, taglines, error codes, long tutorial para
 ## 8. Screens and states
 
 The 15 game screens are listed in [design/SCREENS.md](design/SCREENS.md). Every one must exist in both themes before UI is considered done. Level tiles distinguish four states, each with a shape or icon as well as a visual treatment: **solved** (solid ink), **current** (yellow), **locked** (faint outline), **not downloaded** (dashed with a download icon). Worlds use the same four states. The world picker is a list of world tiles; the world screen shows each chapter's level tiles. Never conflate “not downloaded” with “locked by progression.”
+
+### Social screens, stars, and board rows
+
+Profile, Badges, Leaderboard and Daily share one frame (`PanelScreen`): back tile, small caption, title, a scrolling list, and up to three actions at the bottom (primary, secondary, tertiary). They add no new shapes or colors.
+
+- **Star glyph.** A five-pointed star drawn from shapes (`StarGlyph`, also the `star` icon in `UiKit`). Earned stars are solid and the others outlined, so the count reads without color. A solved level tile shows its stars in place of the check, with the level number below; the legend's SOLVED swatch shows a star. The accessible name carries the count ("Level 05, solved, 3 stars").
+- **Board row.** A 56 px row: rank, name (shortened with an ellipsis), then the result, with a hairline under it. The player's own row is a solid ink tile with a yellow YOU tag (shape and word, not color alone). REPORT is a small underlined tertiary action at the right of another player's row; hidden-name rows have none.
+- **Badge row.** An 84 px row: a 44 px tile (solid with a check when earned, outlined with a lock when locked), the badge name, EARNED and the date or LOCKED, and the description in two lines.
+- **Solved screen.** Share and Ranking are two secondary tiles in their own row above the result figures. Share reads COPIED for two seconds after copying (no animation).
+- **States.** Loading, offline, signed out, empty and error are plain lines of text with one action (Try again, or Sign in): no illustrations.
 
 ## 9. Public website
 

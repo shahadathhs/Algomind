@@ -68,6 +68,8 @@
       {
         "index": 0,
         "op": "MOVE_FORWARD",
+        "node": [0],
+        "round": null,
         "position": [3, 2],
         "direction": "east",
         "event": "MOVED"
@@ -75,6 +77,8 @@
       {
         "index": 1,
         "op": "TURN_RIGHT",
+        "node": [1],
+        "round": null,
         "position": [3, 2],
         "direction": "south",
         "event": "TURNED"
@@ -82,6 +86,8 @@
       {
         "index": 2,
         "op": "MOVE_FORWARD",
+        "node": [2],
+        "round": null,
         "position": [3, 3],
         "direction": "south",
         "event": "MOVED"
@@ -89,6 +95,8 @@
       {
         "index": 3,
         "op": "TURN_RIGHT",
+        "node": [3],
+        "round": null,
         "position": [3, 3],
         "direction": "west",
         "event": "TURNED"
@@ -96,6 +104,8 @@
       {
         "index": 4,
         "op": "MOVE_FORWARD",
+        "node": [4],
+        "round": null,
         "position": [2, 3],
         "direction": "west",
         "event": "MOVED"
@@ -103,6 +113,8 @@
       {
         "index": 5,
         "op": "TURN_RIGHT",
+        "node": [5],
+        "round": null,
         "position": [2, 3],
         "direction": "north",
         "event": "TURNED"
@@ -110,6 +122,8 @@
       {
         "index": 6,
         "op": "MOVE_FORWARD",
+        "node": [6],
+        "round": null,
         "position": [2, 2],
         "direction": "north",
         "event": "MOVED"

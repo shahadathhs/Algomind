@@ -129,7 +129,7 @@ The game is local-first and offline-first: progress saves on the device and noth
 
 - Downloading and executing arbitrary scripts from the server.
 - A general-purpose visual programming language.
-- Multiplayer or social features.
+- Real-time multiplayer or player-versus-player features. (Leaderboards, a daily challenge, and sharing are planned, opt-in, and account-based: [README_SOCIAL_PLAN.md](README_SOCIAL_PLAN.md).)
 - Payments, ads, subscriptions, or in-app purchases.
 - Player-created levels submitted publicly.
 - Real-time collaborative editing.
@@ -167,8 +167,11 @@ Remote level publishing does not mean every future gameplay idea can be added re
  │   ├── README_GAMEPLAY_FEATURES.md
  │   ├── README_VISUAL_DESIGN.md
  │   ├── README_WEB_PLAN.md
+ │   ├── README_SOCIAL_PLAN.md
+ │   ├── README_ROADMAP.md
  │   ├── README_DASHBOARD_PLAN.md
  │   ├── README_ARCHITECTURE.md
+ │   ├── README_CODE_STANDARDS.md
  │   ├── README_IMPLEMENTATION_PLAN.md
  │   ├── CI.md
  │   ├── DEPLOY.md

@@ -34,6 +34,16 @@ export function clearRefreshCookie(secure: boolean): string {
   return refreshCookie("", 0, secure);
 }
 
+/**
+ * Whether the refresh cookie carries `Secure`. Set SECURE_COOKIES=true or false to decide
+ * explicitly (false only for a production build served over plain http on localhost). Otherwise it
+ * is on in production and whenever SITE_URL is https, so a missing NODE_ENV cannot turn it off.
+ */
 export function isSecureCookie(): boolean {
-  return process.env.NODE_ENV === "production";
+  const explicit = process.env.SECURE_COOKIES;
+  if (explicit === "true") return true;
+  if (explicit === "false") return false;
+  return (
+    process.env.NODE_ENV === "production" || process.env.SITE_URL?.startsWith("https:") === true
+  );
 }

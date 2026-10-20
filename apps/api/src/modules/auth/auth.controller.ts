@@ -47,8 +47,8 @@ export class AuthController {
   @ApiResponse({ status: 422, description: "The email is not valid or the password is too weak." })
   @ApiResponse({ status: 429, description: "Too many attempts; see Retry-After." })
   register(@Body() body: RegisterBody, @Req() req: Request): Promise<AuthSession> {
+    this.limit(`register:${req.ip}`, 10); // before validating, so bad payloads are throttled too
     const { email, password } = parseBody(registerSchema, body);
-    this.limit(`register:${req.ip}`, 10);
     return this.auth.register(email, password);
   }
 

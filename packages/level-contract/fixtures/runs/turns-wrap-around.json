@@ -71,6 +71,8 @@
       {
         "index": 0,
         "op": "TURN_LEFT",
+        "node": [0],
+        "round": null,
         "position": [1, 1],
         "direction": "west",
         "event": "TURNED"
@@ -78,6 +80,8 @@
       {
         "index": 1,
         "op": "TURN_LEFT",
+        "node": [1],
+        "round": null,
         "position": [1, 1],
         "direction": "south",
         "event": "TURNED"
@@ -85,6 +89,8 @@
       {
         "index": 2,
         "op": "TURN_LEFT",
+        "node": [2],
+        "round": null,
         "position": [1, 1],
         "direction": "east",
         "event": "TURNED"
@@ -92,6 +98,8 @@
       {
         "index": 3,
         "op": "TURN_LEFT",
+        "node": [3],
+        "round": null,
         "position": [1, 1],
         "direction": "north",
         "event": "TURNED"
@@ -99,6 +107,8 @@
       {
         "index": 4,
         "op": "TURN_RIGHT",
+        "node": [4],
+        "round": null,
         "position": [1, 1],
         "direction": "east",
         "event": "TURNED"
@@ -106,6 +116,8 @@
       {
         "index": 5,
         "op": "TURN_RIGHT",
+        "node": [5],
+        "round": null,
         "position": [1, 1],
         "direction": "south",
         "event": "TURNED"
@@ -113,6 +125,8 @@
       {
         "index": 6,
         "op": "TURN_RIGHT",
+        "node": [6],
+        "round": null,
         "position": [1, 1],
         "direction": "west",
         "event": "TURNED"
@@ -120,6 +134,8 @@
       {
         "index": 7,
         "op": "TURN_RIGHT",
+        "node": [7],
+        "round": null,
         "position": [1, 1],
         "direction": "north",
         "event": "TURNED"

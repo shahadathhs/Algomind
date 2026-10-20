@@ -61,7 +61,15 @@ There is no `sortOrder`: placement in a world and chapter is campaign data, not 
 
 ### Programs
 
-A program is an ordered list of instruction nodes: `[{ "op": "MOVE_FORWARD" }, { "op": "TURN_LEFT" }]`. The nodes (not bare strings) leave room for `REPEAT` to nest instructions later. The first schema supports only flat lists of the three commands. An empty program is valid.
+A program is an ordered list of instruction nodes. A node is a primitive (`{ "op": "MOVE_FORWARD" }`, `TURN_LEFT`, `TURN_RIGHT`) or a loop:
+
+```json
+{ "op": "REPEAT", "count": 6, "body": [{ "op": "MOVE_FORWARD" }, { "op": "TURN_RIGHT" }] }
+```
+
+A loop's `count` is a whole number from 2 to 11 and its `body` is 1 to 8 primitives. **A loop cannot contain a loop.** A level offers loops by listing `REPEAT` in `availableCommands`; the mechanic name `repeat` is then required of the client (the API derives it from the command, so `requires.mechanics` does not repeat it). An empty program is valid.
+
+**Slots.** The command limit counts slots: a primitive is 1, a `REPEAT` is 1 plus the number of instructions in its body. `REPEAT 6 { MOVE_FORWARD, TURN_RIGHT, MOVE_FORWARD, TURN_LEFT }` is 5 slots. `programSlots(program)` computes it.
 
 ### Limits
 
@@ -78,12 +86,14 @@ All are inclusive. Lengths of strings are counted in Unicode code points (not UT
 | `requires.mechanics`          | at most 8 entries, unique, each 1 to 32 characters matching `^[a-z][a-z0-9_]*$`                          |
 | `board.width`, `board.height` | integer, 3 to 12                                                                                         |
 | `board.walls`                 | at most 100 unique cells                                                                                 |
-| `availableCommands`           | 1 to 3 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`                                     |
+| `availableCommands`           | 1 to 4 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, `REPEAT`                           |
+| `REPEAT` `count`              | integer, 2 to 11                                                                                         |
+| `REPEAT` `body`               | 1 to 8 primitive instructions (no `REPEAT`)                                                              |
 | `constraints.maxCommands`     | integer, 1 to 64                                                                                         |
 | `constraints.maxSteps`        | integer, 1 to 1000                                                                                       |
 | `hints`                       | at most 5 entries, each 1 to 140 characters                                                              |
 
-`requires.mechanics` names are free-form within the pattern: the validator does not know which mechanics a game build supports; the API and the client compare the list with what they support. The first command set needs no mechanics, so the list is normally empty.
+`requires.mechanics` names are free-form within the pattern: the validator does not know which mechanics a game build supports; the API and the client compare the list with what they support. The first command set needs no mechanics, so the list is normally empty; `REPEAT` needs the mechanic `repeat`, which the API adds from `availableCommands`.
 
 ## Validation
 
@@ -97,26 +107,27 @@ Each issue is `{ path, code, message }`, matching the error contract in `docs/RE
 
 ### Issue codes
 
-| Code                         | Meaning                                                                                   |
-| ---------------------------- | ----------------------------------------------------------------------------------------- |
-| `INVALID_TYPE`               | wrong JSON type, a non-integer where an integer is required, or a malformed `[x, y]` pair |
-| `REQUIRED`                   | a required field is absent                                                                |
-| `UNKNOWN_FIELD`              | a field the schema does not define                                                        |
-| `UNSUPPORTED_SCHEMA_VERSION` | `schemaVersion` is an integer other than 1                                                |
-| `OUT_OF_RANGE`               | a number outside its inclusive range                                                      |
-| `LENGTH_OUT_OF_RANGE`        | a string or array shorter or longer than allowed                                          |
-| `INVALID_FORMAT`             | a string that fails its pattern (`levelId`, `slug`, mechanic names)                       |
-| `INVALID_VALUE`              | a string outside its enum (`difficulty`, `initialState.direction`, `goal.type`)           |
-| `OUTSIDE_BOARD`              | a wall, the start, or the goal outside the board                                          |
-| `DUPLICATE_WALL`             | a wall repeats an earlier wall (reported at the later index)                              |
-| `START_ON_WALL`              | the start cell is a wall                                                                  |
-| `GOAL_ON_WALL`               | the goal cell is a wall                                                                   |
-| `GOAL_EQUALS_START`          | the goal cell is the start cell                                                           |
-| `UNKNOWN_COMMAND`            | a command name that is not one of the three (also an unknown `op` in a program)           |
-| `DUPLICATE_COMMAND`          | a known command repeated in `availableCommands` (reported at the later index)             |
-| `DUPLICATE_MECHANIC`         | a mechanic repeated in `requires.mechanics` (reported at the later index)                 |
-| `COMMAND_NOT_AVAILABLE`      | a known `op` that the level's `availableCommands` does not offer                          |
-| `TOO_MANY_COMMANDS`          | a program longer than `constraints.maxCommands`; reported at the program path             |
+| Code                         | Meaning                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| `INVALID_TYPE`               | wrong JSON type, a non-integer where an integer is required, or a malformed `[x, y]` pair   |
+| `REQUIRED`                   | a required field is absent                                                                  |
+| `UNKNOWN_FIELD`              | a field the schema does not define                                                          |
+| `UNSUPPORTED_SCHEMA_VERSION` | `schemaVersion` is an integer other than 1                                                  |
+| `OUT_OF_RANGE`               | a number outside its inclusive range                                                        |
+| `LENGTH_OUT_OF_RANGE`        | a string or array shorter or longer than allowed                                            |
+| `INVALID_FORMAT`             | a string that fails its pattern (`levelId`, `slug`, mechanic names)                         |
+| `INVALID_VALUE`              | a string outside its enum (`difficulty`, `initialState.direction`, `goal.type`)             |
+| `OUTSIDE_BOARD`              | a wall, the start, or the goal outside the board                                            |
+| `DUPLICATE_WALL`             | a wall repeats an earlier wall (reported at the later index)                                |
+| `START_ON_WALL`              | the start cell is a wall                                                                    |
+| `GOAL_ON_WALL`               | the goal cell is a wall                                                                     |
+| `GOAL_EQUALS_START`          | the goal cell is the start cell                                                             |
+| `UNKNOWN_COMMAND`            | a command name that is not one of the four (also an unknown `op` in a program)              |
+| `DUPLICATE_COMMAND`          | a known command repeated in `availableCommands` (reported at the later index)               |
+| `DUPLICATE_MECHANIC`         | a mechanic repeated in `requires.mechanics` (reported at the later index)                   |
+| `COMMAND_NOT_AVAILABLE`      | a known `op` that the level's `availableCommands` does not offer                            |
+| `TOO_MANY_COMMANDS`          | a program that uses more slots than `constraints.maxCommands`; reported at the program path |
+| `NESTED_REPEAT`              | a `REPEAT` inside the body of a `REPEAT`; reported at the inner `op`                        |
 
 ### Exact validation rules
 
@@ -131,7 +142,7 @@ Each issue is `{ path, code, message }`, matching the error contract in `docs/RE
    - a well-formed wall equal to an earlier well-formed wall is `DUPLICATE_WALL` at the later index;
    - `START_ON_WALL` at `initialState.position`, `GOAL_ON_WALL` at `goal.position`, and `GOAL_EQUALS_START` at `goal.position` when both cells are well-formed.
 9. `board.walls` with more than 100 entries is `LENGTH_OUT_OF_RANGE` at `board.walls` (each entry is still checked).
-10. `availableCommands`: an empty array is `LENGTH_OUT_OF_RANGE`. Per entry: a non-string is `INVALID_TYPE`; a string that is not one of the three names (names are case sensitive) is `UNKNOWN_COMMAND`; a known name seen earlier is `DUPLICATE_COMMAND`.
+10. `availableCommands`: an empty array is `LENGTH_OUT_OF_RANGE`. Per entry: a non-string is `INVALID_TYPE`; a string that is not one of the four names (names are case sensitive) is `UNKNOWN_COMMAND`; a known name seen earlier is `DUPLICATE_COMMAND`.
 11. `requires.mechanics`: more than 8 entries is `LENGTH_OUT_OF_RANGE` at `requires.mechanics`. Per entry: type, length, pattern as in rule 5; a valid name seen earlier is `DUPLICATE_MECHANIC`.
 12. `hints`: more than 5 entries is `LENGTH_OUT_OF_RANGE` at `hints`. Per entry: type and length as in rule 5.
 13. `goal.type` must be `"reach_tile"` (`INVALID_VALUE` otherwise, `REQUIRED` if absent).
@@ -144,8 +155,9 @@ Each issue is `{ path, code, message }`, matching the error contract in `docs/RE
 `validateProgram(level, program)` takes a valid level. The path prefix is `program` (`referenceSolution` for the authoring check).
 
 1. Not an array: `INVALID_TYPE` at `program`.
-2. Per node `program[i]`: not an object is `INVALID_TYPE` at `program[i]`; any key other than `op` is `UNKNOWN_FIELD` at `program[i].<key>`; missing `op` is `REQUIRED` at `program[i].op`; a non-string `op` is `INVALID_TYPE`; a string that is not a known command is `UNKNOWN_COMMAND`; a known command that is not in the level's `availableCommands` is `COMMAND_NOT_AVAILABLE`. All at `program[i].op`.
-3. Length greater than `constraints.maxCommands` is a single `TOO_MANY_COMMANDS` at `program`. An empty program is valid.
+2. Per node `program[i]`: not an object is `INVALID_TYPE` at `program[i]`; any key other than `op` (and, for a `REPEAT`, `count` and `body`) is `UNKNOWN_FIELD` at `program[i].<key>`; missing `op` is `REQUIRED` at `program[i].op`; a non-string `op` is `INVALID_TYPE`; a string that is not a known command is `UNKNOWN_COMMAND`; a known command that is not in the level's `availableCommands` is `COMMAND_NOT_AVAILABLE`. All at `program[i].op`.
+3. Per `REPEAT` node: `count` absent is `REQUIRED`, not an integer is `INVALID_TYPE`, outside 2 to 11 is `OUT_OF_RANGE` (at `program[i].count`). `body` absent is `REQUIRED`, not an array is `INVALID_TYPE`, fewer than 1 or more than 8 entries is `LENGTH_OUT_OF_RANGE` (at `program[i].body`). Each body entry is checked like a primitive node at `program[i].body[j]`; a `REPEAT` there is reported once, as `NESTED_REPEAT` at `program[i].body[j].op`, and its own fields are not checked.
+4. Slots (see Programs) greater than `constraints.maxCommands` is a single `TOO_MANY_COMMANDS` at `program`. Every node counts, valid or not. An empty program is valid.
 
 ## The simulator
 
@@ -159,18 +171,19 @@ The automaton has a cell and a direction, starting at `initialState`. The goal i
 
 ### Execution
 
-A _step_ is one executed instruction. Every executed instruction counts as one step, turns included, and **a move that is blocked counts as a step too** (it is traced). Skipped or unreached instructions are not steps. `steps` always equals the trace length.
+A _step_ is one executed primitive. Every executed primitive counts as one step, turns included, and **a move that is blocked counts as a step too** (it is traced). **A `REPEAT` itself is not a step.** Skipped or unreached instructions are not steps. `steps` always equals the trace length.
 
-Run the instructions in order. For the instruction at index `i` (zero-based), with `steps` steps done so far:
+Run the nodes in order. For the node at index `i` (zero-based), with `steps` steps done so far:
 
-1. If `steps >= constraints.maxSteps`, stop: `FAILED`, reason `STEP_LIMIT`. (So a run never executes more than `maxSteps` steps. This check happens before the instruction is looked at, so it wins over `INVALID_INSTRUCTION`.)
-2. If the node is not an object with a string `op` equal to one of `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, stop: `FAILED`, reason `INVALID_INSTRUCTION`. The instruction is not executed and is not counted. Instructions are never silently skipped.
+1. If `steps >= constraints.maxSteps`, stop: `FAILED`, reason `STEP_LIMIT`. (So a run never executes more than `maxSteps` steps. This check happens before the node is looked at, so it wins over `INVALID_INSTRUCTION`.)
+2. A primitive node is one object whose string `op` is `MOVE_FORWARD`, `TURN_LEFT`, or `TURN_RIGHT`; run it as in 3 and 4 with trace `node` `[i]` and `round` `null`. A loop node is an object whose `op` is `REPEAT`, whose `count` is an integer from 2 to 11, and whose `body` is an array of 1 to 8 primitive nodes; run it as in 2a. Anything else stops the run: `FAILED`, reason `INVALID_INSTRUCTION`. The node is not executed and is not counted. Nodes are never silently skipped.
+   - 2a. For `round` from 1 to `count`, for `j` from 0 to the end of the body: first, if `steps >= constraints.maxSteps`, stop with `STEP_LIMIT`; then run the primitive `body[j]` as in 3 and 4 with trace `node` `[i, j]` and `round`. Anything that stops the run inside the loop stops the whole run; the rest of the body, the remaining rounds, and the remaining nodes are not run.
 3. `TURN_LEFT` / `TURN_RIGHT`: rotate the direction 90 degrees, keep the cell. Append a trace entry with event `TURNED`.
 4. `MOVE_FORWARD`: let `target` be the cell one unit ahead.
    - If `target` is outside the board (`x < 0`, `y < 0`, `x >= width`, `y >= height`): append a trace entry (the position is unchanged, event `BLOCKED_BY_BOUNDARY`) and stop: `FAILED`, reason `BLOCKED_BY_BOUNDARY`, `blockedCell` = `target` (which can contain `-1` or `width` / `height`).
    - Else if `target` is a wall: same, with event and reason `BLOCKED_BY_WALL`.
    - Else move to `target`. If `target` is the goal cell: append a trace entry with event `GOAL_REACHED` and stop: `SUCCEEDED`, reason `GOAL_REACHED`. Any remaining instructions are ignored (not executed, not validated, not counted). Otherwise append a trace entry with event `MOVED`.
-5. If the instructions run out without a stop: `FAILED`, reason `PROGRAM_ENDED`. This includes an empty program (zero steps), and a program of exactly `maxSteps` instructions that did not reach the goal (it ends, it does not hit the limit, because the limit is only checked before an instruction that would run).
+5. If the nodes run out without a stop: `FAILED`, reason `PROGRAM_ENDED`. This includes an empty program (zero steps), and a program of exactly `maxSteps` instructions that did not reach the goal (it ends, it does not hit the limit, because the limit is only checked before an instruction that would run).
 
 The goal is only tested when a move enters it. The start cell is never the goal in a valid level.
 
@@ -192,7 +205,7 @@ The goal is only tested when a move enters it. The start cell is never the goal 
 - `status` is `SUCCEEDED` only with reason `GOAL_REACHED`.
 - `finalState` is the state after the last step (the initial state when no step ran). On a blocked move it is the state before the blocked move.
 - `blockedCell` is the attempted target cell for the two `BLOCKED_BY_*` reasons, otherwise `null`. The key is always present.
-- Each trace entry has exactly the keys `index` (0-based step number; equals the instruction index in flat programs), `op`, `position` and `direction` (the state **after** the step; unchanged position for a blocked move), and `event` (`MOVED`, `TURNED`, `GOAL_REACHED`, `BLOCKED_BY_WALL`, `BLOCKED_BY_BOUNDARY`). `STEP_LIMIT`, `PROGRAM_ENDED`, and `INVALID_INSTRUCTION` add no trace entry.
+- Each trace entry has exactly the keys `index` (0-based step number), `op` (always a primitive), `node` (where the primitive sits: `[i]` at the top level, `[i, j]` in the body of the loop at `i`), `round` (1-based round of that loop, or `null` outside a loop), `position` and `direction` (the state **after** the step; unchanged position for a blocked move), and `event` (`MOVED`, `TURNED`, `GOAL_REACHED`, `BLOCKED_BY_WALL`, `BLOCKED_BY_BOUNDARY`). `STEP_LIMIT`, `PROGRAM_ENDED`, and `INVALID_INSTRUCTION` add no trace entry.
 
 ### Player-facing text
 
@@ -222,9 +235,9 @@ The game shows these in capitals per `docs/README_VISUAL_DESIGN.md` section 7. T
 }
 ```
 
-`commands` is the program length and equals `steps` (programs are flat, so each instruction runs once and the goal is reached on the last one). `fitsConstraints` is `commands <= constraints.maxCommands && steps <= constraints.maxSteps`. The search ignores both constraints; a `false` means the level's budget is below par.
+`commands` is the slots the program uses (see Programs). Without `REPEAT` it is the program length and equals `steps`. `steps` is the number of primitives the program executes to reach the goal. `fitsConstraints` is `commands <= constraints.maxCommands && steps <= constraints.maxSteps`. The search ignores both constraints; a `false` means the level's budget is below par.
 
-It is a breadth-first search over the states `(x, y, facing)`. The tie-breaking is specified so another language produces the **same program**, not only the same length:
+**Without `REPEAT` in `availableCommands`** it is a breadth-first search over the states `(x, y, facing)`. The tie-breaking is specified so another language produces the **same program**, not only the same length:
 
 1. The queue is FIFO and starts with the initial state, which is marked discovered.
 2. Dequeue a state and try the available commands in this fixed order: `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`. Commands not in `availableCommands` are skipped.
@@ -234,6 +247,17 @@ It is a breadth-first search over the states `(x, y, facing)`. The tie-breaking 
 6. If the queue empties, return `null`.
 
 Because parents are recorded on first discovery and commands are tried in a fixed order, the result is unique. Examples: facing north with the goal directly behind gives `TURN_LEFT, TURN_LEFT, MOVE_FORWARD` (not the equally short `TURN_RIGHT` twin), and a detour that could pass above or below a wall takes the route whose first differing command comes earlier in the order `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`. If the start were the goal (invalid level), the result would be the empty program with 0 commands.
+
+**With `REPEAT` offered** the search is exact over programs whose loop bodies hold at most 8 primitives (which is also the most a body may hold). It runs in a few milliseconds to well under a second on boards up to 12 by 12. The method, so another language reproduces the exact program:
+
+1. A _behaviour_ maps every state `(x, y, facing)` to where a piece of program leaves the automaton and the steps it took, or to "failed", or to "entered the goal" (the run stops there, successfully; steps count up to and including the entering move). Behaviours of a sequence and of a loop follow from the simulator rules above.
+2. **Bodies** are enumerated by length 1 to 8. Length 1 is the available primitives in the order `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`. Length k+1 extends each body of length k, in order, by each available primitive in that order. A body whose behaviour equals that of any earlier body is skipped.
+3. **Edges** are, in order: the available primitives (cost 1 slot); then for each body length 1 to 8, each body in order, each `count` from 2 to 11, the loop `REPEAT count { body }` (cost 1 + body length). An edge with the same behaviour and cost as an earlier edge is skipped.
+4. A shortest-path search from the start state over edges. The cost of a path is compared as (slots, then steps). Take the unfinished state with the lowest cost, the lowest state index on ties, and relax every edge in edge order, updating a state only when the new cost is strictly lower. "The goal" is one more state. The program is the edges on the path to it.
+
+Because ties favour fewer steps, then the earlier edge, the result is unique. Two programs with equal slots and equal steps can exist (for example `REPEAT 2 { MOVE_FORWARD }` and two moves); the one discovered first wins.
+
+The game never calls the solver: it gets par from the server.
 
 ## Using the package
 

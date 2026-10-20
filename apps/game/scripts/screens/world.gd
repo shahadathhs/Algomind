@@ -159,6 +159,10 @@ func _level_tile(entry: Dictionary, tile: float) -> TileButton:
 			button = TileButton.make(TileButton.Kind.LOCKED, number, "lock", 22)
 	button.stacked = true
 	button.accessibility_name = "Level %s, %s" % [number, state]
+	if state == "done":
+		button.stars = LevelStars.of(app.progress, entry)
+		if button.stars > 0:
+			button.accessibility_name += ", %s" % LevelStars.words(button.stars)
 	button.custom_minimum_size = Vector2(tile, tile)
 	if state != "locked":
 		button.pressed.connect(_open.bind(index))
@@ -201,7 +205,7 @@ class _Legend:
 
 	func _draw() -> void:
 		var x := 0.0
-		var items := [["SOLVED", "check"], ["CURRENT", "play"], ["LOCKED", "lock"]]
+		var items := [["SOLVED", "star"], ["CURRENT", "play"], ["LOCKED", "lock"]]
 		for i in items.size():
 			var rect := Rect2(Vector2(x, 4.0), Vector2(24.0, 24.0))
 			var icon_color := Palette.ON_INK

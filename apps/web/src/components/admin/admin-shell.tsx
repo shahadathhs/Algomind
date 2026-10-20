@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { ThemeToggle } from "@/components/public/theme-toggle";
 import { Wordmark } from "@/components/ui/wordmark";
 import { CHANGE_PASSWORD_PATH, SIGN_IN_PATH } from "@/lib/admin/config";
@@ -15,7 +15,13 @@ const NAV = [
   { href: "/admin", label: "Home" },
   { href: "/admin/levels", label: "Levels" },
   { href: "/admin/campaign", label: "Campaign" },
+  { href: "/admin/players", label: "Players" },
+  { href: "/admin/reports", label: "Reports" },
+  { href: "/admin/daily", label: "Daily" },
+  { href: "/admin/achievements", label: "Badges" },
+  { href: "/admin/level-stats", label: "Statistics" },
   { href: "/admin/capabilities", label: "Capabilities" },
+  { href: "/admin/points", label: "Points" },
   { href: "/admin/import", label: "Import" },
   { href: "/admin/audit", label: "Audit log" },
   { href: "/admin/settings", label: "Settings" },
@@ -42,15 +48,24 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const mustChange = state.status === "authenticated" && state.user.mustChangePassword;
 
+  const triedRestore = useRef(false);
+
   useEffect(() => {
     if (state.status !== "anonymous") return;
+    // Arriving from the sign-in page leaves the session unrestored even with a valid cookie
+    // (Back button): look once before sending the visitor to sign in again.
+    if (!state.reason && !triedRestore.current) {
+      triedRestore.current = true;
+      void manager.restoreQuietly();
+      return;
+    }
     const params = new URLSearchParams();
     if (state.reason) params.set("reason", state.reason);
     if (state.reason !== "signed-out" && pathname !== "/admin") params.set("next", pathname);
     const query = params.toString();
     // A full navigation, so memory is dropped and the cleared cookie is seen by the server.
     window.location.assign(query ? `${SIGN_IN_PATH}?${query}` : SIGN_IN_PATH);
-  }, [state, pathname]);
+  }, [state, pathname, manager]);
 
   useEffect(() => {
     if (mustChange && pathname !== CHANGE_PASSWORD_PATH) router.replace(CHANGE_PASSWORD_PATH);

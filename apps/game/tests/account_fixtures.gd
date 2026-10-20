@@ -12,7 +12,11 @@ func send(method: String, path: String, body: Variant, bearer: String) -> Dictio
 	var queue: Array = routes.get("%s %s" % [method, path], [])
 	if queue.is_empty():
 		return AccountFixtures.fail(404, "NOT_FOUND")
-	return queue.pop_front() if queue.size() > 1 else queue[0]
+	var result: Dictionary = queue.pop_front() if queue.size() > 1 else queue[0]
+	# A route can be slow: it answers a few frames later, so calls can overlap.
+	for i in int(result.get("delay_frames", 0)):
+		await Engine.get_main_loop().process_frame
+	return result
 
 
 func on(method: String, path: String, result: Dictionary) -> void:

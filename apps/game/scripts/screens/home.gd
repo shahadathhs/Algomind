@@ -1,12 +1,16 @@
 extends ScreenBase
-## Home: the wordmark, a board, Play (the one primary), and two text links.
+## Home: the wordmark, a board, Play (the one primary), and a row of short text links: Levels,
+## Daily, Settings, Account. Daily and Account need the server, so the browser try-out has neither.
 
 var _wordmark: Wordmark
 var _board: BoardView
 var _play: TileButton
 var _levels: TileButton
+var _daily: TileButton
 var _settings: TileButton
 var _account: TileButton
+## The links in the order shown, left to right.
+var _links: Array[TileButton] = []
 var _notice: Label
 
 
@@ -25,23 +29,25 @@ func _build() -> void:
 	_play.set_disabled(app.campaign.entries.is_empty())
 	add_child(_play)
 
-	_levels = TileButton.make(TileButton.Kind.TERTIARY, "LEVELS", "", 18)
-	_levels.pressed.connect(func() -> void: navigate.emit("worlds", {}))
+	_levels = _link("LEVELS", func() -> void: navigate.emit("worlds", {}))
 	_levels.set_disabled(app.campaign.entries.is_empty())
-	_levels.align = HORIZONTAL_ALIGNMENT_LEFT
-	add_child(_levels)
-
-	_settings = TileButton.make(TileButton.Kind.TERTIARY, "SETTINGS", "", 18)
-	_settings.pressed.connect(func() -> void: navigate.emit("settings", {}))
-	_settings.align = HORIZONTAL_ALIGNMENT_CENTER
-	add_child(_settings)
-
-	_account = TileButton.make(TileButton.Kind.TERTIARY, "ACCOUNT", "", 18)
-	_account.pressed.connect(
-		func() -> void: navigate.emit("account" if app.signed_in() else "sign_in", {"back": "home"})
-	)
-	_account.align = HORIZONTAL_ALIGNMENT_RIGHT
-	add_child(_account)
+	if app.has_social():
+		_daily = _link("DAILY", func() -> void: navigate.emit("daily", {}))
+	_settings = _link("SETTINGS", func() -> void: navigate.emit("settings", {}))
+	# The browser build is offline-only, so it has no account to sign in to.
+	if not OS.has_feature("web"):
+		_account = _link(
+			"ACCOUNT",
+			func() -> void:
+				navigate.emit("account" if app.signed_in() else "sign_in", {"back": "home"})
+		)
+	for i in _links.size():
+		var last := i == _links.size() - 1
+		_links[i].align = (
+			HORIZONTAL_ALIGNMENT_LEFT
+			if i == 0
+			else (HORIZONTAL_ALIGNMENT_RIGHT if last else HORIZONTAL_ALIGNMENT_CENTER)
+		)
 
 	if app.campaign.entries.is_empty():
 		_notice = UiKit.label("THE LEVELS COULD NOT LOAD", 18, Palette.INK, 1)
@@ -49,8 +55,20 @@ func _build() -> void:
 		add_child(_notice)
 
 
+func _link(text: String, action: Callable) -> TileButton:
+	var button := TileButton.make(
+		TileButton.Kind.TERTIARY, text, "", 16 if app.has_social() else 18
+	)
+	button.pressed.connect(action)
+	add_child(button)
+	_links.append(button)
+	return button
+
+
 func go_back() -> void:
-	get_tree().quit()
+	# A browser tab is closed by the visitor, not by the game.
+	if not OS.has_feature("web"):
+		get_tree().quit()
 
 
 func _layout() -> void:
@@ -65,13 +83,11 @@ func _layout() -> void:
 	var bottom := size.y - inset_bottom() - m
 	var link_h := 48.0
 	var play_h := 64.0 if size.y >= 700.0 else 56.0
-	var link_w := floorf(width / 3.0)
-	_levels.position = Vector2(m, bottom - link_h)
-	_levels.size = Vector2(link_w, link_h)
-	_settings.position = Vector2(m + link_w, bottom - link_h)
-	_settings.size = Vector2(link_w, link_h)
-	_account.position = Vector2(m + 2.0 * link_w, bottom - link_h)
-	_account.size = Vector2(width - 2.0 * link_w, link_h)
+	var link_w := floorf(width / _links.size())
+	for i in _links.size():
+		var last := i == _links.size() - 1
+		_links[i].position = Vector2(m + i * link_w, bottom - link_h)
+		_links[i].size = Vector2(width - i * link_w if last else link_w, link_h)
 	_play.position = Vector2(m, bottom - link_h - 12.0 - play_h)
 	_play.size = Vector2(width, play_h)
 

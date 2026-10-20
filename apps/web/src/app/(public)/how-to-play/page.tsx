@@ -6,12 +6,12 @@ import { BoardView } from "@/components/ui/board-view";
 import { CommandTile } from "@/components/ui/command-tile";
 import { TapeView } from "@/components/ui/tape-view";
 import type { Command } from "@/lib/board";
-import { FAILED_BOARD, READY_BOARD, SOLUTION } from "@/lib/sample-screens";
+import { FAILED_BOARD, READY_BOARD, RUNNING_STEP, SOLUTION } from "@/lib/sample-screens";
 import { tapeFromProgram } from "@/lib/tape";
 import { pageMetadata } from "@/lib/seo";
 
 const DESCRIPTION =
-  "How Algomind works: build a program from three instruction tiles, run it, and read what happened when it fails.";
+  "How Algomind works: build a program from instruction tiles, run it, and read what happened when it fails.";
 
 export const metadata: Metadata = pageMetadata({
   title: "How to play",
@@ -24,6 +24,11 @@ const COMMANDS: { command: Command; name: string; text: string }[] = [
   { command: "move", name: "Move", text: "Move one cell in the direction the automaton faces." },
   { command: "left", name: "Left", text: "Turn 90 degrees to the left without moving." },
   { command: "right", name: "Right", text: "Turn 90 degrees to the right without moving." },
+  {
+    command: "repeat",
+    name: "Repeat",
+    text: "Start a loop. Add commands to it, then end the loop.",
+  },
 ];
 
 const MESSAGES = [
@@ -51,7 +56,7 @@ export default function HowToPlayPage() {
         <div className="max-w-[260px]">
           <BoardView
             board={READY_BOARD}
-            label="A board with four walls, the automaton at the bottom left facing up, and the yellow target on the right."
+            label="A board with a wall of three cells, the automaton at the bottom right facing up, and the yellow target just above the wall."
           />
         </div>
         <p>
@@ -61,7 +66,7 @@ export default function HowToPlayPage() {
         </p>
       </ProseSection>
 
-      <ProseSection title="Three commands">
+      <ProseSection title="Commands">
         <ul className="!list-none !pl-0">
           {COMMANDS.map((item) => (
             <li key={item.command} className="flex items-center gap-4 !pl-0 pb-3">
@@ -81,11 +86,20 @@ export default function HowToPlayPage() {
         </p>
       </ProseSection>
 
+      <ProseSection title="Loops">
+        <p>
+          A loop carries out the commands inside it again and again. Select its count tile to change
+          how many rounds it runs. A loop uses one slot for its count and one for each command
+          inside it, and the counter above the board counts slots. While a loop runs, the count tile
+          shows the current round.
+        </p>
+      </ProseSection>
+
       <ProseSection title="The tape">
         <div className="max-w-[420px]">
           <TapeView
-            tiles={tapeFromProgram(SOLUTION, { current: 4 })}
-            head={4}
+            tiles={tapeFromProgram(SOLUTION, { current: RUNNING_STEP })}
+            head={RUNNING_STEP}
             label="A tape mid-run. Instructions already run are solid, the current one is yellow under the read-head, and the rest are outlined."
           />
         </div>

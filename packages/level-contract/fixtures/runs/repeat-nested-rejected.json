@@ -1,0 +1,68 @@
+{
+  "description": "A loop cannot contain a loop: the validator reports NESTED_REPEAT and the simulator stops with INVALID_INSTRUCTION at the loop.",
+  "level": {
+    "schemaVersion": 1,
+    "levelId": "run-level",
+    "levelVersion": 1,
+    "slug": "run-level",
+    "title": "run-level",
+    "description": "",
+    "difficulty": "easy",
+    "requires": {
+      "mechanics": []
+    },
+    "board": {
+      "width": 7,
+      "height": 7,
+      "walls": []
+    },
+    "initialState": {
+      "position": [0, 6],
+      "direction": "north"
+    },
+    "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT"],
+    "constraints": {
+      "maxCommands": 20,
+      "maxSteps": 100
+    },
+    "goal": {
+      "type": "reach_tile",
+      "position": [6, 6]
+    },
+    "hints": []
+  },
+  "program": [
+    {
+      "op": "REPEAT",
+      "count": 2,
+      "body": [
+        {
+          "op": "REPEAT",
+          "count": 2,
+          "body": [
+            {
+              "op": "MOVE_FORWARD"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "programIssues": [
+    {
+      "path": "program[0].body[0].op",
+      "code": "NESTED_REPEAT"
+    }
+  ],
+  "expected": {
+    "status": "FAILED",
+    "reason": "INVALID_INSTRUCTION",
+    "steps": 0,
+    "finalState": {
+      "position": [0, 6],
+      "direction": "north"
+    },
+    "blockedCell": null,
+    "trace": []
+  }
+}

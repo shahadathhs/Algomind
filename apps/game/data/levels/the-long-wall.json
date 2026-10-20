@@ -1,0 +1,37 @@
+{
+  "goal": {
+    "type": "reach_tile",
+    "position": [6, 0]
+  },
+  "slug": "the-long-wall",
+  "board": {
+    "walls": [
+      [3, 4],
+      [4, 4],
+      [5, 4],
+      [6, 4],
+      [7, 4]
+    ],
+    "width": 8,
+    "height": 8
+  },
+  "hints": ["The wall is long. Plan the whole route before you add tiles."],
+  "title": "The long wall",
+  "levelId": "9b8df9b5-d862-4105-bd7f-4291dfcafb6a",
+  "requires": {
+    "mechanics": []
+  },
+  "difficulty": "medium",
+  "constraints": {
+    "maxSteps": 100,
+    "maxCommands": 18
+  },
+  "description": "",
+  "initialState": {
+    "position": [6, 7],
+    "direction": "west"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+}

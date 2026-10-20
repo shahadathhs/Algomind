@@ -22,6 +22,9 @@ model Level {
   chapterId                 String?
   chapter                   Chapter?       @relation(fields: [chapterId], references: [id], onDelete: Restrict)
   orderInChapter            Int            @default(0)
+  /// Eligible for the daily challenge. A pool level is published but not in the campaign, so a
+  /// player does not meet it before its day.
+  dailyPool                 Boolean        @default(false)
   currentPublishedVersionId String?        @unique
   currentPublishedVersion   LevelVersion?  @relation("CurrentPublished", fields: [currentPublishedVersionId], references: [id], onDelete: SetNull)
   /// User ids; deliberately not foreign keys, so attribution outlives an account.
@@ -58,6 +61,7 @@ model LevelVersion {
   publishedAt       DateTime?
   publishedFor      Level?           @relation("CurrentPublished")
   playtests         PlaytestRecord[]
+  submissions       Submission[]
 
   @@unique([levelId, versionNumber])
   @@index([levelId, state])

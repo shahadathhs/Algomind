@@ -26,7 +26,16 @@ function problem(status: number, code: string, message: string): Response {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 }
 
-/** Unsafe methods must come from this site: the Origin host has to match the request host. */
+/** The configured public host (from SITE_URL), or null when it is not set. */
+function siteHost(): string | null {
+  try {
+    return process.env.SITE_URL ? new URL(process.env.SITE_URL).host : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Unsafe methods must come from this site: the Origin host has to match the site's own host. */
 export function isSameOrigin(req: Request): boolean {
   const origin = req.headers.get("origin");
   if (!origin) return false;
@@ -36,9 +45,9 @@ export function isSameOrigin(req: Request): boolean {
   } catch {
     return false;
   }
-  const expected =
-    req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? new URL(req.url).host;
-  return host === expected;
+  // The site's own host: the Host header the platform set for this request, or the configured
+  // public address. A forwarded-host header is never trusted: a caller can claim anything there.
+  return host === (req.headers.get("host") ?? new URL(req.url).host) || host === siteHost();
 }
 
 async function upstream(path: string, init: RequestInit): Promise<Response | null> {
@@ -272,7 +281,7 @@ function passThrough(res: Response): Response {
 
 /** Forwards a call to the API with the browser's bearer token. Never forwards or sets cookies. */
 export async function proxy(req: Request, segments: string[]): Promise<Response> {
-  const path = segments.join("/");
+  const path = segments.map(encodeURIComponent).join("/");
   if (
     segments.length === 0 ||
     segments.some((s) => s === "" || s === "." || s === ".." || s.includes("\\")) ||

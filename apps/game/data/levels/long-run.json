@@ -1,0 +1,46 @@
+{
+  "goal": {
+    "type": "reach_tile",
+    "position": [2, 0]
+  },
+  "slug": "long-run",
+  "board": {
+    "walls": [
+      [1, 0],
+      [3, 0],
+      [1, 1],
+      [3, 1],
+      [1, 2],
+      [3, 2],
+      [1, 3],
+      [3, 3],
+      [1, 4],
+      [3, 4],
+      [1, 5],
+      [3, 5],
+      [1, 6],
+      [3, 6]
+    ],
+    "width": 5,
+    "height": 7
+  },
+  "hints": ["Six cells. Count before you add tiles."],
+  "title": "Long run",
+  "levelId": "5c54ea34-7d97-4265-bd9f-30331fb3eadb",
+  "requires": {
+    "mechanics": []
+  },
+  "difficulty": "easy",
+  "constraints": {
+    "maxSteps": 100,
+    "maxCommands": 6
+  },
+  "description": "",
+  "initialState": {
+    "position": [2, 6],
+    "direction": "north"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+}
