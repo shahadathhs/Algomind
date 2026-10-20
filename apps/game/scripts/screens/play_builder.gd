@@ -106,15 +106,17 @@ static func _build_commands(p: PlayScreen, available: Array[String]) -> void:
 	for command in PlayScreen.COMMANDS:
 		if not available.has(command["op"]):
 			continue
-		# Four tiles share a row, so their labels are a little smaller.
+		# Four tiles share a row, so their labels are a little smaller; five stack icon over label.
 		var button := TileButton.make(
 			TileButton.Kind.SECONDARY, command["label"], command["icon"], 20 if offered < 4 else 14
 		)
+		button.stacked = offered >= 5
+		button.accessibility_name = command.get("name", command["label"])
 		button.pressed.connect(p._on_command.bind(command["op"]))
 		p.add_child(button)
 		p._command_buttons.append(button)
-		if command["op"] == TapeModel.REPEAT:
-			p._repeat_button = button
+		if ContractLimits.is_loop(command["op"]):
+			p._loop_buttons[command["op"]] = button
 
 
 static func _build_controls(p: PlayScreen) -> void:

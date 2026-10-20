@@ -11,6 +11,7 @@ const COMMANDS: Array[Dictionary] = [
 	{"op": "TURN_LEFT", "label": "LEFT", "icon": "left"},
 	{"op": "TURN_RIGHT", "label": "RIGHT", "icon": "right"},
 	{"op": "REPEAT", "label": "REPEAT", "icon": "repeat"},
+	{"op": "REPEAT_UNTIL", "label": "UNTIL", "icon": "until", "name": "Repeat until"},
 ]
 
 ## False in debug screenshots, which must not write progress.
@@ -44,7 +45,8 @@ var _tools: Array[TileButton] = []
 var _tape_view: TapeView
 var _commands_caption: Label
 var _command_buttons: Array[TileButton] = []
-var _repeat_button: TileButton
+## The palette tile of each loop the level offers, by op (REPEAT, REPEAT_UNTIL).
+var _loop_buttons := {}
 var _stats: Array[StatTile] = []
 var _step: TileButton
 var _run: TileButton
@@ -135,17 +137,7 @@ func _refresh() -> void:
 	for button in _command_buttons:
 		button.visible = not solved
 		button.set_disabled(running or _tape.is_full() or _tape.open_loop_is_full())
-	if _repeat_button != null:
-		# While a loop is open the Repeat tile ends it (and needs a command inside first).
-		if _tape.open_loop() >= 0:
-			_repeat_button.label = "END LOOP"
-			_repeat_button.icon = "check"
-			_repeat_button.set_disabled(running or not _tape.can_end_loop())
-		else:
-			_repeat_button.label = "REPEAT"
-			_repeat_button.icon = "repeat"
-			_repeat_button.set_disabled(running or _tape.is_full())
-		_repeat_button.queue_redraw()
+	PlayView.refresh_loop_buttons(self, running)
 	for stat in _stats:
 		stat.visible = solved
 	_share.visible = solved
@@ -244,7 +236,7 @@ func _on_command(op: String) -> void:
 	if _session.state == PlaySession.State.RUNNING:
 		return
 	_begin_edit()
-	if op == TapeModel.REPEAT and _tape.open_loop() >= 0:
+	if _tape.open_loop() >= 0 and op == PlayView.open_op(_tape):
 		_tape.end_loop()
 	else:
 		_tape.append(op)

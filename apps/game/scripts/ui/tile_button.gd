@@ -114,7 +114,11 @@ func _draw_content(rect: Rect2, color: Color) -> void:
 		var small := float(font_size) * 0.7
 		UiKit.icon(self, icon, Vector2(rect.size.x / 2.0, rect.size.y * 0.3), small, color)
 		var lower := Rect2(0, rect.size.y * 0.42, rect.size.x, rect.size.y * 0.5)
-		UiKit.text(self, label, lower, font_size, color, 1)
+		# A long label (END LOOP) shrinks until it fits the tile.
+		var px := font_size
+		while px > 9 and UiKit.text_width(label, px) > rect.size.x - 4.0:
+			px -= 1
+		UiKit.text(self, label, lower, px, color, 1)
 		return
 	var icon_size := float(font_size) * 1.05
 	var text_w := UiKit.text_width(label, font_size)

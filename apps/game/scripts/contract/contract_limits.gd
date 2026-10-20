@@ -9,8 +9,14 @@ const SCHEMA_VERSION := 1
 const PRIMITIVE_COMMANDS: Array[String] = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
 ## The loop instruction: a count and a body of primitives. A loop cannot contain a loop.
 const REPEAT_OP := "REPEAT"
+## The conditional loop: it runs its body while the way ahead is open.
+const REPEAT_UNTIL_OP := "REPEAT_UNTIL"
+## The conditions a REPEAT_UNTIL can wait for. BLOCKED: a wall or the board edge is straight ahead.
+const UNTIL_CONDITIONS: Array[String] = ["BLOCKED"]
 ## Every command a level can offer, in the canonical order.
-const COMMAND_NAMES: Array[String] = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT"]
+const COMMAND_NAMES: Array[String] = [
+	"MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT", "REPEAT_UNTIL"
+]
 ## Clockwise order: turning right moves one step forward in this list.
 const DIRECTIONS: Array[String] = ["north", "east", "south", "west"]
 const DIFFICULTIES: Array[String] = ["easy", "medium", "hard"]
@@ -57,3 +63,13 @@ const DIRECTION_DELTAS := {
 ## True when op is the loop instruction. Safe for any value (comparing mismatched types errors).
 static func is_repeat(op: Variant) -> bool:
 	return typeof(op) == TYPE_STRING and op == REPEAT_OP
+
+
+## True when op is the conditional loop. Safe for any value.
+static func is_repeat_until(op: Variant) -> bool:
+	return typeof(op) == TYPE_STRING and op == REPEAT_UNTIL_OP
+
+
+## True when op is either loop instruction (a node that carries a body).
+static func is_loop(op: Variant) -> bool:
+	return is_repeat(op) or is_repeat_until(op)

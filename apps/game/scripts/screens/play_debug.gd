@@ -45,11 +45,25 @@ static func overlay(p: PlayScreen, kind: String) -> void:
 		p._open_hint()
 
 
-## Letters are commands; "3{MRML}" is a loop of three rounds over that body.
+## Letters are commands; "3{MRML}" is a loop of three rounds over that body and "U{M}" a loop
+## that runs its body until the way ahead is blocked.
 static func _fill_tape(tape: TapeModel, program_text: String) -> void:
 	var i := 0
 	while i < program_text.length():
 		var letter := program_text[i]
+		if letter == "U":
+			# "U{MR}" is a REPEAT_UNTIL (until blocked) over that body.
+			var until_close := program_text.find("}", i)
+			var until_open_end := until_close < 0
+			if until_open_end:
+				until_close = program_text.length()
+			tape.append(TapeModel.REPEAT_UNTIL)
+			for inner in program_text.substr(i + 2, until_close - i - 2):
+				tape.append(LETTERS.get(inner, "MOVE_FORWARD"))
+			if not until_open_end:
+				tape.end_loop()
+			i = until_close + 1
+			continue
 		if letter.is_valid_int():
 			var end := i
 			while end < program_text.length() and program_text[end].is_valid_int():

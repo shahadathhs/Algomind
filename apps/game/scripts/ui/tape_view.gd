@@ -1,7 +1,7 @@
 class_name TapeView
 extends Control
-## The tape: a strip of instruction tiles, with a loop drawn as a count tile and its body inside
-## one bracket.
+## The tape: a strip of instruction tiles, with a loop drawn as a header tile (a count, or "until
+## blocked") and its body inside one bracket.
 ##
 ## Editing: left-aligned, a dashed plus slot at the end, drag to scroll when it overflows.
 ## Running: a fixed read-head at the center; `scroll` is animated by the play screen so the
@@ -94,8 +94,8 @@ func _layout_cells() -> void:
 	for i in cells.size():
 		var cell := cells[i]
 		var path: Array = cell["path"]
-		var in_group: bool = cell["kind"] == "count" or path.size() == 2
-		if cell["kind"] == "count":
+		var in_group: bool = TapeHeaders.is_header(cell) or path.size() == 2
+		if TapeHeaders.is_header(cell):
 			x += GROUP_PAD
 			group_start = x
 			group_loop = int(path[0])
@@ -105,7 +105,7 @@ func _layout_cells() -> void:
 		var ends_group := in_group
 		if i + 1 < cells.size():
 			var next_path: Array = cells[i + 1]["path"]
-			ends_group = in_group and (cells[i + 1]["kind"] == "count" or next_path.size() == 1)
+			ends_group = in_group and (TapeHeaders.is_header(cells[i + 1]) or next_path.size() == 1)
 		if in_group and ends_group:
 			var end_x := x - gap + GROUP_PAD
 			if group_loop == open_loop and used < limit:
@@ -207,8 +207,9 @@ func _draw() -> void:
 
 func _draw_tile(index: int, rect: Rect2) -> void:
 	var cell := cells[index]
-	if cell["kind"] == "count":
-		_draw_count(index, rect)
+	if TapeHeaders.is_header(cell):
+		var loop_state := {"running": running, "current": current, "round": current_round}
+		TapeHeaders.draw(self, cells, index, rect, selected == index, loop_state)
 		return
 	var kind := _icon_for(cell["op"])
 	var center := rect.get_center()
@@ -229,31 +230,6 @@ func _draw_tile(index: int, rect: Rect2) -> void:
 		UiKit.fill_chamfer(self, rect, Palette.FLOOR)
 		UiKit.outline_chamfer(self, rect, Palette.INK)
 		UiKit.icon(self, kind, center, icon_size, Palette.INK)
-
-
-## The count tile of a loop. Editing: "x3", solid when selected. Running: "round/count" once the
-## loop has started, "x3" before it.
-func _draw_count(index: int, rect: Rect2) -> void:
-	var cell := cells[index]
-	var loop := int((cell["path"] as Array)[0])
-	var count := int(cell["count"])
-	var text := "\u00d7%d" % count
-	var solid := not running and index == selected
-	if running and current >= 0:
-		var here := int((cells[current]["path"] as Array)[0])
-		if loop < here:
-			text = "%d/%d" % [count, count]
-			solid = true
-		elif loop == here:
-			text = "%d/%d" % [maxi(current_round, 1), count]
-			solid = true
-	if solid:
-		UiKit.fill_chamfer(self, rect, Palette.INK)
-	else:
-		UiKit.fill_chamfer(self, rect, Palette.FLOOR)
-		UiKit.outline_chamfer(self, rect, Palette.INK)
-	var color := Palette.ON_INK if solid else Palette.INK
-	UiKit.text(self, text, rect, int(rect.size.x * 0.42), color, 0)
 
 
 func _draw_head() -> void:

@@ -19,6 +19,11 @@ const COMMANDS: Array[Dictionary] = [
 		"name": "REPEAT",
 		"text": "Starts a loop. Add commands to it, then tap END LOOP."
 	},
+	{
+		"icon": "until",
+		"name": "UNTIL",
+		"text": "Starts a loop that repeats until a wall or the edge is straight ahead."
+	},
 ]
 const CONTROLS: Array[Dictionary] = [
 	{"icon": "play", "name": "RUN", "text": "Carries out the whole program, one step at a time."},
@@ -69,7 +74,20 @@ func _build() -> void:
 			(
 				"A loop carries out the commands inside it again and again. Select its count "
 				+ "tile and use minus and plus to change how many rounds it runs. A loop uses "
-				+ "one slot for its count and one for each command inside it."
+				+ "one slot for its count and one for each command inside it. A loop cannot hold "
+				+ "another loop."
+			)
+		)
+	)
+	_list.add_child(
+		_paragraph(
+			(
+				"An UNTIL loop has no count. Before every round it looks at the cell straight "
+				+ "ahead. If that cell is a wall or off the board, the loop ends and the program "
+				+ "goes on after it. Otherwise it carries out the commands inside once more. "
+				+ "If the way ahead is already blocked, it carries out nothing. A loop that "
+				+ "never meets a wall is stopped when the program has run too long. It uses one "
+				+ "slot for its header and one for each command inside it."
 			)
 		)
 	)

@@ -545,7 +545,7 @@ static func _check_program(
 		return
 	var nodes: Array = program
 	var available: Variant = limits["available"]
-	# Slots: a primitive is 1; a REPEAT is 1 plus the instructions in its body.
+	# Slots: a primitive is 1; a REPEAT or REPEAT_UNTIL is 1 plus the instructions in its body.
 	var slots := 0
 	for i in nodes.size():
 		var path := "%s[%d]" % [base, i]
@@ -555,16 +555,17 @@ static func _check_program(
 			slots += 1
 			continue
 		var node_dict: Dictionary = node
-		var is_loop: bool = ContractLimits.is_repeat(node_dict.get("op"))
 		var allowed: Array[String] = ["op"]
-		if is_loop:
+		if ContractLimits.is_repeat(node_dict.get("op")):
 			allowed = ["op", "count", "body"]
+		elif ContractLimits.is_repeat_until(node_dict.get("op")):
+			allowed = ["op", "until", "body"]
 		_reject_unknown(issues, node_dict, path, allowed)
 		var op: Variant = _check_op(issues, node_dict, path, available, false)
 		slots += 1
-		if not ContractLimits.is_repeat(op):
+		if not ContractLimits.is_loop(op):
 			continue
-		slots += _check_loop(issues, node_dict, path, available)
+		slots += _check_loop(issues, node_dict, path, available, op)
 	var max_commands: Variant = limits["max"]
 	if max_commands != null and slots > int(max_commands):
 		_add(
@@ -590,7 +591,7 @@ static func _check_op(
 	if not _is_command_name(op):
 		_add(issues, op_path, "UNKNOWN_COMMAND", "%s is not a known command." % op_path)
 		return null
-	if in_body and ContractLimits.is_repeat(op):
+	if in_body and ContractLimits.is_loop(op):
 		_add(issues, op_path, "NESTED_REPEAT", "%s: a loop cannot contain a loop." % op_path)
 		return null
 	if available != null and not (available as Array).has(op):
@@ -598,10 +599,35 @@ static func _check_op(
 	return op
 
 
-## Checks the count and body of a REPEAT. Returns the number of body instructions (for slots).
+## Checks the until condition of a REPEAT_UNTIL.
+static func _check_until(issues: Array[Dictionary], node: Dictionary, path: String) -> void:
+	var until_path := path + ".until"
+	if not node.has("until"):
+		_add(issues, until_path, "REQUIRED", "%s is required." % until_path)
+	elif typeof(node["until"]) != TYPE_STRING:
+		_add(issues, until_path, "INVALID_TYPE", "%s must be a string." % until_path)
+	elif not ContractLimits.UNTIL_CONDITIONS.has(node["until"]):
+		_add(
+			issues,
+			until_path,
+			"INVALID_VALUE",
+			"%s must be one of %s." % [until_path, ", ".join(ContractLimits.UNTIL_CONDITIONS)]
+		)
+
+
+## Checks the count (REPEAT) or condition (REPEAT_UNTIL) and the body of a loop. Returns the
+## number of body instructions (for slots).
 static func _check_loop(
-	issues: Array[Dictionary], node: Dictionary, path: String, available: Variant
+	issues: Array[Dictionary], node: Dictionary, path: String, available: Variant, op: Variant
 ) -> int:
+	if ContractLimits.is_repeat_until(op):
+		_check_until(issues, node, path)
+	else:
+		_check_count(issues, node, path)
+	return _check_body(issues, node, path, available)
+
+
+static func _check_count(issues: Array[Dictionary], node: Dictionary, path: String) -> void:
 	var count_path := path + ".count"
 	if not node.has("count"):
 		_add(issues, count_path, "REQUIRED", "%s is required." % count_path)
@@ -620,6 +646,10 @@ static func _check_loop(
 				)
 			)
 
+
+static func _check_body(
+	issues: Array[Dictionary], node: Dictionary, path: String, available: Variant
+) -> int:
 	var body_path := path + ".body"
 	if not node.has("body"):
 		_add(issues, body_path, "REQUIRED", "%s is required." % body_path)
@@ -648,7 +678,7 @@ static func _check_loop(
 			continue
 		var inner_dict: Dictionary = inner
 		# A nested loop is reported once, as NESTED_REPEAT, not field by field.
-		if not ContractLimits.is_repeat(inner_dict.get("op")):
+		if not ContractLimits.is_loop(inner_dict.get("op")):
 			_reject_unknown(issues, inner_dict, inner_path, ["op"])
 		_check_op(issues, inner_dict, inner_path, available, true)
 	return body.size()

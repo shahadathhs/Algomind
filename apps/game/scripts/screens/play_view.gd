@@ -3,6 +3,37 @@ extends RefCounted
 ## Texts and tool states of the play screen, derived from the session and the tape.
 
 
+## The PlayScreen.COMMANDS entry of an op.
+static func command_meta(op: String) -> Dictionary:
+	for command in PlayScreen.COMMANDS:
+		if command["op"] == op:
+			return command
+	return {}
+
+
+## The op of the loop that is open on the tape, or "".
+static func open_op(tape: TapeModel) -> String:
+	return "" if tape.open_loop() < 0 else String(tape.nodes[tape.open_loop()]["op"])
+
+
+## The loop tiles of the palette. While a loop is open its own tile ends it (and needs a command
+## inside first) and the other loop tile waits; otherwise each starts its loop.
+static func refresh_loop_buttons(p: PlayScreen, running: bool) -> void:
+	var tape := p._tape
+	for op: String in p._loop_buttons:
+		var button: TileButton = p._loop_buttons[op]
+		var meta := command_meta(op)
+		if tape.open_loop() >= 0 and open_op(tape) == op:
+			button.label = "END LOOP"
+			button.icon = "check"
+			button.set_disabled(running or not tape.can_end_loop())
+		else:
+			button.label = meta["label"]
+			button.icon = meta["icon"]
+			button.set_disabled(running or tape.open_loop() >= 0 or tape.is_full())
+		button.queue_redraw()
+
+
 ## Shows the tools that apply to the selected cell: rounds only for a loop's count tile.
 static func refresh_tools(p: PlayScreen) -> void:
 	var tape := p._tape
@@ -58,6 +89,9 @@ static func counter_text(p: PlayScreen) -> String:
 static func message_text(p: PlayScreen) -> String:
 	match p._session.state:
 		PlaySession.State.SUCCEEDED, PlaySession.State.FAILED:
+			var special := LoopMessages.for_result(p._level, p._tape.program(), p._session.result)
+			if special != "":
+				return special.to_upper().trim_suffix(".")
 			return ResultMessages.for_result(p._session.result).to_upper().trim_suffix(".")
 		_:
 			if p._tape.has_empty_loop():

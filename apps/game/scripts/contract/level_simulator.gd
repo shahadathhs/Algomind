@@ -51,6 +51,13 @@ static func _is_runnable_repeat(node: Variant) -> bool:
 	var body: Variant = node.get("body")
 	if typeof(body) != TYPE_ARRAY:
 		return false
+	return _is_runnable_body(body)
+
+
+## True for a body the simulator can run: 1 to 8 primitives.
+static func _is_runnable_body(body: Variant) -> bool:
+	if typeof(body) != TYPE_ARRAY:
+		return false
 	var items: Array = body
 	if (
 		items.size() < ContractLimits.REPEAT_BODY_MIN
@@ -63,12 +70,62 @@ static func _is_runnable_repeat(node: Variant) -> bool:
 	return true
 
 
+## True for a conditional loop the simulator can run: a known condition and a runnable body.
+static func _is_runnable_repeat_until(node: Variant) -> bool:
+	if typeof(node) != TYPE_DICTIONARY or not ContractLimits.is_repeat_until(node.get("op")):
+		return false
+	var until: Variant = node.get("until")
+	return (
+		typeof(until) == TYPE_STRING
+		and ContractLimits.UNTIL_CONDITIONS.has(until)
+		and _is_runnable_body(node.get("body"))
+	)
+
+
+## True when a wall or the board edge is straight ahead of the automaton.
+static func _blocked_ahead(run: Dictionary) -> bool:
+	var target := cell_ahead(run["position"], run["direction"])
+	var tx := int(target[0])
+	var ty := int(target[1])
+	if tx < 0 or ty < 0 or tx >= int(run["width"]) or ty >= int(run["height"]):
+		return true
+	return (run["walls"] as Dictionary).has(Vector2i(tx, ty))
+
+
+## True when a wall or the board edge is straight ahead of position facing direction.
+static func blocked_ahead(level: Dictionary, position: Array, direction: String) -> bool:
+	var board: Dictionary = level["board"]
+	var target := cell_ahead(position, direction)
+	var tx := int(target[0])
+	var ty := int(target[1])
+	if tx < 0 or ty < 0 or tx >= int(board["width"]) or ty >= int(board["height"]):
+		return true
+	for wall: Array in board["walls"]:
+		if int(wall[0]) == tx and int(wall[1]) == ty:
+			return true
+	return false
+
+
+## Runs the body of node i once, as round_number. Returns the final result or null.
+static func _run_body(
+	run: Dictionary, body: Array, i: int, round_number: int, max_steps: int
+) -> Variant:
+	for j in body.size():
+		if (run["trace"] as Array).size() >= max_steps:
+			return _finish("FAILED", "STEP_LIMIT", null, run)
+		var result: Variant = _step(run, String(body[j]["op"]), [i, j], round_number)
+		if result != null:
+			return result
+	return null
+
+
 ## Runs program (an Array of instruction nodes) on level (parsed JSON Dictionary).
 ## Returns { status, reason, steps, finalState, blockedCell, trace }.
 ##
-## Every executed primitive is one step; a REPEAT itself costs none. The step limit is checked
-## before each node and before each primitive inside a loop. The run succeeds the moment the
-## goal cell is entered, even in the middle of a loop.
+## Every executed primitive is one step; a REPEAT or REPEAT_UNTIL itself costs none. A
+## REPEAT_UNTIL checks the way ahead before every round (free), so it may run zero rounds. The
+## step limit is checked before each node and before each primitive inside a loop. The run
+## succeeds the moment the goal cell is entered, even in the middle of a loop.
 static func simulate(level: Dictionary, program: Array) -> Dictionary:
 	var board: Dictionary = level["board"]
 	var walls := {}
@@ -100,17 +157,22 @@ static func simulate(level: Dictionary, program: Array) -> Dictionary:
 			if result != null:
 				return result
 			continue
+		if _is_runnable_repeat_until(node):
+			# The condition is checked before every round; the check costs no step.
+			var round_number := 1
+			while not _blocked_ahead(run):
+				var outcome: Variant = _run_body(run, node["body"], i, round_number, max_steps)
+				if outcome != null:
+					return outcome
+				round_number += 1
+			continue
 		if not _is_runnable_repeat(node):
 			return _finish("FAILED", "INVALID_INSTRUCTION", null, run)
 
-		var body: Array = node["body"]
 		for round_number in range(1, int(node["count"]) + 1):
-			for j in body.size():
-				if (run["trace"] as Array).size() >= max_steps:
-					return _finish("FAILED", "STEP_LIMIT", null, run)
-				var result: Variant = _step(run, String(body[j]["op"]), [i, j], round_number)
-				if result != null:
-					return result
+			var outcome: Variant = _run_body(run, node["body"], i, round_number, max_steps)
+			if outcome != null:
+				return outcome
 
 	return _finish("FAILED", "PROGRAM_ENDED", null, run)
 

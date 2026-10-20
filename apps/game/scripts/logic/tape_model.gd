@@ -4,12 +4,13 @@ extends RefCounted
 ## primitives), with one optional selected tile. Pure data: no UI. The simulator receives
 ## `program()`.
 ##
-## The tape shows one cell per slot: a primitive is one cell, a loop is a count cell followed by
-## one cell per body command. `selected` is the index of a cell. A loop being built takes the
-## commands that are appended until `end_loop` (the loop cannot hold a loop; see
-## docs/README_GAME_RULES.md section 3.1).
+## The tape shows one cell per slot: a primitive is one cell, a loop is a header cell (a count
+## for REPEAT, "until blocked" for REPEAT_UNTIL) then one cell per body command.
+## `selected` is the index of a cell. A loop being built takes the commands that are appended
+## until `end_loop` (a loop cannot hold a loop; see docs/README_GAME_RULES.md sections 3.1, 3.2).
 
 const REPEAT := ContractLimits.REPEAT_OP
+const REPEAT_UNTIL := ContractLimits.REPEAT_UNTIL_OP
 
 var nodes: Array = []
 ## Index of the selected cell, or -1.
@@ -31,7 +32,7 @@ func slots() -> int:
 	var total := 0
 	for node: Dictionary in nodes:
 		total += 1
-		if node["op"] == REPEAT:
+		if ContractLimits.is_loop(node["op"]):
 			total += (node["body"] as Array).size()
 	return total
 
@@ -47,7 +48,7 @@ func is_full() -> bool:
 ## True when the open loop has no command yet. Such a loop is not a valid program.
 func has_empty_loop() -> bool:
 	for node: Dictionary in nodes:
-		if node["op"] == REPEAT and (node["body"] as Array).is_empty():
+		if ContractLimits.is_loop(node["op"]) and (node["body"] as Array).is_empty():
 			return true
 	return false
 
@@ -66,14 +67,15 @@ func can_end_loop() -> bool:
 func can_append(op: String) -> bool:
 	if not available.has(op) or is_full():
 		return false
-	if op == REPEAT:
+	if ContractLimits.is_loop(op):
 		return _open < 0
 	return not open_loop_is_full()
 
 
 ## Adds a command: into the open loop if there is one, else at the end. REPEAT starts a loop and
-## selects its count. False when the tape is full, the command is not offered, a loop is already
-## open (REPEAT) or the open loop's body is full.
+## selects its count; REPEAT_UNTIL starts a loop with nothing to select. False when the tape is
+## full, the command is not offered, a loop is already open (either kind) or the open loop's body
+## is full.
 func append(op: String) -> bool:
 	if not can_append(op):
 		return false
@@ -81,6 +83,11 @@ func append(op: String) -> bool:
 		nodes.append({"op": REPEAT, "count": ContractLimits.REPEAT_COUNT_MIN, "body": []})
 		_open = nodes.size() - 1
 		selected = cell_for_node([_open])
+		return true
+	if op == REPEAT_UNTIL:
+		nodes.append({"op": REPEAT_UNTIL, "until": "BLOCKED", "body": []})
+		_open = nodes.size() - 1
+		selected = -1
 		return true
 	if _open >= 0:
 		(nodes[_open]["body"] as Array).append({"op": op})
@@ -100,8 +107,9 @@ func end_loop() -> bool:
 
 
 ## The cells the tape shows, in order. Each is { kind, op, path, count, body }:
-## kind "op" (a primitive, at the top level or in a body) or "count" (the start of a loop).
-## `path` is [i] or [i, j] into the program; `count` and `body` are set on "count" cells.
+## kind "op" (a primitive, at the top level or in a body), "count" (the start of a REPEAT) or
+## "until" (the start of a REPEAT_UNTIL). `path` is [i] or [i, j] into the program; `body` is set
+## on both header kinds and `count` on "count" cells.
 func cells() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for i in nodes.size():
@@ -119,6 +127,13 @@ func cells() -> Array[Dictionary]:
 			)
 			for j in body.size():
 				out.append({"kind": "op", "op": body[j]["op"], "path": [i, j]})
+		elif node["op"] == REPEAT_UNTIL:
+			var until_body: Array = node["body"]
+			out.append(
+				{"kind": "until", "op": REPEAT_UNTIL, "path": [i], "body": until_body.size()}
+			)
+			for j in until_body.size():
+				out.append({"kind": "op", "op": until_body[j]["op"], "path": [i, j]})
 		else:
 			out.append({"kind": "op", "op": node["op"], "path": [i]})
 	return out
@@ -232,11 +247,14 @@ func clear() -> void:
 func program() -> Array:
 	var out: Array = []
 	for node: Dictionary in nodes:
-		if node["op"] == REPEAT:
+		if ContractLimits.is_loop(node["op"]):
 			var body: Array = []
 			for item: Dictionary in node["body"]:
 				body.append({"op": item["op"]})
-			out.append({"op": REPEAT, "count": int(node["count"]), "body": body})
+			if node["op"] == REPEAT:
+				out.append({"op": REPEAT, "count": int(node["count"]), "body": body})
+			else:
+				out.append({"op": REPEAT_UNTIL, "until": node["until"], "body": body})
 		else:
 			out.append({"op": node["op"]})
 	return out

@@ -122,7 +122,7 @@ static func label(value: String, size: int, color: Color, spacing: int = 1) -> L
 
 ## Draws a command or control icon inside a square of side `s` centered on `c`.
 ## Kinds: move, left, right, back, play, pause, step, reset, plus, x, check, lock, prev, next,
-## menu, help, download, up, offline, star.
+## menu, help, download, up, offline, star, repeat, until.
 static func icon(canvas: CanvasItem, kind: String, c: Vector2, s: float, color: Color) -> void:
 	var w := maxf(2.0, s * 0.12)
 	match kind:
@@ -207,6 +207,11 @@ static func icon(canvas: CanvasItem, kind: String, c: Vector2, s: float, color: 
 				s * 0.36,
 				color
 			)
+		"until":
+			# An arrow running right into a wall: the loop goes on until the way is blocked.
+			canvas.draw_line(c + Vector2(-s * 0.42, 0), c + Vector2(s * 0.1, 0), color, w)
+			_triangle(canvas, c + Vector2(s * 0.28, 0), Vector2(-1, 0), s * 0.4, s * 0.34, color)
+			canvas.draw_rect(Rect2(c.x + s * 0.34, c.y - s * 0.4, w * 1.3, s * 0.8), color)
 		"x":
 			canvas.draw_line(
 				c + Vector2(-s * 0.3, -s * 0.3), c + Vector2(s * 0.3, s * 0.3), color, w
