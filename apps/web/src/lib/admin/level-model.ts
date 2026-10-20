@@ -22,21 +22,29 @@ export const COMMANDS: { op: CommandName; command: Command; label: string }[] = 
   { op: "TURN_LEFT", command: "left", label: "Turn left" },
   { op: "TURN_RIGHT", command: "right", label: "Turn right" },
   { op: "REPEAT", command: "repeat", label: "Repeat" },
+  { op: "REPEAT_UNTIL", command: "until", label: "Repeat until blocked" },
 ];
 
 /** The most instructions a loop body holds and the range of its count (the contract's limits). */
 export const REPEAT_LIMITS = { count: { min: 2, max: 11 }, body: { max: 8 } } as const;
+
+/** The loop instructions: they carry a body and cost 1 slot plus the body. */
+export const LOOP_OPS: readonly string[] = ["REPEAT", "REPEAT_UNTIL"];
+
+export function isLoop(node: { op: string }): boolean {
+  return LOOP_OPS.includes(node.op);
+}
 
 export const DIRECTIONS = ["north", "east", "south", "west"] as const;
 export type Direction = (typeof DIRECTIONS)[number];
 
 const DIR_LETTER: Record<Direction, Dir> = { north: "N", east: "E", south: "S", west: "W" };
 
-/** The tape tiles for a program: a loop is a Repeat tile followed by its body. One tile per slot. */
+/** The tape tiles for a program: a loop is its own tile followed by its body. One tile per slot. */
 export function tileCommands(program: Instruction[]): Command[] {
   return program.flatMap((node) =>
-    node.op === "REPEAT"
-      ? ["repeat" as Command, ...(node.body ?? []).map((b) => commandOf(b.op))]
+    isLoop(node)
+      ? [commandOf(node.op), ...(node.body ?? []).map((b) => commandOf(b.op))]
       : [commandOf(node.op)],
   );
 }

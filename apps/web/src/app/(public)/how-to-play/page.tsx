@@ -29,6 +29,11 @@ const COMMANDS: { command: Command; name: string; text: string }[] = [
     name: "Repeat",
     text: "Start a loop. Add commands to it, then end the loop.",
   },
+  {
+    command: "until",
+    name: "Repeat until",
+    text: "Start a loop that runs until a wall or the edge of the board is straight ahead.",
+  },
 ];
 
 const MESSAGES = [
@@ -92,6 +97,12 @@ export default function HowToPlayPage() {
           how many rounds it runs. A loop uses one slot for its count and one for each command
           inside it, and the counter above the board counts slots. While a loop runs, the count tile
           shows the current round.
+        </p>
+        <p>
+          A repeat until loop has no count. Before each round it looks at the cell straight ahead.
+          If that cell is a wall or off the board, the loop ends. Otherwise the commands inside run
+          once more. A loop that starts facing a wall runs none of them. It uses the same slots as
+          any other loop, and it works for a corridor of any length.
         </p>
       </ProseSection>
 

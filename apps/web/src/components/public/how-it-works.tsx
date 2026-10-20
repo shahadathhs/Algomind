@@ -7,7 +7,7 @@ import { tapeFromProgram } from "@/lib/tape";
 const STEPS = [
   {
     title: "Build",
-    text: "Pick instructions and arrange them on the tape. Move, turn left, turn right, and repeat a group.",
+    text: "Pick instructions and arrange them on the tape. Move, turn left, turn right, and repeat a group a set number of times or until a wall.",
     label: `A tape with ${READY_COUNT} instructions and an empty slot to add more.`,
     tiles: tapeFromProgram(SOLUTION.slice(0, READY_COUNT), { emptySlot: "plus" }),
     head: undefined,

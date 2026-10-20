@@ -7,10 +7,14 @@ type Version = { content: LevelContent; referenceSolution: Instruction[] };
 
 /** The reference solution in a few words: its slots, and how many loops it uses. */
 function solutionText(program: Instruction[]): string {
-  const loops = program.filter((node) => node.op === "REPEAT").length;
+  const counted = program.filter((node) => node.op === "REPEAT").length;
+  const until = program.filter((node) => node.op === "REPEAT_UNTIL").length;
   const slots = `${slotsOf(program)} slot${slotsOf(program) === 1 ? "" : "s"}`;
-  if (loops === 0) return `${slots}, no loops`;
-  return `${slots}, ${loops} loop${loops === 1 ? "" : "s"}`;
+  if (counted + until === 0) return `${slots}, no loops`;
+  const parts: string[] = [];
+  if (counted > 0) parts.push(`${counted} loop${counted === 1 ? "" : "s"}`);
+  if (until > 0) parts.push(`${until} until-loop${until === 1 ? "" : "s"}`);
+  return `${slots}, ${parts.join(", ")}`;
 }
 
 function describe(version: Version | null): Record<string, string> {

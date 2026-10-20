@@ -3,7 +3,7 @@
 import { TapeView } from "@/components/ui/tape-view";
 import { tapeFromProgram } from "@/lib/tape";
 import type { Instruction } from "@/lib/admin/admin-api";
-import { COMMANDS, REPEAT_LIMITS, slotsOf, tileCommands } from "@/lib/admin/level-model";
+import { COMMANDS, REPEAT_LIMITS, isLoop, slotsOf, tileCommands } from "@/lib/admin/level-model";
 import { OutlineAction } from "../ui";
 import { moveItem } from "@/lib/admin/list-ops";
 import { LoopBody } from "./loop-body";
@@ -22,8 +22,9 @@ export function ProgramEditor({
 }) {
   const slots = slotsOf(program);
   const tiles = tapeFromProgram(tileCommands(program), { emptySlot: "plus" });
-  const primitives = COMMANDS.filter((c) => c.op !== "REPEAT" && available.includes(c.op));
+  const primitives = COMMANDS.filter((c) => !isLoop(c) && available.includes(c.op));
   const canRepeat = available.includes("REPEAT");
+  const canRepeatUntil = available.includes("REPEAT_UNTIL");
 
   const setLoop = (i: number, change: Partial<Instruction>) =>
     onChange(program.map((node, j) => (j === i ? { ...node, ...change } : node)));
@@ -59,6 +60,16 @@ export function ProgramEditor({
             Add repeat
           </OutlineAction>
         )}
+        {canRepeatUntil && (
+          <OutlineAction
+            type="button"
+            onClick={() =>
+              onChange([...program, { op: "REPEAT_UNTIL", until: "BLOCKED", body: [] }])
+            }
+          >
+            Add repeat until blocked
+          </OutlineAction>
+        )}
       </div>
       {program.length > 0 && (
         <ol className="grid max-w-[560px] gap-1" aria-label={`${idPrefix} program`}>
@@ -90,7 +101,7 @@ export function ProgramEditor({
                   Remove
                 </TextAction>
               </div>
-              {p.op === "REPEAT" && (
+              {isLoop(p) && (
                 <LoopBody
                   node={p}
                   index={i}

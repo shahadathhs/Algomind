@@ -45,8 +45,11 @@ export type LevelSummary = {
   updatedAt: string;
 };
 
-/** One program node: a primitive, or a REPEAT with a count and a body of primitives. */
-export type Instruction = { op: string; count?: number; body?: { op: string }[] };
+/**
+ * One program node: a primitive, a REPEAT with a count, or a REPEAT_UNTIL with a condition (and no
+ * count). Both loops hold a body of primitives.
+ */
+export type Instruction = { op: string; count?: number; until?: string; body?: { op: string }[] };
 
 export type LevelContent = {
   schemaVersion: number;

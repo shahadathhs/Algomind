@@ -27,27 +27,35 @@ export function LoopBody({
   const id = `loop-${index}-count`;
   return (
     <div className="mt-2 mb-2 ml-8 grid gap-2 border-l-2 border-ink pl-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <label htmlFor={id} className="text-xs tracking-[2px] text-mute uppercase">
-          Rounds ({REPEAT_LIMITS.count.min} to {REPEAT_LIMITS.count.max})
-        </label>
-        <input
-          id={id}
-          type="number"
-          min={REPEAT_LIMITS.count.min}
-          max={REPEAT_LIMITS.count.max}
-          value={node.count ?? REPEAT_LIMITS.count.min}
-          onChange={(e) =>
-            onCount(
-              Math.min(
-                REPEAT_LIMITS.count.max,
-                Math.max(REPEAT_LIMITS.count.min, Math.round(Number(e.target.value)) || 2),
-              ),
-            )
-          }
-          className="h-11 w-20 border-2 border-ink bg-floor px-3 text-base text-ink"
-        />
-      </div>
+      {node.op === "REPEAT_UNTIL" ? (
+        <p className="text-sm font-semibold text-mute">
+          <span className="text-xs tracking-[2px] uppercase">Until blocked</span>
+          <br />
+          The body runs while the cell ahead is open. It can run zero times.
+        </p>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <label htmlFor={id} className="text-xs tracking-[2px] text-mute uppercase">
+            Rounds ({REPEAT_LIMITS.count.min} to {REPEAT_LIMITS.count.max})
+          </label>
+          <input
+            id={id}
+            type="number"
+            min={REPEAT_LIMITS.count.min}
+            max={REPEAT_LIMITS.count.max}
+            value={node.count ?? REPEAT_LIMITS.count.min}
+            onChange={(e) =>
+              onCount(
+                Math.min(
+                  REPEAT_LIMITS.count.max,
+                  Math.max(REPEAT_LIMITS.count.min, Math.round(Number(e.target.value)) || 2),
+                ),
+              )
+            }
+            className="h-11 w-20 border-2 border-ink bg-floor px-3 text-base text-ink"
+          />
+        </div>
+      )}
       {body.length === 0 && (
         <p className="text-sm font-semibold text-mute">
           This loop is empty. Add a command to it; an empty loop is not a valid program.
