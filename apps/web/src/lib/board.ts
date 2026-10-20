@@ -1,6 +1,6 @@
 export type Dir = "N" | "E" | "S" | "W";
 export type Point = { x: number; y: number };
-export type Command = "move" | "left" | "right" | "repeat" | "until" | "if";
+export type Command = "move" | "left" | "right" | "repeat" | "until" | "if" | "proc" | "call";
 
 /** Everything the board renderer needs. Cells are addressed from the top-left, x to the right. */
 export type BoardData = {
@@ -25,6 +25,8 @@ export const COMMAND_LABEL: Record<Command, string> = {
   repeat: "REPEAT",
   until: "UNTIL",
   if: "IF",
+  proc: "PROC",
+  call: "CALL",
 };
 
 export function samePoint(a: Point, b: Point): boolean {

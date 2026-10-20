@@ -24,10 +24,14 @@ export const COMMANDS: { op: CommandName; command: Command; label: string }[] = 
   { op: "REPEAT", command: "repeat", label: "Repeat" },
   { op: "REPEAT_UNTIL", command: "until", label: "Repeat until" },
   { op: "IF", command: "if", label: "If" },
+  { op: "PROC", command: "proc", label: "Procedures (define and call)" },
 ];
 
 /** The most instructions a loop body holds and the range of its count (the contract's limits). */
 export const REPEAT_LIMITS = { count: { min: 2, max: 11 }, body: { max: 8 } } as const;
+
+/** The most items a procedure body holds (the contract's limit). */
+export const PROC_LIMITS = { body: { max: 8 } } as const;
 
 /** The loop instructions: they carry a body and cost 1 slot plus the body. */
 export const LOOP_OPS: readonly string[] = ["REPEAT", "REPEAT_UNTIL"];
@@ -40,12 +44,26 @@ export function isIf(node: { op: string }): boolean {
   return node.op === "IF";
 }
 
+export function isProc(node: { op: string }): boolean {
+  return node.op === "PROC";
+}
+
+export function isCall(node: { op: string }): boolean {
+  return node.op === "CALL";
+}
+
+/** The move and turn commands a level offers, for the add buttons. */
+export function primitivesOf(available: readonly string[]): typeof COMMANDS {
+  return COMMANDS.filter((c) => !isLoop(c) && !isIf(c) && !isProc(c) && available.includes(c.op));
+}
+
 export const DIRECTIONS = ["north", "east", "south", "west"] as const;
 export type Direction = (typeof DIRECTIONS)[number];
 
 const DIR_LETTER: Record<Direction, Dir> = { north: "N", east: "E", south: "S", west: "W" };
 
 export function commandOf(op: string): Command {
+  if (op === "CALL") return "call";
   return COMMANDS.find((c) => c.op === op)?.command ?? "move";
 }
 
@@ -140,6 +158,16 @@ export function offersIf(content: { availableCommands: string[] }): boolean {
   return content.availableCommands.includes("IF");
 }
 
+/** True when the level lets players use PROC and CALL. */
+export function offersProcedures(content: { availableCommands: string[] }): boolean {
+  return content.availableCommands.includes("PROC");
+}
+
+/** True when the exact solver cannot give par, so the reference solution is par (IF or PROC offered). */
+export function parIsReferenceFor(content: { availableCommands: string[] }): boolean {
+  return offersIf(content) || offersProcedures(content);
+}
+
 /** What the browser can tell an author before the server is asked (the server stays the authority). */
 export function localCheck(content: LevelContent, referenceSolution: Instruction[]) {
   const authoring = { ...content, referenceSolution } as unknown as AuthoringLevel;
@@ -154,8 +182,8 @@ export function localCheck(content: LevelContent, referenceSolution: Instruction
   const level = content as unknown as Level;
   const run = simulate(level, referenceSolution as Program);
   const solved = run.status === "SUCCEEDED";
-  // The exact solver ignores IF, so a level that offers IF has its reference solution as par.
-  const referencePar = offersIf(content)
+  // The exact solver ignores IF and PROC, so a level that offers either has its reference solution as par.
+  const referencePar = parIsReferenceFor(content)
     ? { commands: slotsOf(referenceSolution), steps: run.steps }
     : null;
   const best = referencePar ? null : solve(level);
@@ -210,7 +238,7 @@ export function clearBackup(levelId: string): void {
   }
 }
 
-/** What "par" means for this level: the fewest slots, or the reference solution's when IF is offered. */
+/** What "par" means for this level: the fewest slots, or the reference solution's when IF or PROC is offered. */
 export function parName(content: { availableCommands: string[] }): string {
-  return offersIf(content) ? "Reference solution" : "Par";
+  return parIsReferenceFor(content) ? "Reference solution" : "Par";
 }

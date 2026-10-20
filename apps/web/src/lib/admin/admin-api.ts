@@ -51,15 +51,13 @@ export type Primitive = { op: string };
 export type IfNode = { op: "IF"; when: string; then: Primitive[]; else: Primitive[] };
 /** An item of a loop body: a primitive or an IF. */
 export type BodyNode = Primitive | IfNode;
-/**
- * One program node: a primitive, an IF, a REPEAT with a count, or a REPEAT_UNTIL with a condition (and
- * no count). Both loops hold a body of primitives and IFs. Fields are optional so one type covers all.
- */
+/** One program node (primitive, IF, loop, PROC or CALL); fields are optional so one type covers all. */
 export type Instruction = {
   op: string;
   count?: number;
   until?: string;
-  body?: BodyNode[];
+  body?: Instruction[];
+  name?: string;
   when?: string;
   then?: Primitive[];
   else?: Primitive[];

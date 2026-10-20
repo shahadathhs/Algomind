@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { BoardPanel } from "./editor/board-panel";
 import { ChecksPanel } from "./editor/checks-panel";
-import { offersIf } from "@/lib/admin/level-model";
+import { parIsReferenceFor } from "@/lib/admin/level-model";
 import { DetailsPanel } from "./editor/details-panel";
 import { EditorTabs, type TabId } from "./editor/editor-tabs";
 import { LimitsPanel } from "./editor/limits-panel";
@@ -206,7 +206,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
                 levelId={levelId}
                 dirty={dirty}
                 hasDraft
-                offersIf={content !== null && offersIf(content)}
+                parIsReference={content !== null && parIsReferenceFor(content)}
               />
             )}
           </div>

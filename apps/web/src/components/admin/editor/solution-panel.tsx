@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Caption } from "@/components/ui/caption";
 import type { Instruction, LevelContent } from "@/lib/admin/admin-api";
-import { localCheck, offersIf, slotsOf } from "@/lib/admin/level-model";
+import { localCheck, parIsReferenceFor, slotsOf } from "@/lib/admin/level-model";
 import { Notice } from "../ui";
 import { ProgramEditor } from "./program-editor";
 
@@ -43,7 +43,7 @@ export function SolutionPanel({
         ) : (
           <Notice>This solution does not reach the goal.</Notice>
         )}
-        {par && !offersIf(content) && slotsOf(solution) > par.commands && check.solved && (
+        {par && !parIsReferenceFor(content) && slotsOf(solution) > par.commands && check.solved && (
           <Notice kind="info">A shorter solution exists: {par.commands} commands.</Notice>
         )}
       </div>

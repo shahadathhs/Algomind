@@ -39,6 +39,16 @@ const COMMANDS: { command: Command; name: string; text: string }[] = [
     name: "If",
     text: "Look at the cell on one side. Run the commands under then if it is open, and the commands under else if it is not.",
   },
+  {
+    command: "proc",
+    name: "Procedure",
+    text: "Define a named group of commands, A, B or C. It does not run where it stands.",
+  },
+  {
+    command: "call",
+    name: "Call",
+    text: "Run a procedure you defined, then carry on with the next command.",
+  },
 ];
 
 const MESSAGES = [
@@ -122,6 +132,20 @@ export default function HowToPlayPage() {
           An if block uses one slot, plus one for each command in then and in else. It can stand on
           its own or inside a loop, but not inside another if block. A repeat until loop can also
           wait for the goal, which keeps a program with decisions going until it arrives.
+        </p>
+      </ProseSection>
+
+      <ProseSection title="Procedures">
+        <p>
+          A procedure is a named group of commands, A, B or C. You define it once and call it from
+          several places, so a shape that comes back along the route is written only once. A
+          definition does not run where it stands. Each call runs the commands of that procedure and
+          then the program goes on.
+        </p>
+        <p>
+          A call uses one slot. A definition uses one slot plus one for each command in it. A
+          procedure can hold moves, turns, if blocks and loops, but not a call to another procedure.
+          A call can stand on its own or inside a loop.
         </p>
       </ProseSection>
 
