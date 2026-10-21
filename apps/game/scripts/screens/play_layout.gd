@@ -72,7 +72,7 @@ static func _objective(p: PlayScreen, m: float, y: float, width: float, compact:
 		width - badge_w - counter_w - (8.0 if counter_w > 0.0 else 0.0), objective_h
 	)
 	p._message.size = p._message_box
-	p._settle_message()
+	settle_message(p)
 	p._counter.position = Vector2(p.size.x - m - 150.0, y)
 	p._counter.size = Vector2(150.0, objective_h)
 	return y + objective_h + 8.0
@@ -97,19 +97,28 @@ static func _tape_area(
 	p._tape_view.size = Vector2(width, tape_h)
 	cursor = p._tape_view.position.y - 6.0
 	var caption_h := 40.0 if compact else 44.0
-	p._program_caption.position = Vector2(m, cursor - caption_h)
-	p._program_caption.size = Vector2(width * 0.4, caption_h)
-	var tool_size := caption_h - 4.0
 	var shown: Array[TileButton] = []
 	for tool in p._tools:
 		if tool.visible:
 			shown.append(tool)
+	# The caption also carries the counter readout (PROGRAM N 3) while a run is shown.
+	p._program_caption.position = Vector2(m, cursor - caption_h)
+	p._program_caption.size = Vector2(width * (0.4 if not shown.is_empty() else 0.7), caption_h)
+	var tool_size := caption_h - 4.0
 	for i in shown.size():
 		shown[i].size = Vector2(tool_size, tool_size)
 		shown[i].position = Vector2(
 			p.size.x - m - (shown.size() - i) * (tool_size + 8.0) + 8.0, cursor - caption_h + 2.0
 		)
 	return p._program_caption.position.y - 4.0
+
+
+## A wrapping label first measured at zero width keeps a huge minimum height, so it is sized
+## again one frame later, after the label has recomputed its minimum for the real width.
+static func settle_message(p: PlayScreen) -> void:
+	await p.get_tree().process_frame
+	if is_instance_valid(p) and is_instance_valid(p._message):
+		p._message.size = p._message_box
 
 
 ## The visible tiles of the palette area: commands, CALL tiles, Else, and the result figures.
@@ -119,6 +128,7 @@ static func _palette_nodes(p: PlayScreen) -> Array[Control]:
 	all.append_array(p._call_buttons)
 	if p._else_button != null:
 		all.append(p._else_button)
+	all.append_array(p._extra_buttons.values())
 	all.append_array(p._stats)
 	var out: Array[Control] = []
 	for node: Control in all:

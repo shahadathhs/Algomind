@@ -35,6 +35,8 @@ var current := -1
 var call_index := -1
 ## The 1-based round of the loop the read-head is in, or 0.
 var current_round := 0
+## The round of each loop that holds another loop and the read-head, by cell index (see LoopRounds).
+var outer_rounds := {}
 var failed_index := -1
 ## Horizontal offset of the strip in pixels.
 var scroll := 0.0:
@@ -241,7 +243,9 @@ func is_passed(index: int) -> bool:
 func group_holds(index: int, cell_index: int) -> bool:
 	if cell_index < 0 or cell_index >= cells.size():
 		return false
-	return (cells[cell_index]["groups"] as Array).has(TapeCells.key_of(cells[index]["path"]))
+	var header := cells[index]
+	var key: String = header.get("group", TapeCells.key_of(header["path"]))
+	return (cells[cell_index]["groups"] as Array).has(key)
 
 
 ## True when the run has reached the header at `index` (solid): the read-head is past it or in it.

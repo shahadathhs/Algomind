@@ -12,7 +12,17 @@ const BUNDLED_CAMPAIGN := "res://data/campaign.json"
 const BUNDLED_LEVELS := "res://data/levels"
 ## The mechanics this version of the game can play (the client-registry names).
 const SUPPORTED_MECHANICS: Array[String] = [
-	"move", "turn", "repeat", "repeat_until", "if", "procedures", "multi_board"
+	"move",
+	"turn",
+	"repeat",
+	"repeat_until",
+	"if",
+	"procedures",
+	"multi_board",
+	"counter",
+	"nested_loops",
+	"markers",
+	"visit_all",
 ]
 
 ## [{ id, title, summary, chapters: [{ id, title, entries: [entry] }] }]
@@ -183,8 +193,9 @@ func _judge(level: Variant, id: String) -> Dictionary:
 		var why := str(first.get("message", "unreadable"))
 		return {"error": "Level %s was skipped: %s" % [id, why]}
 	var needed: Array = (level["requires"]["mechanics"] as Array).duplicate()
-	if level.has("extraBoards") and not needed.has("multi_board"):
-		needed.append("multi_board")
+	for derived in LevelMechanics.derived(level):
+		if not needed.has(derived):
+			needed.append(derived)
 	for mechanic: Variant in needed:
 		if not SUPPORTED_MECHANICS.has(mechanic):
 			return {"blocked": {"id": id, "title": _title_of(level, id), "reason": "mechanic"}}

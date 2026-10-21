@@ -4,6 +4,8 @@ extends RefCounted
 ## changes to the selected cell. TapeModel adds building (open loops and IFs). Pure data.
 
 var nodes: Array = []
+## The commands the level offers.
+var available: Array[String] = []
 ## Index of the selected cell, or -1.
 var selected := -1
 
@@ -50,24 +52,39 @@ func selected_kind() -> String:
 	return "" if selected < 0 else String(cells()[selected]["kind"])
 
 
-## Changes the count of the selected loop by `delta`, within the allowed range.
+## The values a loop's count can take: 2 to 11, then "N" (the counter) when the level offers INC.
+func count_values() -> Array:
+	var out: Array = range(ContractLimits.REPEAT_COUNT_MIN, ContractLimits.REPEAT_COUNT_MAX + 1)
+	if available.has(ContractLimits.INC_OP):
+		out.append(ContractLimits.COUNTER_REF)
+	return out
+
+
+## Moves the count of the selected loop by `delta` places along count_values(), within its ends.
 func adjust_count(delta: int) -> bool:
 	if not selected_is_count():
 		return false
-	var loop := int((cells()[selected]["path"] as Array)[0])
-	var next := clampi(
-		int(nodes[loop]["count"]) + delta,
-		ContractLimits.REPEAT_COUNT_MIN,
-		ContractLimits.REPEAT_COUNT_MAX
-	)
-	if next == int(nodes[loop]["count"]):
+	var node := node_of(cells()[selected])
+	var values := count_values()
+	var current := values.find(node["count"])
+	var next := clampi(current + delta, 0, values.size() - 1)
+	if next == current:
 		return false
-	nodes[loop]["count"] = next
+	node["count"] = values[next]
 	return true
 
 
-## Moves the selected IF to its next sensor (ahead, left, right, ahead) or the selected
-## REPEAT_UNTIL to its next condition (BLOCKED, GOAL, BLOCKED).
+## The sensors an IF can be set to: the CLEAR ones, and the breadcrumb ones when MARK is offered.
+func sensor_options() -> Array[String]:
+	var out: Array[String] = []
+	for sensor in ContractLimits.SENSORS:
+		if available.has(ContractLimits.MARK_OP) or not ContractLimits.is_marker_sensor(sensor):
+			out.append(sensor)
+	return out
+
+
+## Moves the selected IF to its next sensor (ahead, left, right per family: CLEAR, then FRESH and
+## BACK when MARK is offered) or the selected REPEAT_UNTIL to its next condition (BLOCKED, GOAL).
 func cycle_condition() -> bool:
 	var kind := selected_kind()
 	if kind != "if" and kind != "until":
@@ -75,7 +92,7 @@ func cycle_condition() -> bool:
 	var node := node_of(cells()[selected])
 	var key := "when" if kind == "if" else "until"
 	var options: Array[String] = (
-		ContractLimits.SENSORS if kind == "if" else ContractLimits.UNTIL_CONDITIONS
+		sensor_options() if kind == "if" else ContractLimits.UNTIL_CONDITIONS
 	)
 	node[key] = options[(options.find(node[key]) + 1) % options.size()]
 	return true

@@ -2,8 +2,9 @@ class_name TapeHeaders
 extends RefCounted
 ## The first tile of a loop on the tape. REPEAT shows its count ("x3"); REPEAT_UNTIL shows the
 ## words UNTIL BLOCKED and a wall icon (or UNTIL GOAL and a ring), because it has no count.
-## While a run is shown, the loop the read-head is in shows its 1-based round, and loops already
-## passed are solid (TapeView decides which).
+## A loop that counts with N shows "N" and, on a tall tile, a counter icon. While a run is shown,
+## the loop the read-head is in shows its 1-based round, and loops already passed are solid
+## (TapeView decides which).
 
 
 ## True for the first cell of a loop of either kind.
@@ -26,12 +27,30 @@ static func draw(
 	if cell["kind"] == "until":
 		_draw_until(canvas, rect, color, maxi(round_number, 0), cell["until"] == "GOAL")
 		return
-	var count := int(cell["count"])
-	# Running: "round/count" once the loop has started, "x3" before it.
-	var text := "\u00d7%d" % count
-	if round_number != 0:
-		text = "%d/%d" % [count if round_number < 0 else round_number, count]
-	UiKit.text(canvas, text, rect, int(rect.size.x * 0.42), color, 0)
+	var counted: bool = cell["count"] is String
+	var count_text := "N" if counted else str(int(cell["count"]))
+	# Running: "round/count" once the loop has started, "x3" before it. A loop that counts with N
+	# does not know its rounds until it starts, so its finished state shows N.
+	var text := "\u00d7" + count_text
+	if round_number > 0:
+		text = "%d/%s" % [round_number, count_text]
+	elif round_number < 0:
+		text = "%s/%s" % [count_text, count_text]
+	var area := rect
+	if counted and rect.size.y >= 48.0:
+		# A counter icon above the text tells N from a number.
+		UiKit.icon(
+			canvas,
+			"counter",
+			rect.position + Vector2(rect.size.x / 2.0, rect.size.y * 0.27),
+			rect.size.x * 0.34,
+			color
+		)
+		area = Rect2(
+			rect.position.x, rect.position.y + rect.size.y * 0.42, rect.size.x, rect.size.y * 0.5
+		)
+	var px := fit(text, rect.size.x - 4.0, int(rect.size.x * 0.42))
+	UiKit.text(canvas, text, area, px, color, 0)
 
 
 ## "UNTIL" over "BLOCKED" with a wall icon above when the tile is big enough; while the loop

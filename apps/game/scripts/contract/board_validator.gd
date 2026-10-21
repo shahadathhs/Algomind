@@ -68,9 +68,23 @@ static func check_board_and_cells(
 	var goal_position_path := goal_path + ".position"
 	if goal != null:
 		var goal_dict: Dictionary = goal
-		LevelValidator._reject_unknown(issues, goal_dict, goal_path, ["type", "position"])
+		var goal_type: Variant = goal_dict.get("type")
+		var visit_all: bool = typeof(goal_type) == TYPE_STRING and goal_type == "visit_all"
+		var goal_keys: Array[String] = ["type", "position"]
+		if visit_all:
+			goal_keys = ["type"]
+		LevelValidator._reject_unknown(issues, goal_dict, goal_path, goal_keys)
 		LevelValidator._enum_field(issues, goal_dict, goal_path, "type", ContractLimits.GOAL_TYPES)
-		if goal_dict.has("position"):
+		if visit_all:
+			# The sweep needs somewhere to go: at least two floor cells, the start and one more.
+			if size != null and (size as Vector2i).x * (size as Vector2i).y - walls.size() < 2:
+				LevelValidator._add(
+					issues,
+					goal_path,
+					"GOAL_EQUALS_START",
+					"The board needs at least two floor cells to sweep."
+				)
+		elif goal_dict.has("position"):
 			goal_cell = LevelValidator._check_pair(
 				issues, goal_dict["position"], goal_position_path, size
 			)

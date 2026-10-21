@@ -45,6 +45,8 @@ var _group_buttons := {}
 var _call_buttons: Array[TileButton] = []
 ## The Else tile, shown while an IF is open; null when the level does not offer IF.
 var _else_button: TileButton
+## The Else If and End Loop tiles by key ("ELSE_IF", "END_LOOP"); they show only while needed.
+var _extra_buttons := {}
 var _stats: Array[StatTile] = []
 var _step: TileButton
 var _run: TileButton
@@ -69,10 +71,10 @@ func _build() -> void:
 	_level = _entry["level"]
 	_boards = BoardProgress.new(_level)
 	_session = PlaySession.new(_boards.board_level())
-	var available: Array[String] = []
-	for op: String in _level["availableCommands"]:
-		available.append(op)
-	_tape = TapeModel.new(int(_level["constraints"]["maxCommands"]), available)
+	var available := LevelMechanics.available(_level)
+	_tape = TapeModel.new(
+		int(_level["constraints"]["maxCommands"]), available, LevelMechanics.nested_loops(_level)
+	)
 	if persist and not _entry.has("daily"):
 		app.progress.set_last_level(_entry["id"])
 		app.progress.save()
@@ -150,6 +152,7 @@ func _refresh() -> void:
 	_counter.visible = state != PlaySession.State.FAILED
 
 	PlayView.refresh_tools(self)
+	_program_caption.text = PlayView.program_caption(self)
 
 	_tape_view.running = state != PlaySession.State.READY
 	_tape_view.set_content(
@@ -163,14 +166,6 @@ func _refresh() -> void:
 	queue_redraw()
 	for node in [_badge, _tape_view]:
 		node.queue_redraw()
-
-
-## A wrapping label first measured at zero width keeps a huge minimum height, so it is sized
-## again one frame later, after the label has recomputed its minimum for the real width.
-func _settle_message() -> void:
-	await get_tree().process_frame
-	if is_instance_valid(_message):
-		_message.size = _message_box
 
 
 # ----- player actions ---------------------------------------------------------------------------

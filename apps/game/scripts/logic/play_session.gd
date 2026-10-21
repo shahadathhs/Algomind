@@ -103,6 +103,22 @@ func trail() -> Array[Vector2i]:
 	return cells
 
 
+## The breadcrumbs dropped so far: cell to the name of the direction its arrow points. The arrow
+## points away from where the automaton faced; a cell keeps its first crumb.
+func crumbs() -> Dictionary:
+	var out := {}
+	for i in cursor:
+		var entry: Dictionary = trace()[i]
+		if entry["event"] != "MARKED":
+			continue
+		var cell: Array = entry["position"]
+		var point := Vector2i(int(cell[0]), int(cell[1]))
+		if not out.has(point):
+			var facing := ContractLimits.DIRECTIONS.find(entry["direction"])
+			out[point] = ContractLimits.DIRECTIONS[(facing + 2) % 4]
+	return out
+
+
 ## The wall or edge cell that stopped a failed run (shown once the run has ended), else null.
 func blocked_cell() -> Variant:
 	if state != State.FAILED:
