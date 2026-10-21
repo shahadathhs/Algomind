@@ -252,6 +252,53 @@ A level may carry more than one board, and one program must solve all of them. N
 3. Levels offer every tool of worlds 1 to 6, so the player chooses the right one (a loop to the wall, a decision, a procedure) and not a new one.
 4. Early levels use boards that differ only in length or size; later ones use boards with different shapes where the right-hand rule or a loop with a decision is needed.
 
+### 3.6 Counters and nested loops (world 8)
+
+> **Status:** built (contract, both simulators, the dashboard and game editors, the levels of this world).
+
+Two additions that belong together: a loop inside a loop, and one counter that a loop can use.
+
+- **The counter `N`.** A run starts with `N = 1`. The instruction `{ "op": "INC" }` adds one (it stops at 11, the most a loop can use). `INC` is an action like a turn: one slot, one step, and the trace entry (`event` `COUNTED`) does not move the automaton. A level offers it by listing `INC` in `availableCommands`; the mechanic is `counter`.
+- **A loop that counts with `N`.** A `REPEAT` takes `"count": "N"` instead of a number. The loop reads `N` when it starts and runs that many rounds (1 to 11), whatever happens to `N` inside it. It needs `INC` offered (`COMMAND_NOT_AVAILABLE` at `.count` otherwise).
+- **Trace.** Every trace entry has `counter`: the value of `N` after the step.
+- **Loops in loops.** A loop body may hold one loop, which may not hold another (two levels at most, in the main program and inside a procedure alike). A level allows it by listing the mechanic `nested_loops` in `requires.mechanics`; without it a loop inside a loop is `NESTED_REPEAT`, as before, and so is a third level. Slots are recursive: a loop is 1 plus the slots of its body items. In the trace, a primitive in an inner loop has `node` `[i, j, k]` (loop `i`, body item `j` is the inner loop, item `k` of its body) and `round` is the **inner** loop's round.
+- **Par:** the exact solver reads neither the counter nor nesting, so par for a level that offers `INC` or `nested_loops` is its reference solution, as for `IF`, `PROC` and test boards.
+
+**Level design rules for world 8:** the idea is a number that changes: shapes that grow (a spiral outward, a widening staircase, triangles). The limit is the reference solution's slots; the best program without the counter and nesting is at least twice the limit.
+
+### 3.7 Breadcrumbs and the Tremaux search (world 9)
+
+> **Status:** built (contract, both simulators, the dashboard and game editors, the levels of this world).
+
+The board remembers what the automaton leaves on it. This is what lets a program explore a maze that has loops and still finish.
+
+- **Breadcrumbs.** The instruction `{ "op": "MARK" }` drops a breadcrumb on the cell the automaton stands on: an arrow that points to the cell **behind** the automaton, which is the cell it came from when it has just stepped forward. A cell that already has a breadcrumb keeps it (marking twice changes nothing). `MARK` is an action: one slot, one step, trace `event` `MARKED`. A level offers it by listing `MARK` in `availableCommands`; the mechanic is `markers`.
+- **Breadcrumb sensors** for `IF.when`, each about the cell ahead, to the left, or to the right: `FRESH_AHEAD`, `FRESH_LEFT`, `FRESH_RIGHT` (a floor cell with no breadcrumb) and `BACK_AHEAD`, `BACK_LEFT`, `BACK_RIGHT` (the cell on that side is the one **this** cell's breadcrumb points to: the way back). A wall, the board edge and a cell with a breadcrumb are not fresh; a cell is `BACK` only for the cell the arrow on the automaton's own cell points at. Reading a sensor is free. They need `MARK` offered (`COMMAND_NOT_AVAILABLE` at `.when`).
+- **Else-if chains.** The `else` of an `IF` may hold one `IF` (and nothing else) instead of actions, so one decision can choose between many cases: `IF a { .. } ELSE IF b { .. } ELSE { .. }`. A chain may be up to 6 `IF`s long; an `IF` inside `then`, or an `else` that mixes an `IF` with actions, is `NESTED_IF`. Slots: an `IF` is 1 plus its `then` actions plus the slots of its `else` (the actions, or the nested `IF`). A trace path goes into the nested `IF` after the index `then.length`.
+- **In the trace:** `MARKED` entries mark where breadcrumbs were dropped (a repeated `MARK` on a marked cell is still a `MARKED` step). The arrow itself follows from the entry before it: it points to the cell the automaton was on one step earlier, unless the automaton had turned in place.
+- **The Tremaux search** (the algorithm world 9 teaches): mark the cell, step onto a fresh cell ahead, else right, else left; when none is fresh, follow the breadcrumb back (ahead, right, left, and the cell behind when none of those is the way back). A cell is entered fresh at most once and the way back is always known, so the search cannot go round a loop for ever and it reaches every cell it can. As a program: `REPEAT_UNTIL GOAL { MARK, IF FRESH_AHEAD { Move } ELSE IF FRESH_RIGHT { Right, Move } ELSE IF FRESH_LEFT { Left, Move } ELSE IF BACK_AHEAD { Move } ELSE IF BACK_RIGHT { Right, Move } ELSE IF BACK_LEFT { Left, Move } ELSE { Right, Right, Move } }`, 21 slots. (Tremaux's original marks passages with up to two marks. This is the same search written with one breadcrumb per cell; in a trial on 300 random mazes with loops, the two-mark version that marks cells instead of passages went round for ever in 30 of them and this one finished all 300.)
+- **Par** is the reference solution (the exact solver reads no breadcrumbs).
+
+**Level design rules for world 9:** boards have loops (a wall follower circles for ever on them), the goal is not on the outer wall, and the reference solution solves every board of the level. Limits up to 24 slots are allowed in this world (the Tremaux search is 21), because the tape scrolls and the search is the point of the world. Early levels are small enough to follow the breadcrumbs by eye.
+
+### 3.8 Visit every cell (world 10)
+
+> **Status:** built (contract, both simulators, the dashboard and game editors, the levels of this world).
+
+A second kind of goal, `visit_all`:
+
+```json
+"goal": { "type": "visit_all" }
+```
+
+- **Meaning:** the run succeeds the moment every floor (non-wall) cell of the board has been entered or started on. The start cell counts from the start. The goal has no `position` (a `position` is an unknown field). Reason and event are `GOAL_REACHED`, as for a target.
+- **Validity:** the board must have at least two floor cells (`GOAL_EQUALS_START` is reported at `goal` for a board whose only floor cell is the start). Cells the automaton can never reach make a level unsolvable; the publish gate catches that because the reference solution must solve the level.
+- **Mixed levels:** a level's own board and each extra board choose their own goal type.
+- **Par:** the exact solver does not search `visit_all`; par is the reference solution. `maxSteps` should scale with the board (about twice the reference run).
+- **Counting in the game:** the board shows the visited cells and the counter reads "12 / 30 CELLS".
+
+**Level design rules for world 10:** the sweep is the lawnmower (run to the wall, step over, run back), which needs nested loops from world 8. Later boards have pillars and notches that make a plain lawnmower fail; the step limit is tight enough that wandering fails too.
+
 ## 4. Execution model and feedback
 
 ### Controls
