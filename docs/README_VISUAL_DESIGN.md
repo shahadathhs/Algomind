@@ -122,6 +122,8 @@ Reference sizes at the 390 px-wide design width (adjust per platform and test on
 5. Commands: Move, Left, Right as large tiles.
 6. Controls: Step, Run/Continue (the one primary), Reset.
 
+A level with test boards adds a row of **board tabs** between the objective row and the board (40 px high, nothing is added for a single-board level). A tab is a chamfered tile: the shown board is solid ink, the others are outlined. A board solved by the current program carries the check icon beside its label, so state is never colour alone. Labels read BOARD 1, BOARD 2 and so on; when they would not fit (more than three boards on a phone) they shrink to the numbers and the word BOARD stands once at the start of the row, so six tabs fit 360 px. While a run is on or the level is solved the other tabs are disabled. The board stays at least 120 px square.
+
 If height runs out, the board shrinks last; the tape and commands compress first. Do not let cells become hard to tell apart.
 
 ### Tape

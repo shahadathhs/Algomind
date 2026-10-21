@@ -218,6 +218,40 @@ Two more nodes. A procedure is a named piece of program, defined once and run fr
 
 **Editing:** the palette gains a Proc tile. Tapping it starts the next free name (A, then B, then C) as a definition group drawn at the top of the tape with its name; tapped commands go into it until the tile (now reading End proc) is tapped. While no definition is open, each defined name has a Call tile that appends a call to the main program. The main program is drawn below the definitions. A definition with an empty body is not a program.
 
+### 3.5 Test boards (world 7)
+
+> **Status:** specified 2026-10-21; the contract and the game (validator, simulator, board tabs on the play screen) are built; the editor and the API still follow.
+
+A level may carry more than one board, and one program must solve all of them. Nothing changes in how a board is run; what changes is what solving a level means.
+
+```json
+{
+  "...": "the level's own board, initialState and goal as always",
+  "extraBoards": [
+    {
+      "board": { "width": 9, "height": 3, "walls": [] },
+      "initialState": { "position": [0, 1], "direction": "east" },
+      "goal": { "type": "reach_tile", "position": [8, 1] }
+    }
+  ]
+}
+```
+
+- **Shape:** `extraBoards` is optional and holds 1 to 5 test boards. Each has the same three fields as the level's own board (`board`, `initialState`, `goal`) and the same rules (size, walls, start and goal on the board and not on a wall). Everything else (commands, `maxCommands`, `maxSteps`, hints) is the level's and is shared. Issue paths are prefixed, for example `extraBoards[0].goal.position`.
+- **Running:** a program is run on every board, the level's own first. `simulateAll` returns one result per board, whether the level is solved (every board `SUCCEEDED`), the index of the first board that failed (0 is the level's own board), and the sum of the steps. `maxSteps` limits each run, not the sum.
+- **Slots and par:** slots are counted once, as for any program. Par is the reference solution's slots and its **total** steps over all boards (the exact solver covers one board only, so par for a level with test boards is the reference solution, as for `IF` and `PROC`).
+- **Why it exists:** a program that works because of one board's measurements (move exactly seven times) fails on the next board. The only programs that pass are the ones that ask the board (until blocked, if clear) instead of counting.
+- **Availability:** the mechanic `multi_board` is derived by the API from the content (a level with `extraBoards` requires it), so a client that cannot show several boards never starts such a level.
+- **Gates:** the reference solution must solve every board, and the publish gate runs the exact solver on the level's own board: if that best program already solves every other board within the limit, the level does not need an algorithm and is flagged (`BOARDS_NOT_REQUIRED`, a warning).
+- **Playing:** the board area shows one board at a time with one tab per board (BOARD 1, BOARD 2, and so on). Run runs the program on the selected board. A board a program has solved shows a check (a shape and the word, never colour alone). The level is solved when the same program has solved every board; editing the program clears the checks. After a successful run the next unsolved board is selected. A failure names its board ("Board 2: the automaton tried to move into a wall").
+
+**Level design rules for world 7:**
+
+1. Every level has 2 to 4 boards that differ in size and shape, never a rotation of one another.
+2. The limit is the slots of the reference solution, and the best program for the first board alone must fail on at least one other board (the `BOARDS_NOT_REQUIRED` check).
+3. Levels offer every tool of worlds 1 to 6, so the player chooses the right one (a loop to the wall, a decision, a procedure) and not a new one.
+4. Early levels use boards that differ only in length or size; later ones use boards with different shapes where the right-hand rule or a loop with a decision is needed.
+
 ## 4. Execution model and feedback
 
 ### Controls

@@ -31,6 +31,7 @@ The player should be able to replay a level without friction. There are no lives
 - Make the current automaton position and orientation unambiguous.
 - Scale the board to the available viewport without making cells or touch targets too small.
 - Use color plus shape, icon, or animation to communicate state; do not rely on color alone.
+- **Test boards:** a level with `extraBoards` (world 7, `docs/README_GAME_RULES.md` section 3.5) shows one board at a time with a row of board tabs above it (BOARD 1, BOARD 2, and so on; a single-board level has no tabs). Run, Step and Reset act on the selected board. A board the current program has solved shows a check beside its label; editing the program clears every check. After a successful run the next unsolved board is selected and the objective row reads "BOARD 1 SOLVED". The level is solved, with its result, points and stars, only when the same program has solved every board; steps for scoring are the sum over all boards. A failure names its board ("BOARD 2: ..."). How to play explains test boards in a short paragraph.
 
 ### 3.2 Command/program editor
 

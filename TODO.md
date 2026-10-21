@@ -92,7 +92,8 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [x] Step 5b: world 5, Decisions (`IF` sensors, `REPEAT_UNTIL GOAL`): contract, both simulators, editors, 8 levels in 2 chapters (see [docs/README_GAME_RULES.md](docs/README_GAME_RULES.md), section 3.3). Open: look at the new tape (nested IF brackets, six-tile palette) at all three sizes in both themes, and playtest the 16 levels of worlds 4 and 5 with real people
 - [x] Step 6: leaderboards, daily challenge, sharing, badges, level statistics, profile, stars on tiles (see [docs/README_SOCIAL_PLAN.md](docs/README_SOCIAL_PLAN.md), section 6). Open: look at the new game screens at all three sizes in both themes (a screenshot run needs a window; only 360x640 was reviewed), try the tap flows in the running game (report confirm, MORE paging, COPIED, clipboard), and test the browser build hides the four screens
 - [x] Step 7a: world 6, Procedures (`PROC` and `CALL`): contract, both simulators, editors, 8 levels in 2 chapters (see [docs/README_GAME_RULES.md](docs/README_GAME_RULES.md), section 3.4)
-- [ ] Step 7b: worlds 7 to 10 (generalize, counters, memory, sweep)
+- [x] Step 7b: world 7, Generalize (test boards: `extraBoards`, `simulateAll`): contract, both simulators, editors, API gates, 8 levels in 2 chapters (see [docs/README_GAME_RULES.md](docs/README_GAME_RULES.md), section 3.5). Open: look at the board tabs and the per-board results on screen
+- [ ] Step 7c: worlds 8 to 10 (counters, memory, sweep)
 
 ## Open items
 
