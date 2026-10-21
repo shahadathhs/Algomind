@@ -13,6 +13,17 @@ const built = LEVELS.map((entry) => ({
 const referenceOf = (entry: (typeof built)[number]): readonly unknown[] =>
   entry.def.solution ?? solve(entry.level)!.program;
 
+/** The analysis of each level, computed once: it runs the exact solver, which is the slow part. */
+const analyses = new Map<string, ReturnType<typeof analyzeLevel>>();
+const analysisOf = (entry: (typeof built)[number]) => {
+  let analysis = analyses.get(entry.def.slug);
+  if (!analysis) {
+    analysis = analyzeLevel(entry.level, referenceOf(entry));
+    analyses.set(entry.def.slug, analysis);
+  }
+  return analysis;
+};
+
 describe("the starter campaign", () => {
   it("has six worlds, twelve chapters, and fifty-two levels in a fixed order", () => {
     expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual([
@@ -51,7 +62,7 @@ describe("the starter campaign", () => {
     "%s validates, is solved by its reference program, and has a limit at or above par",
     (_slug, entry) => {
       const program = referenceOf(entry);
-      const analysis = analyzeLevel(entry.level, program);
+      const analysis = analysisOf(entry);
       expect(analysis.errors).toEqual([]);
       expect(analysis.referenceSolved).toBe(true);
       expect(simulate(entry.level, program as Program).status).toBe("SUCCEEDED");
@@ -106,7 +117,7 @@ describe("the starter campaign", () => {
 
   it("gives the Budgets chapter and the loop worlds exactly the shortest program", () => {
     for (const entry of built) {
-      const par = analyzeLevel(entry.level, referenceOf(entry)).par!.commands;
+      const par = analysisOf(entry).par!.commands;
       const world = entry.world.title;
       const chapter = entry.chapterTitle;
       if (chapter === "Budgets" || !["Routes"].includes(world)) {
