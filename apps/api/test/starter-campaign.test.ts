@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { simulate, solve, type Program } from "@algomind/level-contract";
+import { simulateAll, solve, type Program } from "@algomind/level-contract";
 import { analyzeLevel } from "../src/modules/levels/level-analysis.js";
 import { LEVELS, buildLevel } from "../src/modules/seed/starter-campaign.seed.js";
 import { CAMPAIGN } from "../src/modules/seed/starter-campaign.data.js";
@@ -25,7 +25,7 @@ const analysisOf = (entry: (typeof built)[number]) => {
 };
 
 describe("the starter campaign", () => {
-  it("has six worlds, twelve chapters, and fifty-two levels in a fixed order", () => {
+  it("has seven worlds, fourteen chapters, and sixty levels in a fixed order", () => {
     expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual([
       "Basics",
       "Routes",
@@ -33,6 +33,7 @@ describe("the starter campaign", () => {
       "Until",
       "Decisions",
       "Procedures",
+      "Generalize",
     ]);
     expect(CAMPAIGN.worlds.flatMap((w) => w.chapters.map((c) => c.title))).toEqual([
       "Moves",
@@ -47,8 +48,10 @@ describe("the starter campaign", () => {
       "Follow the wall",
       "Name it",
       "Parts",
+      "Sizes",
+      "Shapes",
     ]);
-    expect(LEVELS).toHaveLength(52);
+    expect(LEVELS).toHaveLength(60);
   });
 
   it("uses each slug, title, and board once", () => {
@@ -65,7 +68,7 @@ describe("the starter campaign", () => {
       const analysis = analysisOf(entry);
       expect(analysis.errors).toEqual([]);
       expect(analysis.referenceSolved).toBe(true);
-      expect(simulate(entry.level, program as Program).status).toBe("SUCCEEDED");
+      expect(simulateAll(entry.level, program as Program).status).toBe("SUCCEEDED");
       expect(entry.def.maxCommands).toBeGreaterThanOrEqual(analysis.par!.commands);
     },
   );
@@ -87,14 +90,15 @@ describe("the starter campaign", () => {
       // Each loop and decision belongs to its world: Repeat to world 3, Repeat until to worlds 4 and 5,
       // If to world 5, none of them earlier.
       const world = entry.world.title;
+      const all = world === "Generalize";
       expect(entry.def.commands.includes("REPEAT")).toBe(
-        world === "Loops" || world === "Procedures",
+        world === "Loops" || world === "Procedures" || all,
       );
       expect(entry.def.commands.includes("REPEAT_UNTIL")).toBe(
-        world === "Until" || world === "Decisions",
+        world === "Until" || world === "Decisions" || all,
       );
-      expect(entry.def.commands.includes("IF")).toBe(world === "Decisions");
-      expect(entry.def.commands.includes("PROC")).toBe(world === "Procedures");
+      expect(entry.def.commands.includes("IF")).toBe(world === "Decisions" || all);
+      expect(entry.def.commands.includes("PROC")).toBe(world === "Procedures" || all);
       expect(entry.def.hints?.length ?? 0).toBeGreaterThanOrEqual(1);
       expect(entry.def.hints?.length ?? 0).toBeLessThanOrEqual(3);
       for (const hint of entry.def.hints ?? []) expect(hint.length).toBeLessThanOrEqual(140);
@@ -108,6 +112,7 @@ describe("the starter campaign", () => {
       Until: ["REPEAT_UNTIL"],
       Decisions: ["REPEAT_UNTIL", "IF"],
       Procedures: ["REPEAT", "PROC"],
+      Generalize: ["REPEAT", "REPEAT_UNTIL", "IF", "PROC"],
     };
     for (const entry of built) {
       const expected = [...movement, ...(extra[entry.world.title] ?? [])];
@@ -166,10 +171,22 @@ describe("the starter campaign", () => {
     },
   );
 
-  it("gives every level with a reference solution step room for twice its run", () => {
+  it("gives every level with a reference solution step room for twice its longest run", () => {
     for (const entry of built.filter((b) => b.def.solution)) {
-      const run = simulate(entry.level, referenceOf(entry) as Program);
-      expect(run.steps * 2, entry.def.slug).toBeLessThanOrEqual(entry.level.constraints.maxSteps);
+      const run = simulateAll(entry.level, referenceOf(entry) as Program);
+      const longest = Math.max(...run.results.map((r) => r.steps));
+      expect(longest * 2, entry.def.slug).toBeLessThanOrEqual(entry.level.constraints.maxSteps);
+    }
+  });
+
+  it("gives every Generalize level boards that a first-board program cannot cheat", () => {
+    for (const entry of built.filter((b) => b.world.title === "Generalize")) {
+      const boards = entry.level.extraBoards ?? [];
+      expect(boards.length, entry.def.slug).toBeGreaterThanOrEqual(1);
+      expect(boards.length, entry.def.slug).toBeLessThanOrEqual(3);
+      // The best program for the level's own board alone must fail on another board.
+      const own = solve({ ...entry.level, extraBoards: undefined })!;
+      expect(simulateAll(entry.level, own.program).status, entry.def.slug).toBe("FAILED");
     }
   });
 });

@@ -1,4 +1,4 @@
-// The starter campaign: six worlds, twelve chapters, fifty-two levels, in play order.
+// The starter campaign: seven worlds, fourteen chapters, sixty levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
@@ -11,7 +11,9 @@
 // loop (a test checks this). World 5 offers Repeat until and If; its levels carry the reference
 // `solution` (the exact solver does not search If), the limit is that solution's slots, and the
 // best program without If is at least 1.5 times the limit. World 6 offers Repeat and Proc, carries the
-// reference `solution` the same way, and the best program without Proc is at least 1.3 times the limit.
+// reference `solution` the same way, and the best program without Proc is at least 1.3 times the limit. World 7 offers every tool and gives each
+// level 2 to 4 test boards (`extraBoards`, rows like `rows`): one program must solve them all, and the
+// best program for the first board alone must fail on another board.
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -2155,6 +2157,607 @@ export const CAMPAIGN = {
                 {
                   "op": "CALL",
                   "name": "B"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Generalize",
+      "description": "One program has to solve every board.",
+      "chapters": [
+        {
+          "title": "Sizes",
+          "levels": [
+            {
+              "slug": "any-length",
+              "title": "Any length",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "IF",
+                "PROC"
+              ],
+              "maxCommands": 2,
+              "maxSteps": 100,
+              "rows": [
+                "###",
+                ">G#",
+                "###"
+              ],
+              "extraBoards": [
+                [
+                  "#######",
+                  ">.....G",
+                  "#######"
+                ],
+                [
+                  "##########",
+                  ">........G",
+                  "##########"
+                ]
+              ],
+              "hints": [
+                "The same program has to solve every board. Do not count the cells.",
+                "Run until the wall, whatever the length."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "BLOCKED",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "any-staircase",
+              "title": "Any staircase",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "IF",
+                "PROC"
+              ],
+              "maxCommands": 5,
+              "maxSteps": 100,
+              "rows": [
+                "##G",
+                "#..",
+                ">.#"
+              ],
+              "extraBoards": [
+                [
+                  "####G",
+                  "###..",
+                  "##..#",
+                  "#..##",
+                  ">.###"
+                ],
+                [
+                  "######G",
+                  "#####..",
+                  "####..#",
+                  "###..##",
+                  "##..###",
+                  "#..####",
+                  ">.#####"
+                ]
+              ],
+              "hints": [
+                "One flight of stairs is the same four moves again and again.",
+                "Let the loop end by itself at the top."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "BLOCKED",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "any-corner",
+              "title": "Any corner",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "IF",
+                "PROC"
+              ],
+              "maxCommands": 5,
+              "maxSteps": 100,
+              "rows": [
+                "##G",
+                "##.",
+                ">.."
+              ],
+              "extraBoards": [
+                [
+                  "######G",
+                  "######.",
+                  "######.",
+                  ">......"
+                ],
+                [
+                  "####G",
+                  "####.",
+                  "####.",
+                  "####.",
+                  "####.",
+                  "####.",
+                  "####.",
+                  "####.",
+                  ">...."
+                ]
+              ],
+              "hints": [
+                "Run to the wall, turn, run to the next wall. The lengths do not matter.",
+                "Each board bends the same way."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "BLOCKED",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "TURN_LEFT"
+                },
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "BLOCKED",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "any-room",
+              "title": "Any room",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "IF",
+                "PROC"
+              ],
+              "maxCommands": 5,
+              "maxSteps": 100,
+              "rows": [
+                "...G",
+                "....",
+                "....",
+                "^..."
+              ],
+              "extraBoards": [
+                [
+                  "......G",
+                  ".......",
+                  ".......",
+                  ".......",
+                  "^......"
+                ],
+                [
+                  "..........G",
+                  "...........",
+                  "...........",
+                  "...........",
+                  "...........",
+                  "...........",
+                  "...........",
+                  "...........",
+                  "^.........."
+                ]
+              ],
+              "hints": [
+                "The target is in the far corner of every room.",
+                "Think of the walls, not of the size."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "BLOCKED",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "BLOCKED",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Shapes",
+          "levels": [
+            {
+              "slug": "any-bend",
+              "title": "Any bend",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "IF",
+                "PROC"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 100,
+              "rows": [
+                "####G",
+                "####.",
+                "##...",
+                "##.##",
+                ">..##"
+              ],
+              "extraBoards": [
+                [
+                  ">....##",
+                  "####.##",
+                  "####.##",
+                  "####.##",
+                  "####..G"
+                ],
+                [
+                  "#G####",
+                  "#.####",
+                  "#.####",
+                  "#.....",
+                  "#####.",
+                  "#####^"
+                ]
+              ],
+              "hints": [
+                "The bends go different ways on every board. Ask the board, do not memorise it.",
+                "Right side first, then the way ahead."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "any-maze",
+              "title": "Any maze",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "IF",
+                "PROC"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 120,
+              "rows": [
+                "G#>....",
+                ".#####.",
+                ".#...#.",
+                ".#.#.#.",
+                "...#.#.",
+                "####.#.",
+                "......."
+              ],
+              "extraBoards": [
+                [
+                  "G#.......",
+                  ".#.#.###.",
+                  ".#^#.#.#.",
+                  ".###.#.#.",
+                  "...#.#...",
+                  "##.#.#.##",
+                  ".....#..."
+                ],
+                [
+                  ">....#...",
+                  "####.###.",
+                  "..G#...#.",
+                  ".#####.#.",
+                  ".#...#...",
+                  ".#.#.###.",
+                  "...#...#.",
+                  ".###.###.",
+                  "...#....."
+                ]
+              ],
+              "hints": [
+                "Keep a hand on the right wall. It works in every maze like these.",
+                "Three boards, one program."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "big-and-small",
+              "title": "Big and small",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "IF",
+                "PROC"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 190,
+              "rows": [
+                ".#G....",
+                ".###.#.",
+                "...#.#.",
+                "##.###.",
+                "v#...#.",
+                ".###.#.",
+                "......."
+              ],
+              "extraBoards": [
+                [
+                  "G......#...",
+                  "######.#.#.",
+                  ".....#.#.#.",
+                  ".#.###.#.##",
+                  ".#.....#...",
+                  ".#########.",
+                  "...#.......",
+                  "##.###.###.",
+                  ".......#>.."
+                ],
+                [
+                  ".#G..",
+                  ".###.",
+                  "...#.",
+                  "##.#.",
+                  ">...."
+                ],
+                [
+                  ".....#.....",
+                  "####.#####.",
+                  ".#...#.....",
+                  ".#.###.###.",
+                  "...#...#...",
+                  ".###.#.#.##",
+                  "...#.#.#.#G",
+                  "##.#.#.#.#.",
+                  "v#.#.#.#.#.",
+                  ".#.###.#.#.",
+                  ".......#..."
+                ]
+              ],
+              "hints": [
+                "A tiny board and a large one need the same rule.",
+                "Do not count the moves."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "every-board",
+              "title": "Every board",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "IF",
+                "PROC"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 170,
+              "rows": [
+                "..G",
+                "...",
+                "^.."
+              ],
+              "extraBoards": [
+                [
+                  "#########",
+                  ">.......G",
+                  "#########"
+                ],
+                [
+                  "G#.....#.",
+                  ".###.#.#.",
+                  ".#...#...",
+                  ".#.#####.",
+                  ".#.#v#...",
+                  ".#.#.#.##",
+                  "...#.#.#.",
+                  "####.#.#.",
+                  "........."
+                ],
+                [
+                  "........",
+                  ".######.",
+                  ".#...G#.",
+                  ".#.####.",
+                  ".#.####.",
+                  ".#.####.",
+                  ".#.####.",
+                  "^#......"
+                ]
+              ],
+              "hints": [
+                "Rooms, halls, mazes and spirals: the rule is the same.",
+                "Every board has to reach its target with the one program."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
             }

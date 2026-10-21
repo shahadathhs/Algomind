@@ -4,7 +4,7 @@ import {
   programSlots,
   type AuthoringLevel,
   type CommandName,
-  simulate,
+  simulateAll,
   solve,
   validateAuthoringLevel,
 } from "@algomind/level-contract";
@@ -59,8 +59,15 @@ export function contentHash(content: unknown): string {
 }
 
 /** True when the level offers a command the exact par search does not cover. */
-function offersUnsearched(commands: readonly string[]): boolean {
-  return commands.includes("IF") || commands.includes("PROC");
+function offersUnsearched(level: {
+  availableCommands: readonly string[];
+  extraBoards?: unknown;
+}): boolean {
+  return (
+    level.availableCommands.includes("IF") ||
+    level.availableCommands.includes("PROC") ||
+    level.extraBoards !== undefined
+  );
 }
 
 /**
@@ -87,26 +94,32 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
   const level = candidate as AuthoringLevel;
   const { referenceSolution: program, ...publicLevel } = level;
 
-  const run = simulate(publicLevel, program);
+  // Every board of the level: the reference solution must solve all of them.
+  const run = simulateAll(publicLevel, program);
   const referenceSolved = run.status === "SUCCEEDED";
   if (!referenceSolved) {
+    const failed = run.results[run.firstFailure ?? 0]!;
+    const board = run.results.length > 1 ? `Board ${(run.firstFailure ?? 0) + 1}: ` : "";
     errors.push({
       gate: "reference_solution",
       path: "referenceSolution",
       code: "REFERENCE_SOLUTION_FAILS",
-      message: `The reference solution does not solve the level: ${explainResult(run)}`,
+      message: `The reference solution does not solve the level: ${board}${explainResult(failed)}`,
     });
   }
 
   let par: Par | null = null;
-  // The exact search does not cover IF or PROC. For a level that offers either, par is the better of the
-  // best program without them and the reference solution (which the simulator has just checked).
+  // The exact search does not cover IF or PROC, and reads one board only. For a level that offers IF or
+  // PROC, par is the better of the best program without them and the reference solution (which the
+  // simulator has just checked). For a level with test boards par is always the reference solution: the
+  // best program for the level's own board may fail on the others, so it is not a par anyone can reach.
   let best = solve(publicLevel);
-  if (offersUnsearched(publicLevel.availableCommands) && referenceSolved) {
+  if (offersUnsearched(publicLevel) && referenceSolved) {
     const slots = programSlots(program);
-    if (!best || slots < best.commands || (slots === best.commands && run.steps < best.steps)) {
-      best = { commands: slots, steps: run.steps, program, fitsConstraints: true };
-    }
+    const reference = { commands: slots, steps: run.steps, program, fitsConstraints: true };
+    const better =
+      !best || slots < best.commands || (slots === best.commands && run.steps < best.steps);
+    if (publicLevel.extraBoards !== undefined || better) best = reference;
   }
   if (!best) {
     errors.push({
@@ -125,12 +138,16 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
         message: `The command limit is ${level.constraints.maxCommands}, but the shortest solution needs ${best.commands}.`,
       });
     }
-    if (best.steps > level.constraints.maxSteps) {
+    // maxSteps limits each run; with test boards it is compared with the longest single run.
+    const longestRun = Math.max(...run.results.map((r) => r.steps));
+    const stepsToCompare =
+      publicLevel.extraBoards !== undefined && referenceSolved ? longestRun : best.steps;
+    if (stepsToCompare > level.constraints.maxSteps) {
       errors.push({
         gate: "par",
         path: "constraints.maxSteps",
         code: "STEPS_BELOW_PAR",
-        message: `The step limit is ${level.constraints.maxSteps}, but the shortest solution needs ${best.steps}.`,
+        message: `The step limit is ${level.constraints.maxSteps}, but the shortest solution needs ${stepsToCompare}.`,
       });
     }
     if (level.constraints.maxCommands > best.commands + Math.max(4, best.commands)) {
@@ -207,7 +224,26 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
     }
   }
 
+  // A level with test boards should need generality: if the best program for the level's own board
+  // already solves every other board within the limit, the extra boards teach nothing.
+  if (level.extraBoards !== undefined) {
+    const own = solve({ ...level, extraBoards: undefined });
+    if (own && own.commands <= level.constraints.maxCommands) {
+      const everywhere = simulateAll(level, own.program);
+      if (everywhere.status === "SUCCEEDED") {
+        warnings.push({
+          gate: "par",
+          path: "extraBoards",
+          code: "BOARDS_NOT_REQUIRED",
+          message:
+            "The shortest program for the first board already solves every board within the limit, so the extra boards add nothing.",
+        });
+      }
+    }
+  }
+
   const required = new Set<string>(level.requires.mechanics);
+  if (level.extraBoards !== undefined) required.add("multi_board");
   for (const command of level.availableCommands) required.add(COMMAND_MECHANICS[command]);
 
   return { errors, warnings, par, referenceSolved, requiredMechanics: [...required].sort(), level };

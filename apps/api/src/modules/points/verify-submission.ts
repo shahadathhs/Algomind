@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   programSlots,
-  simulate,
+  simulateAll,
   validateLevel,
   validateProgram,
   type Level,
@@ -28,7 +28,7 @@ export function verifySubmission(content: unknown, program: unknown): Verified {
   const checkedProgram = validateProgram(level, program);
   if (!checkedProgram.ok)
     return { ok: false, code: "PROGRAM_INVALID", issues: checkedProgram.issues };
-  const result = simulate(level, program as Program);
+  const result = simulateAll(level, program as Program);
   if (result.status !== "SUCCEEDED")
     return { ok: false, code: "PROGRAM_DID_NOT_SOLVE", issues: [] };
   return { ok: true, slots: programSlots(program as Program), steps: result.steps };

@@ -108,6 +108,23 @@
           "levels": ["loop-inside", "longer-part", "two-parts", "two-parts-longer"]
         }
       ]
+    },
+    {
+      "id": "generalize",
+      "title": "Generalize",
+      "summary": "One program has to solve every board.",
+      "chapters": [
+        {
+          "id": "sizes",
+          "title": "Sizes",
+          "levels": ["any-length", "any-staircase", "any-corner", "any-room"]
+        },
+        {
+          "id": "shapes",
+          "title": "Shapes",
+          "levels": ["any-bend", "any-maze", "big-and-small", "every-board"]
+        }
+      ]
     }
   ],
   "par": {
@@ -318,6 +335,38 @@
     "two-parts-longer": {
       "commands": 29,
       "steps": 40
+    },
+    "any-length": {
+      "commands": 1,
+      "steps": 1
+    },
+    "any-staircase": {
+      "commands": 5,
+      "steps": 7
+    },
+    "any-corner": {
+      "commands": 4,
+      "steps": 5
+    },
+    "any-room": {
+      "commands": 5,
+      "steps": 7
+    },
+    "any-bend": {
+      "commands": 7,
+      "steps": 11
+    },
+    "any-maze": {
+      "commands": 19,
+      "steps": 33
+    },
+    "big-and-small": {
+      "commands": 8,
+      "steps": 21
+    },
+    "every-board": {
+      "commands": 4,
+      "steps": 5
     }
   }
 }

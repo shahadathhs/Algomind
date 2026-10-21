@@ -39,6 +39,8 @@ export type LevelDef = {
   solution?: readonly unknown[];
   /** Defaults to 100. */
   maxSteps?: number;
+  /** More test boards as text rows (the same alphabet as `rows`): one program must solve them all. */
+  extraBoards?: readonly (readonly string[])[];
 };
 
 /** The seed content failed the validator or solver: a bug in the data, never a runtime problem. */
@@ -60,6 +62,18 @@ export function buildLevel(def: LevelDef, id: string): Level {
     availableCommands: [...def.commands],
     constraints: { maxCommands: def.maxCommands, maxSteps: def.maxSteps ?? 100 },
     goal: { type: "reach_tile", position: board.goal },
+    ...(def.extraBoards
+      ? {
+          extraBoards: def.extraBoards.map((rows) => {
+            const extra = readBoard(rows);
+            return {
+              board: { width: extra.width, height: extra.height, walls: extra.walls },
+              initialState: extra.start,
+              goal: { type: "reach_tile" as const, position: extra.goal },
+            };
+          }),
+        }
+      : {}),
     hints: [...(def.hints ?? [])],
   };
 }
