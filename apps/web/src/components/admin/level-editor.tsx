@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { BoardPanel } from "./editor/board-panel";
 import { ChecksPanel } from "./editor/checks-panel";
-import { parIsReferenceFor } from "@/lib/admin/level-model";
+import { localCheck, parIsReferenceFor } from "@/lib/admin/level-model";
 import { DetailsPanel } from "./editor/details-panel";
 import { EditorTabs, type TabId } from "./editor/editor-tabs";
 import { LimitsPanel } from "./editor/limits-panel";
@@ -207,6 +207,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
                 dirty={dirty}
                 hasDraft
                 parIsReference={content !== null && parIsReferenceFor(content)}
+                localRun={localCheck(content, solution).run}
               />
             )}
           </div>

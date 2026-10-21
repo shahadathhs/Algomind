@@ -18,6 +18,8 @@ export type CampaignLevel = {
   /** The command limit shown to players. */
   maxCommands: number;
   board: BoardData;
+  /** How many boards one program must solve (1 unless the level has test boards). */
+  boardCount: number;
 };
 
 export type Chapter = { id: string; title: string; levels: CampaignLevel[] };
@@ -63,9 +65,11 @@ export function boardFromContent(content: unknown): BoardData | null {
   if (!Number.isInteger(width) || !Number.isInteger(height) || !Array.isArray(walls)) return null;
   const start = point(content.initialState.position);
   const dir = DIRECTION[String(content.initialState.direction)];
-  const goal = point(content.goal.position);
+  // A sweep board (visit_all) has no target; any other goal needs a position.
+  const sweep = content.goal.type === "visit_all";
+  const goal = sweep ? undefined : (point(content.goal.position) ?? undefined);
   const wallPoints = walls.map(point);
-  if (!start || !dir || !goal || wallPoints.some((p) => p === null)) return null;
+  if (!start || !dir || (!sweep && !goal) || wallPoints.some((p) => p === null)) return null;
   return {
     width: width as number,
     height: height as number,
@@ -120,12 +124,16 @@ export async function getCampaign(): Promise<CampaignState> {
     }
 
     const boards = new Map<string, BoardData>();
+    const boardCounts = new Map<string, number>();
     await Promise.all(
       entries.map(async (entry) => {
         const detail = await getJson(`/levels/${encodeURIComponent(entry.slug)}`);
         const board = isObject(detail) ? boardFromContent(detail.content) : null;
         if (!board) throw new Error(`Level ${entry.slug} has no readable board`);
         boards.set(entry.slug, board);
+        const extra =
+          isObject(detail) && isObject(detail.content) ? detail.content.extraBoards : null;
+        boardCounts.set(entry.slug, 1 + (Array.isArray(extra) ? extra.length : 0));
       }),
     );
 
@@ -140,7 +148,11 @@ export async function getCampaign(): Promise<CampaignState> {
         title: String(chapter.title),
         levels: (chapter.levels as Json[]).map((level): CampaignLevel => {
           const entry = byNumber.get(String(level.slug))!;
-          return { ...entry, board: boards.get(entry.slug)! };
+          return {
+            ...entry,
+            board: boards.get(entry.slug)!,
+            boardCount: boardCounts.get(entry.slug) ?? 1,
+          };
         }),
       })),
     }));

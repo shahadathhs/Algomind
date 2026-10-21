@@ -87,7 +87,7 @@ func _build() -> void:
 	)
 	_list.add_child(UiKit.label("COMMANDS", 14, Palette.MUTE, 3))
 	for item in COMMANDS:
-		_list.add_child(_Row.make(item["icon"], item["name"], item["text"]))
+		_list.add_child(HowToRow.make(item["icon"], item["name"], item["text"]))
 	_list.add_child(UiKit.label("LOOPS", 14, Palette.MUTE, 3))
 	_list.add_child(
 		_paragraph(
@@ -95,7 +95,7 @@ func _build() -> void:
 				"A loop carries out the commands inside it again and again. Select its count "
 				+ "tile and use minus and plus to change how many rounds it runs. A loop uses "
 				+ "one slot for its count and one for each command inside it. A loop cannot hold "
-				+ "another loop."
+				+ "another loop, unless the level allows it."
 			)
 		)
 	)
@@ -113,9 +113,11 @@ func _build() -> void:
 	)
 	_add_decisions()
 	_add_procedures()
+	_add_test_boards()
+	HowToMore.add(_list)
 	_list.add_child(UiKit.label("CONTROLS", 14, Palette.MUTE, 3))
 	for item in CONTROLS:
-		_list.add_child(_Row.make(item["icon"], item["name"], item["text"]))
+		_list.add_child(HowToRow.make(item["icon"], item["name"], item["text"]))
 	_list.add_child(UiKit.label("WHEN IT FAILS", 14, Palette.MUTE, 3))
 	_list.add_child(
 		_paragraph(
@@ -145,13 +147,16 @@ func _add_decisions() -> void:
 		)
 	)
 	for item in SENSORS:
-		_list.add_child(_Row.make(item["icon"], item["name"], item["text"]))
-	_list.add_child(
-		_paragraph(
-			(
-				"An IF uses one slot, plus one for each command in it. It can stand on its own "
-				+ "or inside a loop. An IF cannot hold another IF or a loop. An IF needs at "
-				+ "least one command before ELSE."
+		_list.add_child(HowToRow.make(item["icon"], item["name"], item["text"]))
+	(
+		_list
+		. add_child(
+			_paragraph(
+				(
+					"An IF uses one slot, plus one for each command in it. It can stand on its own "
+					+ "or inside a loop. An IF cannot hold a loop, and it holds another IF only after ELSE. "
+					+ "An IF needs at least one command before ELSE."
+				)
 			)
 		)
 	)
@@ -196,6 +201,24 @@ func _add_procedures() -> void:
 	)
 
 
+## The test boards section: one program that has to work on several boards.
+func _add_test_boards() -> void:
+	_list.add_child(UiKit.label("TEST BOARDS", 14, Palette.MUTE, 3))
+	_list.add_child(
+		_paragraph(
+			(
+				"Some levels have more than one board. One program has to solve all of them. Tap "
+				+ "a board tab to choose a board. RUN, STEP and RESET work on the board you "
+				+ "chose. A board your program has solved shows a check. Change the program and "
+				+ "the checks go away. When a board is solved the next one is chosen. The level "
+				+ "is solved when the same program has solved every board. A program that counts "
+				+ "moves fits one board and fails on the next, so ask the board instead: move "
+				+ "until blocked, or look before each move."
+			)
+		)
+	)
+
+
 func go_back() -> void:
 	navigate.emit(str(args.get("back", "home")), args.get("back_args", {}))
 
@@ -220,40 +243,3 @@ func _paragraph(value: String) -> Label:
 	var node := UiKit.label(value, 16, Palette.INK, 0)
 	node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return node
-
-
-## One explained control: an icon tile, a name, and a sentence.
-class _Row:
-	extends HBoxContainer
-
-	static func make(icon_kind: String, name_text: String, body_text: String) -> _Row:
-		var row := _Row.new()
-		row.add_theme_constant_override("separation", 14)
-		var tile := _Tile.new()
-		tile.kind = icon_kind
-		tile.custom_minimum_size = Vector2(52.0, 52.0)
-		row.add_child(tile)
-		var column := VBoxContainer.new()
-		column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		column.add_child(UiKit.label(name_text, 20, Palette.INK, 1))
-		var body := UiKit.label(body_text, 15, Palette.MUTE, 0)
-		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		column.add_child(body)
-		row.add_child(column)
-		return row
-
-
-class _Tile:
-	extends Control
-
-	var kind := "move"
-
-	func _init() -> void:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	func _draw() -> void:
-		var rect := Rect2(Vector2.ZERO, size)
-		UiKit.fill_chamfer(self, rect, Palette.GROUND)
-		UiKit.outline_chamfer(self, rect, Palette.INK)
-		UiKit.icon(self, kind, size / 2.0, size.x * 0.5, Palette.INK)

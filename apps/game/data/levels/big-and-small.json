@@ -1,0 +1,206 @@
+{
+  "goal": {
+    "type": "reach_tile",
+    "position": [2, 0]
+  },
+  "slug": "big-and-small",
+  "board": {
+    "walls": [
+      [1, 0],
+      [1, 1],
+      [2, 1],
+      [3, 1],
+      [5, 1],
+      [3, 2],
+      [5, 2],
+      [0, 3],
+      [1, 3],
+      [3, 3],
+      [4, 3],
+      [5, 3],
+      [1, 4],
+      [5, 4],
+      [1, 5],
+      [2, 5],
+      [3, 5],
+      [5, 5]
+    ],
+    "width": 7,
+    "height": 7
+  },
+  "hints": ["A tiny board and a large one need the same rule.", "Do not count the moves."],
+  "title": "Big and small",
+  "levelId": "47377631-caec-4749-a4ab-46238843a65c",
+  "requires": {
+    "mechanics": []
+  },
+  "difficulty": "hard",
+  "constraints": {
+    "maxSteps": 190,
+    "maxCommands": 6
+  },
+  "description": "",
+  "extraBoards": [
+    {
+      "goal": {
+        "type": "reach_tile",
+        "position": [0, 0]
+      },
+      "board": {
+        "walls": [
+          [7, 0],
+          [0, 1],
+          [1, 1],
+          [2, 1],
+          [3, 1],
+          [4, 1],
+          [5, 1],
+          [7, 1],
+          [9, 1],
+          [5, 2],
+          [7, 2],
+          [9, 2],
+          [1, 3],
+          [3, 3],
+          [4, 3],
+          [5, 3],
+          [7, 3],
+          [9, 3],
+          [10, 3],
+          [1, 4],
+          [7, 4],
+          [1, 5],
+          [2, 5],
+          [3, 5],
+          [4, 5],
+          [5, 5],
+          [6, 5],
+          [7, 5],
+          [8, 5],
+          [9, 5],
+          [3, 6],
+          [0, 7],
+          [1, 7],
+          [3, 7],
+          [4, 7],
+          [5, 7],
+          [7, 7],
+          [8, 7],
+          [9, 7],
+          [7, 8]
+        ],
+        "width": 11,
+        "height": 9
+      },
+      "initialState": {
+        "position": [8, 8],
+        "direction": "east"
+      }
+    },
+    {
+      "goal": {
+        "type": "reach_tile",
+        "position": [2, 0]
+      },
+      "board": {
+        "walls": [
+          [1, 0],
+          [1, 1],
+          [2, 1],
+          [3, 1],
+          [3, 2],
+          [0, 3],
+          [1, 3],
+          [3, 3]
+        ],
+        "width": 5,
+        "height": 5
+      },
+      "initialState": {
+        "position": [0, 4],
+        "direction": "east"
+      }
+    },
+    {
+      "goal": {
+        "type": "reach_tile",
+        "position": [10, 6]
+      },
+      "board": {
+        "walls": [
+          [5, 0],
+          [0, 1],
+          [1, 1],
+          [2, 1],
+          [3, 1],
+          [5, 1],
+          [6, 1],
+          [7, 1],
+          [8, 1],
+          [9, 1],
+          [1, 2],
+          [5, 2],
+          [1, 3],
+          [3, 3],
+          [4, 3],
+          [5, 3],
+          [7, 3],
+          [8, 3],
+          [9, 3],
+          [3, 4],
+          [7, 4],
+          [1, 5],
+          [2, 5],
+          [3, 5],
+          [5, 5],
+          [7, 5],
+          [9, 5],
+          [10, 5],
+          [3, 6],
+          [5, 6],
+          [7, 6],
+          [9, 6],
+          [0, 7],
+          [1, 7],
+          [3, 7],
+          [5, 7],
+          [7, 7],
+          [9, 7],
+          [1, 8],
+          [3, 8],
+          [5, 8],
+          [7, 8],
+          [9, 8],
+          [1, 9],
+          [3, 9],
+          [4, 9],
+          [5, 9],
+          [7, 9],
+          [9, 9],
+          [7, 10]
+        ],
+        "width": 11,
+        "height": 11
+      },
+      "initialState": {
+        "position": [0, 8],
+        "direction": "south"
+      }
+    }
+  ],
+  "initialState": {
+    "position": [0, 4],
+    "direction": "south"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": [
+    "MOVE_FORWARD",
+    "TURN_LEFT",
+    "TURN_RIGHT",
+    "REPEAT",
+    "REPEAT_UNTIL",
+    "IF",
+    "PROC"
+  ]
+}

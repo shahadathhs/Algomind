@@ -1,8 +1,9 @@
 class_name BoardView
 extends Control
-## Draws a level's board: floor, hatched walls, the target, the trail, and the automaton.
-## It only displays what it is given. The play screen sets `automaton` (a cell position that
-## may be fractional while a move is animated), `facing`, `trail`, and `hit_wall`.
+## Draws a level's board: floor, hatched walls, the target (none when the goal is to visit every
+## cell), the trail, the breadcrumbs, and the automaton. It only displays what it is given. The
+## play screen sets `automaton` (a cell position that may be fractional while a move is animated),
+## `facing`, `trail`, `crumbs` (cell to the name of the direction its arrow points) and `hit_wall`.
 
 const GAP := 2.0
 
@@ -13,6 +14,7 @@ var automaton := Vector2.ZERO:
 		queue_redraw()
 var facing := "north"
 var trail: Array[Vector2i] = []
+var crumbs := {}
 var hit_wall: Variant = null
 ## Small offset in cells for the blocked-move nudge.
 var nudge := Vector2.ZERO:
@@ -33,11 +35,16 @@ func set_level(level_data: Dictionary) -> void:
 
 ## Shows a state without animation.
 func show_state(
-	position: Array, direction: String, passed: Array[Vector2i], blocked: Variant
+	position: Array,
+	direction: String,
+	passed: Array[Vector2i],
+	blocked: Variant,
+	marks: Dictionary = {}
 ) -> void:
 	automaton = Vector2(int(position[0]), int(position[1]))
 	facing = direction
 	trail = passed
+	crumbs = marks
 	hit_wall = blocked
 	nudge = Vector2.ZERO
 	queue_redraw()
@@ -67,8 +74,11 @@ func _draw() -> void:
 	var walls := {}
 	for wall: Array in board["walls"]:
 		walls[Vector2i(int(wall[0]), int(wall[1]))] = true
-	var goal_cell: Array = level["goal"]["position"]
-	var goal := Vector2i(int(goal_cell[0]), int(goal_cell[1]))
+	# A goal to visit every cell has no target: the cells themselves show what is left.
+	var goal: Variant = null
+	if level["goal"].has("position"):
+		var goal_cell: Array = level["goal"]["position"]
+		goal = Vector2i(int(goal_cell[0]), int(goal_cell[1]))
 	var here := Vector2i(roundi(automaton.x), roundi(automaton.y))
 
 	for y in int(board["height"]):
@@ -77,10 +87,10 @@ func _draw() -> void:
 			var rect := cell_rect(Vector2(x, y), geometry)
 			if walls.has(point):
 				_draw_wall(rect, hit_wall != null and hit_wall == point)
-			elif point == goal:
+			elif goal != null and point == goal:
 				_draw_goal(rect)
 			elif trail.has(point) and point != here:
-				_draw_trail(rect)
+				_draw_trail(rect, crumbs.get(point, ""))
 			else:
 				draw_rect(rect, Palette.FLOOR)
 	_draw_automaton(geometry)
@@ -102,12 +112,28 @@ func _draw_goal(rect: Rect2) -> void:
 	draw_circle(center, radius * 0.38, Palette.ON_SIGNAL)
 
 
-func _draw_trail(rect: Rect2) -> void:
+func _draw_trail(rect: Rect2, crumb: String) -> void:
 	draw_rect(rect, Palette.TRAIL)
+	if crumb != "":
+		_draw_crumb(rect, crumb)
+		return
 	var marker := rect.size.x * 0.16
 	var box := Rect2(rect.get_center() - Vector2(marker, marker) / 2.0, Vector2(marker, marker))
 	draw_rect(box.grow(2.0), Palette.INK)
 	draw_rect(box, Palette.SIGNAL)
+
+
+## A breadcrumb: an ink arrow that points to the cell the crumb leads back to.
+func _draw_crumb(rect: Rect2, direction_name: String) -> void:
+	var delta: Array = ContractLimits.DIRECTION_DELTAS[direction_name]
+	var direction := Vector2(float(delta[0]), float(delta[1]))
+	var center := rect.get_center()
+	var length := rect.size.x * 0.34
+	var across := rect.size.x * 0.34
+	var tip := center + direction * length
+	var base := center - direction * length * 0.6
+	var side := Vector2(-direction.y, direction.x) * across / 2.0
+	draw_colored_polygon(PackedVector2Array([tip, base + side, base - side]), Palette.INK)
 
 
 func _draw_automaton(geometry: Dictionary) -> void:

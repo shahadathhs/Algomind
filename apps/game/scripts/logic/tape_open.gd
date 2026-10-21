@@ -10,7 +10,8 @@ const PROC := ContractLimits.PROC_OP
 const CALL := ContractLimits.CALL_OP
 
 var limit := 0
-var available: Array[String] = []
+## True when the level lists nested_loops: a loop may be opened inside an open loop.
+var nested_loops := false
 
 
 ## Slots used: this is what the limit counts (see ProgramSlots).
@@ -43,18 +44,58 @@ func open_chain() -> Array[Array]:
 		base = base + [found]
 		out.append(base)
 		var node: Dictionary = list[found]
+		if ContractLimits.is_if(node["op"]):
+			# An else-if chain: the IF that the else holds can be the open one.
+			while _open_next(node):
+				base = base + [(node["then"] as Array).size()]
+				out.append(base)
+				node = node["else"][0]
+			break
 		if not node.has("body"):
 			break
 		list = node["body"]
 	return out
 
 
-## The keys (see TapeCells.key_of) of the groups that are open, outermost first.
+## True when the else of this IF holds an IF that is open.
+func _open_next(node: Dictionary) -> bool:
+	var other: Array = node["else"]
+	return (
+		other.size() == 1 and ContractLimits.is_if(other[0]["op"]) and other[0].get("_open", false)
+	)
+
+
+## The keys (see TapeCells.key_of) of the groups that are open, outermost first. An else-if chain
+## is one group, named by its first IF.
 func open_keys() -> Array[String]:
 	var out: Array[String] = []
 	for path in open_chain():
+		if path.size() > 1 and _is_if_path(path.slice(0, path.size() - 1)):
+			continue
 		out.append(TapeCells.key_of(path))
 	return out
+
+
+func _is_if_path(path: Array) -> bool:
+	return ContractLimits.is_if(TapeCells.node_at(nodes, path)["op"])
+
+
+## How many loops are open (0 to 2).
+func _loop_depth() -> int:
+	var depth := 0
+	for path in open_chain():
+		if ContractLimits.is_loop(TapeCells.node_at(nodes, path)["op"]):
+			depth += 1
+	return depth
+
+
+## How many IFs of the open else-if chain are open, the first included; 0 when no IF is open.
+func _if_depth() -> int:
+	var depth := 0
+	for path in open_chain():
+		if _is_if_path(path):
+			depth += 1
+	return depth
 
 
 ## The program index of the main-program loop that is open, or -1.
@@ -63,12 +104,13 @@ func open_loop() -> int:
 	return int(path[0]) if path.size() == 1 else -1
 
 
-## The path of the loop that is open (in the main program or in a procedure), or [].
+## The path of the innermost loop that is open (in the main program or in a procedure), or [].
 func open_loop_path() -> Array:
+	var found: Array = []
 	for path in open_chain():
 		if ContractLimits.is_loop(TapeCells.node_at(nodes, path)["op"]):
-			return path
-	return []
+			found = path
+	return found
 
 
 ## The program index of the procedure that is open, or -1.

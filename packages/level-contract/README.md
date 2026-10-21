@@ -75,6 +75,14 @@ A third node, `{ "op": "IF", "when": "CLEAR_RIGHT", "then": [primitives], "else"
 
 Two more nodes define and use procedures: `{ "op": "PROC", "name": "A", "body": [...] }` (top level only) and `{ "op": "CALL", "name": "A" }` (top level, or an item of a loop body of the main program). `name` is `A`, `B`, or `C`. A `PROC` body is 1 to 8 items: primitives, `IF`s, and loops; it cannot hold a `CALL` or a `PROC`. A `PROC` is not run where it stands; a `CALL` runs the first `PROC` of that name. A level offers both by listing `PROC` in `availableCommands` (the mechanic `procedures`). Slots: a `CALL` is 1, a `PROC` is 1 plus the slots of its body. New issue codes: `NESTED_PROC` (a `PROC` that is not at the top level, at its `op`), `CALL_NOT_ALLOWED` (a `CALL` where it may not stand, at its `op`), `DUPLICATE_PROCEDURE` and `UNDEFINED_PROCEDURE` (at `name`), and `name` is `REQUIRED`, `INVALID_TYPE`, or `INVALID_VALUE` like the other fields. Every trace entry carries `call`, the path of the `CALL` that is running it or `null`; a primitive inside a procedure has `node` `[p, ...]` with `p` the index of the `PROC`. The solver ignores `PROC`; par for a level that offers it is the reference solution.
 
+Three more additions serve worlds 8 to 10 (the rules are in `docs/README_GAME_RULES.md`, sections 3.6 to 3.8):
+
+- **Counter and nested loops.** `{ "op": "INC" }` adds one to the counter `N` (it starts at 1 and stops at 11); `INC` is an action (one slot, one step, trace `event` `COUNTED`) and every trace entry carries `counter`. A `REPEAT` may take `"count": "N"`, read when the loop starts (`COMMAND_NOT_AVAILABLE` at `.count` when `INC` is not offered). A loop may hold one loop, but only when the level lists `nested_loops` in `requires.mechanics` (otherwise, and for a third level, `NESTED_REPEAT`). The simulator runs two levels of loops whether or not the level allows them; `validateProgram` is what refuses. A primitive in an inner loop has `node` `[i, j, k]` and the inner loop's `round`.
+- **Breadcrumbs and else-if chains.** `{ "op": "MARK" }` drops a breadcrumb on the cell the automaton stands on, an arrow to the cell behind it; a cell keeps its first. It is an action (trace `event` `MARKED`). `IF.when` gains `FRESH_AHEAD`, `FRESH_LEFT`, `FRESH_RIGHT` (a floor cell with no breadcrumb) and `BACK_AHEAD`, `BACK_LEFT`, `BACK_RIGHT` (the cell this cell's breadcrumb points to); they need `MARK` offered. The `else` of an `IF` may hold exactly one `IF` (an else-if chain, up to 6 IFs); anything else beside it, or an `IF` in `then`, is `NESTED_IF`. A trace path goes into the nested `IF` after the index `then.length`.
+- **The sweep goal.** `"goal": { "type": "visit_all" }` has no `position` (a `position` is `UNKNOWN_FIELD`); the board needs at least two floor cells (`GOAL_EQUALS_START` at `goal`). The run succeeds the moment every floor cell has been entered or started on, with reason and event `GOAL_REACHED`. A level's own board and each extra board choose their own goal. The solver returns `null` for it, so par is the reference solution.
+
+A level may also carry `extraBoards`: 1 to 5 more test boards, each an object with `board`, `initialState` and `goal` (the same rules as the level's own; issue paths are prefixed, for example `extraBoards[0].goal.position`). One program must solve every board. `simulate` still runs one board. `simulateAll(level, program)` runs the program on the level's own board and then on each extra board and returns `{ status, firstFailure, steps, results }`: the level is solved only when every result succeeded, `firstFailure` is the index of the first board that failed (0 is the level's own board) or `null`, and `steps` is the sum. `boardsOf(level)` lists the boards and `levelOnBoard(level, i)` gives the level as if board `i` were its only one. Par for a level with extra boards is the reference solution (the solver reads the level's own board only).
+
 The solver does not search `IF` programs. With `IF` offered it still finds the best program without one (loops included); par for such a level is the author's reference solution, which the publish gate runs.
 
 **Slots.** The command limit counts slots: a primitive is 1, a `REPEAT` is 1 plus the number of instructions in its body. `REPEAT 6 { MOVE_FORWARD, TURN_RIGHT, MOVE_FORWARD, TURN_LEFT }` is 5 slots. `programSlots(program)` computes it.
@@ -83,23 +91,23 @@ The solver does not search `IF` programs. With `IF` offered it still finds the b
 
 All are inclusive. Lengths of strings are counted in Unicode code points (not UTF-16 units or bytes). They live in `src/constants.ts` (`LIMITS`), and a test keeps the JSON Schema in sync.
 
-| Field                         | Limit                                                                                                        |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `schemaVersion`               | must be `1`                                                                                                  |
-| `levelId`, `slug`             | 1 to 64 characters, lowercase letters and digits in hyphen-separated groups (`^[a-z0-9]+(-[a-z0-9]+)*$`)     |
-| `levelVersion`                | integer, 1 to 1,000,000                                                                                      |
-| `title`                       | 1 to 60 characters                                                                                           |
-| `description`                 | 0 to 280 characters                                                                                          |
-| `difficulty`                  | `easy`, `medium`, or `hard`                                                                                  |
-| `requires.mechanics`          | at most 8 entries, unique, each 1 to 32 characters matching `^[a-z][a-z0-9_]*$`                              |
-| `board.width`, `board.height` | integer, 3 to 12                                                                                             |
-| `board.walls`                 | at most 100 unique cells                                                                                     |
-| `availableCommands`           | 1 to 7 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, `REPEAT`, `REPEAT_UNTIL`, `IF`, `PROC` |
-| `REPEAT` `count`              | integer, 2 to 11                                                                                             |
-| `REPEAT` `body`               | 1 to 8 primitive instructions (no `REPEAT`)                                                                  |
-| `constraints.maxCommands`     | integer, 1 to 64                                                                                             |
-| `constraints.maxSteps`        | integer, 1 to 1000                                                                                           |
-| `hints`                       | at most 5 entries, each 1 to 140 characters                                                                  |
+| Field                         | Limit                                                                                                                       |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `schemaVersion`               | must be `1`                                                                                                                 |
+| `levelId`, `slug`             | 1 to 64 characters, lowercase letters and digits in hyphen-separated groups (`^[a-z0-9]+(-[a-z0-9]+)*$`)                    |
+| `levelVersion`                | integer, 1 to 1,000,000                                                                                                     |
+| `title`                       | 1 to 60 characters                                                                                                          |
+| `description`                 | 0 to 280 characters                                                                                                         |
+| `difficulty`                  | `easy`, `medium`, or `hard`                                                                                                 |
+| `requires.mechanics`          | at most 8 entries, unique, each 1 to 32 characters matching `^[a-z][a-z0-9_]*$`                                             |
+| `board.width`, `board.height` | integer, 3 to 12                                                                                                            |
+| `board.walls`                 | at most 100 unique cells                                                                                                    |
+| `availableCommands`           | 1 to 9 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, `INC`, `MARK`, `REPEAT`, `REPEAT_UNTIL`, `IF`, `PROC` |
+| `REPEAT` `count`              | integer, 2 to 11                                                                                                            |
+| `REPEAT` `body`               | 1 to 8 primitive instructions (no `REPEAT`)                                                                                 |
+| `constraints.maxCommands`     | integer, 1 to 64                                                                                                            |
+| `constraints.maxSteps`        | integer, 1 to 1000                                                                                                          |
+| `hints`                       | at most 5 entries, each 1 to 140 characters                                                                                 |
 
 `requires.mechanics` names are free-form within the pattern: the validator does not know which mechanics a game build supports; the API and the client compare the list with what they support. The first command set needs no mechanics, so the list is normally empty; `REPEAT` needs the mechanic `repeat`, which the API adds from `availableCommands`.
 

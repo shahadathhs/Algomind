@@ -69,6 +69,7 @@
         "op": "TURN_RIGHT",
         "node": [1],
         "call": null,
+        "counter": 1,
         "round": null,
         "position": [2, 2],
         "direction": "east",

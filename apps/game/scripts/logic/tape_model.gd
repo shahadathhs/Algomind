@@ -18,25 +18,37 @@ extends TapeOpen
 ## follows the node when the tape is edited. `program()` leaves the flags out.
 
 
-func _init(max_commands: int = 0, available_commands: Array[String] = []) -> void:
+func _init(
+	max_commands: int = 0, available_commands: Array[String] = [], allow_nested_loops: bool = false
+) -> void:
 	limit = max_commands
 	available = available_commands
+	nested_loops = allow_nested_loops
 
 
 ## Whether `append(op)` would be accepted.
 func can_append(op: String) -> bool:
 	if not available.has(op) or is_full():
 		return false
-	var node := open_if()
 	if op == PROC:
 		return open_chain().is_empty() and next_proc_name() != ""
+	var node := open_if()
 	if ContractLimits.is_loop(op):
-		return open_loop_path().is_empty() and node.is_empty() and not open_loop_is_full()
+		return node.is_empty() and _can_open_loop()
 	if op == IF:
 		return node.is_empty() and not open_loop_is_full()
 	if not node.is_empty():
 		return (node[open_branch()] as Array).size() < ContractLimits.IF_THEN_MAX
 	return not open_loop_is_full()
+
+
+## True when a loop may start here: not in a full body, and not inside two loops (or inside one
+## when the level does not allow loops in loops).
+func _can_open_loop() -> bool:
+	if open_loop_is_full():
+		return false
+	var depth := _loop_depth()
+	return depth == 0 or (depth == 1 and nested_loops)
 
 
 ## Whether `append_call(name)` would be accepted: the level offers PROC, the name is defined, and
@@ -109,7 +121,8 @@ func append(op: String) -> bool:
 	return true
 
 
-## Stops adding to the open loop. False when none is open, it has no item or an IF is still open.
+## Stops adding to the open loop (the innermost one). False when none is open, it has no item or
+## an IF is still open.
 func end_loop() -> bool:
 	if not can_end_loop():
 		return false
@@ -127,14 +140,45 @@ func end_proc() -> bool:
 	return true
 
 
-## Stops adding to the open IF. False when none is open or its then branch has no command.
+## Stops adding to the open IF. False when none is open or its then branch has no command. The
+## IFs that lead to it in an else-if chain have nothing left to take, so they close with it.
 func end_if() -> bool:
 	if not can_end_if():
 		return false
-	var node := open_if()
-	node.erase("_open")
-	node.erase("_branch")
+	for path in open_chain():
+		if _is_if_path(path):
+			var node := TapeCells.node_at(nodes, path)
+			node.erase("_open")
+			node.erase("_branch")
 	selected = -1
+	return true
+
+
+## True when `start_else_if` would be accepted: the open IF is on its else branch, which is empty,
+## the chain has room (6 IFs) and the tape has a free slot for the new IF and a command.
+func can_start_else_if() -> bool:
+	var node := open_if()
+	if node.is_empty() or open_branch() != "else" or not (node["else"] as Array).is_empty():
+		return false
+	return available.has(IF) and _if_depth() < ContractLimits.IF_CHAIN_MAX and not is_full()
+
+
+## Starts an IF in the else of the open IF (ELSE IF) and opens it on its then branch; its
+## sensor cell is selected.
+func start_else_if() -> bool:
+	if not can_start_else_if():
+		return false
+	var node := open_if()
+	var inner := {
+		"op": IF,
+		"when": ContractLimits.SENSORS[0],
+		"then": [],
+		"else": [],
+		"_open": true,
+		"_branch": "then"
+	}
+	(node["else"] as Array).append(inner)
+	selected = cell_for_node(open_chain().back())
 	return true
 
 
@@ -153,7 +197,7 @@ func _else_showing() -> String:
 
 ## The `iff` key (see TapeCells) of the open IF, or "".
 func open_if_key() -> String:
-	for cell in TapeCells.build(nodes):
-		if cell["kind"] == "if" and node_of(cell).get("_open", false):
-			return String(cell["iff"])
-	return ""
+	var chain := open_chain()
+	if open_if().is_empty():
+		return ""
+	return TapeCells.key_of(chain.back())

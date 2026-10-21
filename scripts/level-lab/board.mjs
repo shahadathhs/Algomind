@@ -33,7 +33,8 @@ export function parseRows(rows) {
       else if (cell in FACING) start = { position: [x, y], direction: FACING[cell] };
     }),
   );
-  if (!goal || !start) throw new Error("A board needs one goal G and one automaton ^ > v <");
+  // A board without a G is a sweep: the goal is to visit every floor cell.
+  if (!start) throw new Error("A board needs one automaton ^ > v <");
   return { width: rows[0].length, height: rows.length, walls, goal, start };
 }
 
@@ -53,7 +54,7 @@ export function levelFromRows(rows, def = {}) {
     initialState: board.start,
     availableCommands: def.commands ?? ALL_COMMANDS,
     constraints: { maxCommands: def.maxCommands ?? 64, maxSteps: def.maxSteps ?? 200 },
-    goal: { type: "reach_tile", position: board.goal },
+    goal: board.goal ? { type: "reach_tile", position: board.goal } : { type: "visit_all" },
     hints: def.hints ?? [],
   };
 }

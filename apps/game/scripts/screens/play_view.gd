@@ -7,6 +7,8 @@ const COMMANDS: Array[Dictionary] = [
 	{"op": "MOVE_FORWARD", "label": "MOVE", "icon": "move"},
 	{"op": "TURN_LEFT", "label": "LEFT", "icon": "left"},
 	{"op": "TURN_RIGHT", "label": "RIGHT", "icon": "right"},
+	{"op": "INC", "label": "INC", "icon": "inc", "name": "Add one to the counter"},
+	{"op": "MARK", "label": "MARK", "icon": "mark", "name": "Drop a breadcrumb"},
 	{"op": "REPEAT", "label": "REPEAT", "icon": "repeat"},
 	{"op": "REPEAT_UNTIL", "label": "UNTIL", "icon": "until", "name": "Repeat until"},
 	{"op": "IF", "label": "IF", "icon": "if", "name": "If"},
@@ -14,6 +16,10 @@ const COMMANDS: Array[Dictionary] = [
 ]
 ## The Else tile, shown beside If while an IF is open.
 const ELSE_COMMAND := {"label": "ELSE", "icon": "", "name": "Else"}
+## The Else If tile (it starts an IF in the else of the open IF) and, on a level with nested loops,
+## the End Loop tile (the loop tiles then start an inner loop instead of ending the open one).
+const ELSE_IF_COMMAND := {"label": "ELSE IF", "icon": "if", "name": "Else if"}
+const END_LOOP_COMMAND := {"label": "END LOOP", "icon": "check", "name": "End loop"}
 ## Palette tiles at which the tiles of a loop that is not open give way to Else while an IF is open.
 const CROWDED := 6
 
@@ -38,6 +44,8 @@ static func group_is_open(tape: TapeModel, op: String) -> bool:
 		return not tape.open_if().is_empty()
 	if op == "PROC":
 		return tape.open_proc() >= 0
+	if tape.nested_loops:
+		return false
 	return open_op(tape) == op
 
 
@@ -46,6 +54,10 @@ static func group_is_open(tape: TapeModel, op: String) -> bool:
 static func apply_command(tape: TapeModel, op: String) -> void:
 	if op == "ELSE":
 		tape.start_else()
+	elif op == "ELSE_IF":
+		tape.start_else_if()
+	elif op == "END_LOOP":
+		tape.end_loop()
 	elif op == "IF" and group_is_open(tape, op):
 		tape.end_if()
 	elif op == "PROC" and group_is_open(tape, op):
@@ -86,13 +98,25 @@ static func refresh_palette(p: PlayScreen, solved: bool, running: bool) -> void:
 		button.queue_redraw()
 	for button: TileButton in p._call_buttons:
 		var name: String = button.get_meta("name")
-		button.visible = not solved and tape.open_proc() < 0 and tape.defined_names().has(name)
+		button.visible = (
+			not solved and tape.open_proc() < 0 and not if_open and tape.defined_names().has(name)
+		)
 		button.set_disabled(running or not tape.can_call(name))
 		button.queue_redraw()
 	if p._else_button != null:
 		p._else_button.visible = if_open and not solved
 		p._else_button.set_disabled(running or not tape.can_start_else())
 		p._else_button.queue_redraw()
+	var else_if: TileButton = p._extra_buttons.get("ELSE_IF")
+	if else_if != null:
+		else_if.visible = if_open and not solved
+		else_if.set_disabled(running or not tape.can_start_else_if())
+		else_if.queue_redraw()
+	var end_loop: TileButton = p._extra_buttons.get("END_LOOP")
+	if end_loop != null:
+		end_loop.visible = not solved and open_op(tape) != ""
+		end_loop.set_disabled(running or not tape.can_end_loop())
+		end_loop.queue_redraw()
 
 
 ## True when the selected cell is one whose tap changes its sensor or condition.
@@ -127,9 +151,10 @@ static func refresh_tools(p: PlayScreen) -> void:
 	var cell := tape.cells()[tape.selected]
 	tools[2].set_disabled(not tape.can_move(-1))
 	tools[3].set_disabled(not tape.can_move(1))
-	var count := int(cell.get("count", 0))
-	tools[0].set_disabled(count <= ContractLimits.REPEAT_COUNT_MIN)
-	tools[1].set_disabled(count >= ContractLimits.REPEAT_COUNT_MAX)
+	var values := tape.count_values()
+	var at := values.find(cell.get("count", 0))
+	tools[0].set_disabled(at <= 0)
+	tools[1].set_disabled(at >= values.size() - 1)
 	if tools[5].visible:
 		var node := tape.node_of(cell)
 		tools[5].icon = (
@@ -144,7 +169,10 @@ static func refresh_tools(p: PlayScreen) -> void:
 ## points of a solved level (a provisional score; the server's total wins at the next sync).
 static func counter_text(p: PlayScreen) -> String:
 	if p._session.state != PlaySession.State.SUCCEEDED:
-		return "%d / %d COMMANDS" % [p._tape.slots(), p._tape.limit]
+		var text := "%d / %d COMMANDS" % [p._tape.slots(), p._tape.limit]
+		if LevelMechanics.is_sweep(p._session.level["goal"]):
+			text += "\n" + cells_text(p._session)
+		return text
 	var par: Dictionary = p._entry.get("par", {})
 	if not par.has("commands") or not par.has("steps"):
 		return "SOLVED"
@@ -156,7 +184,7 @@ static func counter_text(p: PlayScreen) -> String:
 				"difficulty": p._level["difficulty"],
 				"par": par,
 				"slots": p._tape.slots(),
-				"steps": int(p._session.result.get("steps", 0)),
+				"steps": run_steps(p),
 			}
 		)
 	)
@@ -165,15 +193,43 @@ static func counter_text(p: PlayScreen) -> String:
 	return "%d / 3 STARS\n%d POINTS" % [score["stars"], score["levelScore"]]
 
 
+## The sweep readout under the command counter: the cells entered so far of all the floor cells.
+static func cells_text(session: PlaySession) -> String:
+	return "%d / %d CELLS" % [session.trail().size(), LevelMechanics.floor_cells(session.level)]
+
+
+## The caption above the tape. On a level with the counter it also shows N while a run is shown.
+static func program_caption(p: PlayScreen) -> String:
+	if not LevelMechanics.has_counter(p._level) or p._session.state == PlaySession.State.READY:
+		return "PROGRAM"
+	var entry := p._session.current_entry()
+	return "PROGRAM   N %d" % (int(entry["counter"]) if not entry.is_empty() else 1)
+
+
 static func message_text(p: PlayScreen) -> String:
 	match p._session.state:
 		PlaySession.State.SUCCEEDED, PlaySession.State.FAILED:
-			var special := LoopMessages.for_result(p._level, p._tape.program(), p._session.result)
-			if special != "":
-				return special.to_upper().trim_suffix(".")
-			return ResultMessages.for_result(p._session.result).to_upper().trim_suffix(".")
-		_:
-			return LoopMessages.building_text(p._tape)
+			return result_text(p)
+		PlaySession.State.READY:
+			if p._boards.notice != "":
+				return p._boards.notice
+	return LoopMessages.building_text(p._tape, LevelMechanics.is_sweep(p._session.level["goal"]))
+
+
+## The text of a finished run. A failure on a level with test boards names its board.
+static func result_text(p: PlayScreen) -> String:
+	var result := p._session.result
+	var special := LoopMessages.for_result(p._session.level, p._tape.program(), result)
+	var text := special if special != "" else ResultMessages.for_result(result)
+	var prefix := p._boards.prefix() if p._session.state == PlaySession.State.FAILED else ""
+	return prefix + text.to_upper().trim_suffix(".")
+
+
+## The steps that results and scoring count: all boards added together for a multi-board level.
+static func run_steps(p: PlayScreen) -> int:
+	if p._boards.is_multi():
+		return p._boards.total_steps(p._tape.program())
+	return int(p._session.result.get("steps", 0))
 
 
 static func update_stats(p: PlayScreen) -> void:
@@ -182,7 +238,7 @@ static func update_stats(p: PlayScreen) -> void:
 	if p._entry.has("daily"):
 		best = int(p.app.progress.results.daily_best.get(p._entry["daily"], {}).get("slots", 0))
 	stats[0].value = "%d / %d" % [p._tape.slots(), p._tape.limit]
-	stats[1].value = str(int(p._session.result.get("steps", 0)))
+	stats[1].value = str(run_steps(p))
 	var par: Dictionary = p._entry.get("par", {})
 	if par.has("commands"):
 		stats[2].caption = "BEST / PAR"

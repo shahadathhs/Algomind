@@ -45,23 +45,27 @@ export type LevelSummary = {
   updatedAt: string;
 };
 
-/** A move or a turn. */
+/** A move, a turn, INC or MARK. */
 export type Primitive = { op: string };
-/** An IF: a sensor, a `then` branch of primitives and an `else` branch (possibly empty). */
-export type IfNode = { op: "IF"; when: string; then: Primitive[]; else: Primitive[] };
-/** An item of a loop body: a primitive or an IF. */
-export type BodyNode = Primitive | IfNode;
+/** An IF: a sensor, a `then` branch of primitives and an `else` branch: primitives, or one IF (else-if). */
+export type IfNode = { op: "IF"; when: string; then: Primitive[]; else: (Primitive | IfNode)[] };
+/** An item of a loop body: a primitive, an IF, a CALL or an inner loop. */
+export type BodyNode = Primitive | IfNode | Instruction;
 /** One program node (primitive, IF, loop, PROC or CALL); fields are optional so one type covers all. */
 export type Instruction = {
   op: string;
-  count?: number;
+  /** Rounds of a REPEAT: 2 to 11, or "N" for the counter. */
+  count?: number | "N";
   until?: string;
   body?: Instruction[];
   name?: string;
   when?: string;
   then?: Primitive[];
-  else?: Primitive[];
+  else?: (Primitive | Instruction)[];
 };
+
+/** A target to reach, or (visit_all) every floor cell to enter; a sweep goal has no position. */
+export type Goal = { type: string; position?: [number, number] };
 
 export type LevelContent = {
   schemaVersion: number;
@@ -76,8 +80,10 @@ export type LevelContent = {
   initialState: { position: [number, number]; direction: "north" | "east" | "south" | "west" };
   availableCommands: string[];
   constraints: { maxCommands: number; maxSteps: number };
-  goal: { type: string; position: [number, number] };
+  goal: Goal;
   hints: string[];
+  /** Test boards the same program must also solve (1 to 5). */
+  extraBoards?: Pick<LevelContent, "board" | "initialState" | "goal">[];
 };
 
 export type VersionView = {

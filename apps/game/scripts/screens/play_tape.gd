@@ -7,6 +7,7 @@ extends RefCounted
 ## it), shows its loop round and which commands of the IF branches have run.
 static func set_head(p: PlayScreen, entry: Dictionary) -> void:
 	p._tape_view.executed = PlayView.executed_paths(p._session)
+	p._tape_view.outer_rounds = {}
 	if entry.is_empty():
 		p._tape_view.current = 0 if p._tape_view.running else -1
 		p._tape_view.current_round = 0
@@ -17,6 +18,22 @@ static func set_head(p: PlayScreen, entry: Dictionary) -> void:
 		-1 if entry.get("call") == null else p._tape.cell_for_node(entry["call"])
 	)
 	p._tape_view.current_round = int(entry["round"]) if entry["round"] != null else 0
+	p._tape_view.outer_rounds = _outer_rounds(p)
+
+
+## The round of each loop that holds a loop and the read-head, by cell index.
+static func _outer_rounds(p: PlayScreen) -> Dictionary:
+	var out := {}
+	var view := p._tape_view
+	for i in view.cells.size():
+		var cell := view.cells[i]
+		if cell.get("nests", false) and view.group_holds(i, view.current):
+			var node := TapeCells.node_at(p._tape.nodes, cell["path"])
+			var rounds := LoopRounds.outer_round(
+				p._session.trace(), p._session.cursor, cell["path"], node, int(cell["proc"]) >= 0
+			)
+			out[i] = maxi(rounds, 1)
+	return out
 
 
 ## Puts the tape where it belongs for the current state: the read-head while a run is shown,
@@ -45,7 +62,11 @@ static func set_run_button(p: PlayScreen, label: String, icon: String, disabled:
 static func show_board(p: PlayScreen) -> void:
 	var auto := p._session.automaton_state()
 	p._board.show_state(
-		auto["position"], auto["direction"], p._session.trail(), p._session.blocked_cell()
+		auto["position"],
+		auto["direction"],
+		p._session.trail(),
+		p._session.blocked_cell(),
+		p._session.crumbs()
 	)
 
 

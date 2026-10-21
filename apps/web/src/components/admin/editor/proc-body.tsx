@@ -2,7 +2,7 @@
 
 import { moveItem } from "@/lib/admin/list-ops";
 import type { Instruction } from "@/lib/admin/admin-api";
-import { PROC_LIMITS, isIf, isLoop, primitivesOf } from "@/lib/admin/level-model";
+import { PROC_LIMITS, isIf, isLoop } from "@/lib/admin/level-model";
 import { asIf, nodeLabel } from "@/lib/admin/program-model";
 import { AddCommands } from "./add-commands";
 import { IfBranches } from "./if-branches";
@@ -13,11 +13,13 @@ import { LoopBody } from "./loop-body";
 export function ProcBody({
   node,
   available,
+  nested = false,
   idPrefix,
   onBody,
 }: {
   node: Instruction;
   available: string[];
+  nested?: boolean;
   idPrefix: string;
   onBody: (body: Instruction[]) => void;
 }) {
@@ -52,6 +54,7 @@ export function ProcBody({
                   name={`loop ${j + 1} of ${name}`}
                   idPrefix={`${idPrefix}-loop-${j}`}
                   available={available}
+                  nested={nested}
                   onCount={(count) => setItem(j, { count })}
                   onUntil={(until) => setItem(j, { until })}
                   onBody={(inner) => setItem(j, { body: inner })}
@@ -62,7 +65,7 @@ export function ProcBody({
                   node={asIf(b)}
                   where={where}
                   idPrefix={`${idPrefix}-if-${j}`}
-                  primitives={primitivesOf(available)}
+                  available={available}
                   onChange={(next) => onBody(body.map((x, k) => (k === j ? next : x)))}
                 />
               )}

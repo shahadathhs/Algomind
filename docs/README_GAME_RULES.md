@@ -218,6 +218,87 @@ Two more nodes. A procedure is a named piece of program, defined once and run fr
 
 **Editing:** the palette gains a Proc tile. Tapping it starts the next free name (A, then B, then C) as a definition group drawn at the top of the tape with its name; tapped commands go into it until the tile (now reading End proc) is tapped. While no definition is open, each defined name has a Call tile that appends a call to the main program. The main program is drawn below the definitions. A definition with an empty body is not a program.
 
+### 3.5 Test boards (world 7)
+
+> **Status:** specified 2026-10-21; the contract and the game (validator, simulator, board tabs on the play screen) are built; the editor and the API still follow.
+
+A level may carry more than one board, and one program must solve all of them. Nothing changes in how a board is run; what changes is what solving a level means.
+
+```json
+{
+  "...": "the level's own board, initialState and goal as always",
+  "extraBoards": [
+    {
+      "board": { "width": 9, "height": 3, "walls": [] },
+      "initialState": { "position": [0, 1], "direction": "east" },
+      "goal": { "type": "reach_tile", "position": [8, 1] }
+    }
+  ]
+}
+```
+
+- **Shape:** `extraBoards` is optional and holds 1 to 5 test boards. Each has the same three fields as the level's own board (`board`, `initialState`, `goal`) and the same rules (size, walls, start and goal on the board and not on a wall). Everything else (commands, `maxCommands`, `maxSteps`, hints) is the level's and is shared. Issue paths are prefixed, for example `extraBoards[0].goal.position`.
+- **Running:** a program is run on every board, the level's own first. `simulateAll` returns one result per board, whether the level is solved (every board `SUCCEEDED`), the index of the first board that failed (0 is the level's own board), and the sum of the steps. `maxSteps` limits each run, not the sum.
+- **Slots and par:** slots are counted once, as for any program. Par is the reference solution's slots and its **total** steps over all boards (the exact solver covers one board only, so par for a level with test boards is the reference solution, as for `IF` and `PROC`).
+- **Why it exists:** a program that works because of one board's measurements (move exactly seven times) fails on the next board. The only programs that pass are the ones that ask the board (until blocked, if clear) instead of counting.
+- **Availability:** the mechanic `multi_board` is derived by the API from the content (a level with `extraBoards` requires it), so a client that cannot show several boards never starts such a level.
+- **Gates:** the reference solution must solve every board, and the publish gate runs the exact solver on the level's own board: if that best program already solves every other board within the limit, the level does not need an algorithm and is flagged (`BOARDS_NOT_REQUIRED`, a warning).
+- **Playing:** the board area shows one board at a time with one tab per board (BOARD 1, BOARD 2, and so on). Run runs the program on the selected board. A board a program has solved shows a check (a shape and the word, never colour alone). The level is solved when the same program has solved every board; editing the program clears the checks. After a successful run the next unsolved board is selected. A failure names its board ("Board 2: the automaton tried to move into a wall").
+
+**Level design rules for world 7:**
+
+1. Every level has 2 to 4 boards that differ in size and shape, never a rotation of one another.
+2. The limit is the slots of the reference solution, and the best program for the first board alone must fail on at least one other board (the `BOARDS_NOT_REQUIRED` check).
+3. Levels offer every tool of worlds 1 to 6, so the player chooses the right one (a loop to the wall, a decision, a procedure) and not a new one.
+4. Early levels use boards that differ only in length or size; later ones use boards with different shapes where the right-hand rule or a loop with a decision is needed.
+
+### 3.6 Counters and nested loops (world 8)
+
+> **Status:** built (contract, both simulators, the dashboard and game editors, the levels of this world).
+
+Two additions that belong together: a loop inside a loop, and one counter that a loop can use.
+
+- **The counter `N`.** A run starts with `N = 1`. The instruction `{ "op": "INC" }` adds one (it stops at 11, the most a loop can use). `INC` is an action like a turn: one slot, one step, and the trace entry (`event` `COUNTED`) does not move the automaton. A level offers it by listing `INC` in `availableCommands`; the mechanic is `counter`.
+- **A loop that counts with `N`.** A `REPEAT` takes `"count": "N"` instead of a number. The loop reads `N` when it starts and runs that many rounds (1 to 11), whatever happens to `N` inside it. It needs `INC` offered (`COMMAND_NOT_AVAILABLE` at `.count` otherwise).
+- **Trace.** Every trace entry has `counter`: the value of `N` after the step.
+- **Loops in loops.** A loop body may hold one loop, which may not hold another (two levels at most, in the main program and inside a procedure alike). A level allows it by listing the mechanic `nested_loops` in `requires.mechanics`; without it a loop inside a loop is `NESTED_REPEAT`, as before, and so is a third level. Slots are recursive: a loop is 1 plus the slots of its body items. In the trace, a primitive in an inner loop has `node` `[i, j, k]` (loop `i`, body item `j` is the inner loop, item `k` of its body) and `round` is the **inner** loop's round.
+- **Par:** the exact solver reads neither the counter nor nesting, so par for a level that offers `INC` or `nested_loops` is its reference solution, as for `IF`, `PROC` and test boards.
+
+**Level design rules for world 8:** the idea is a number that changes: shapes that grow (a spiral outward, a widening staircase, triangles). The limit is the reference solution's slots; the best program without the counter and nesting is at least twice the limit.
+
+### 3.7 Breadcrumbs and the Tremaux search (world 9)
+
+> **Status:** built (contract, both simulators, the dashboard and game editors, the levels of this world).
+
+The board remembers what the automaton leaves on it. This is what lets a program explore a maze that has loops and still finish.
+
+- **Breadcrumbs.** The instruction `{ "op": "MARK" }` drops a breadcrumb on the cell the automaton stands on: an arrow that points to the cell **behind** the automaton, which is the cell it came from when it has just stepped forward. A cell that already has a breadcrumb keeps it (marking twice changes nothing). `MARK` is an action: one slot, one step, trace `event` `MARKED`. A level offers it by listing `MARK` in `availableCommands`; the mechanic is `markers`.
+- **Breadcrumb sensors** for `IF.when`, each about the cell ahead, to the left, or to the right: `FRESH_AHEAD`, `FRESH_LEFT`, `FRESH_RIGHT` (a floor cell with no breadcrumb) and `BACK_AHEAD`, `BACK_LEFT`, `BACK_RIGHT` (the cell on that side is the one **this** cell's breadcrumb points to: the way back). A wall, the board edge and a cell with a breadcrumb are not fresh; a cell is `BACK` only for the cell the arrow on the automaton's own cell points at. Reading a sensor is free. They need `MARK` offered (`COMMAND_NOT_AVAILABLE` at `.when`).
+- **Else-if chains.** The `else` of an `IF` may hold one `IF` (and nothing else) instead of actions, so one decision can choose between many cases: `IF a { .. } ELSE IF b { .. } ELSE { .. }`. A chain may be up to 6 `IF`s long; an `IF` inside `then`, or an `else` that mixes an `IF` with actions, is `NESTED_IF`. Slots: an `IF` is 1 plus its `then` actions plus the slots of its `else` (the actions, or the nested `IF`). A trace path goes into the nested `IF` after the index `then.length`.
+- **In the trace:** `MARKED` entries mark where breadcrumbs were dropped (a repeated `MARK` on a marked cell is still a `MARKED` step). The arrow itself follows from the entry before it: it points to the cell the automaton was on one step earlier, unless the automaton had turned in place.
+- **The Tremaux search** (the algorithm world 9 teaches): mark the cell, step onto a fresh cell ahead, else right, else left; when none is fresh, follow the breadcrumb back (ahead, right, left, and the cell behind when none of those is the way back). A cell is entered fresh at most once and the way back is always known, so the search cannot go round a loop for ever and it reaches every cell it can. As a program: `REPEAT_UNTIL GOAL { MARK, IF FRESH_AHEAD { Move } ELSE IF FRESH_RIGHT { Right, Move } ELSE IF FRESH_LEFT { Left, Move } ELSE IF BACK_AHEAD { Move } ELSE IF BACK_RIGHT { Right, Move } ELSE IF BACK_LEFT { Left, Move } ELSE { Right, Right, Move } }`, 21 slots. (Tremaux's original marks passages with up to two marks. This is the same search written with one breadcrumb per cell; in a trial on 300 random mazes with loops, the two-mark version that marks cells instead of passages went round for ever in 30 of them and this one finished all 300.)
+- **Par** is the reference solution (the exact solver reads no breadcrumbs).
+
+**Level design rules for world 9:** boards have loops (a wall follower circles for ever on them), the goal is not on the outer wall, and the reference solution solves every board of the level. Limits up to 24 slots are allowed in this world (the Tremaux search is 21), because the tape scrolls and the search is the point of the world. Early levels are small enough to follow the breadcrumbs by eye.
+
+### 3.8 Visit every cell (world 10)
+
+> **Status:** built (contract, both simulators, the dashboard and game editors, the levels of this world).
+
+A second kind of goal, `visit_all`:
+
+```json
+"goal": { "type": "visit_all" }
+```
+
+- **Meaning:** the run succeeds the moment every floor (non-wall) cell of the board has been entered or started on. The start cell counts from the start. The goal has no `position` (a `position` is an unknown field). Reason and event are `GOAL_REACHED`, as for a target.
+- **Validity:** the board must have at least two floor cells (`GOAL_EQUALS_START` is reported at `goal` for a board whose only floor cell is the start). Cells the automaton can never reach make a level unsolvable; the publish gate catches that because the reference solution must solve the level.
+- **Mixed levels:** a level's own board and each extra board choose their own goal type.
+- **Par:** the exact solver does not search `visit_all`; par is the reference solution. `maxSteps` should scale with the board (about twice the reference run).
+- **Counting in the game:** the board shows the visited cells and the counter reads "12 / 30 CELLS".
+
+**Level design rules for world 10:** the sweep is the lawnmower (run to the wall, step over, run back), which needs nested loops from world 8. Later boards have pillars and notches that make a plain lawnmower fail; the step limit is tight enough that wandering fails too.
+
 ## 4. Execution model and feedback
 
 ### Controls

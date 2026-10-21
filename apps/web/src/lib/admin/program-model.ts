@@ -7,12 +7,44 @@ export const SENSOR_LABELS: Record<string, string> = {
   CLEAR_AHEAD: "Clear ahead",
   CLEAR_LEFT: "Clear left",
   CLEAR_RIGHT: "Clear right",
+  FRESH_AHEAD: "Fresh ahead",
+  FRESH_LEFT: "Fresh left",
+  FRESH_RIGHT: "Fresh right",
+  BACK_AHEAD: "Back ahead",
+  BACK_LEFT: "Back left",
+  BACK_RIGHT: "Back right",
 };
+
+/** The sensors in groups; the fresh and back groups need MARK offered. */
+export const SENSOR_GROUPS: { label: string; needsMark: boolean; sensors: string[] }[] = [
+  { label: "Clear", needsMark: false, sensors: ["CLEAR_AHEAD", "CLEAR_LEFT", "CLEAR_RIGHT"] },
+  {
+    label: "Fresh (no breadcrumb)",
+    needsMark: true,
+    sensors: ["FRESH_AHEAD", "FRESH_LEFT", "FRESH_RIGHT"],
+  },
+  {
+    label: "Back (the way back)",
+    needsMark: true,
+    sensors: ["BACK_AHEAD", "BACK_LEFT", "BACK_RIGHT"],
+  },
+];
+
+/** The IF an else holds (an else-if), or null when the else holds actions or nothing. */
+export function elseIf(node: { else?: { op: string }[] }): IfNode | null {
+  const list = node.else ?? [];
+  return list.length === 1 && list[0]!.op === "IF" ? asIf(list[0] as Instruction) : null;
+}
 
 export const UNTIL_LABELS: Record<string, string> = { BLOCKED: "Blocked", GOAL: "Goal" };
 
 /** The branch limits of an IF (the contract's limits). */
 export const IF_LIMITS = { then: { max: 4 }, else: { max: 4 } } as const;
+
+/** The IF an else-if button adds: its own sensor, empty branches. */
+export function newElseIf(first: string): IfNode {
+  return { op: "IF", when: first, then: [], else: [] };
+}
 
 export function newIf(): IfNode {
   return { op: "IF", when: "CLEAR_AHEAD", then: [], else: [] };
@@ -26,7 +58,7 @@ function nodeTiles(node: BodyNode | Instruction): Command[] {
     return [
       own,
       ...(n.then ?? []).map((p) => commandOf(p.op)),
-      ...(n.else ?? []).map((p) => commandOf(p.op)),
+      ...(n.else ?? []).flatMap((p) => nodeTiles(p as Instruction)),
     ];
   // A loop and a PROC both hold a body: the definition's tiles come from the PROC, a CALL is one tile.
   if (isLoop(node) || isProc(node)) return [own, ...(n.body ?? []).flatMap(nodeTiles)];
@@ -58,23 +90,42 @@ export function newCall(name: string): Instruction {
   return { op: "CALL", name };
 }
 
-function visit(items: readonly BodyNode[] | undefined, fn: (node: Instruction) => void) {
-  for (const item of items ?? []) {
-    fn(item as Instruction);
-    visit((item as Instruction).body, fn);
-  }
-}
-
-/** The reference solution in words: loops, until-loops, ifs, procedures and calls, wherever they stand. */
+/** What a program is made of, wherever it stands: nested loops, else-ifs and the counter and breadcrumb uses included. */
 export function countKinds(program: Instruction[]) {
-  const counts = { counted: 0, until: 0, ifs: 0, procs: 0, calls: 0 };
-  visit(program, (node) => {
-    if (node.op === "REPEAT") counts.counted += 1;
-    else if (node.op === "REPEAT_UNTIL") counts.until += 1;
-    else if (node.op === "IF") counts.ifs += 1;
-    else if (node.op === "PROC") counts.procs += 1;
-    else if (node.op === "CALL") counts.calls += 1;
-  });
+  const counts = {
+    counted: 0,
+    until: 0,
+    ifs: 0,
+    elseIfs: 0,
+    procs: 0,
+    calls: 0,
+    nested: 0,
+    incs: 0,
+    marks: 0,
+    byN: 0,
+  };
+  const walk = (items: readonly Instruction[] | undefined, inLoop: boolean, chained: boolean) => {
+    for (const node of items ?? []) {
+      if (node.op === "REPEAT" || node.op === "REPEAT_UNTIL") {
+        if (node.op === "REPEAT") counts.counted += 1;
+        else counts.until += 1;
+        if (node.count === "N") counts.byN += 1;
+        if (inLoop) counts.nested += 1;
+        walk(node.body, true, false);
+      } else if (node.op === "IF") {
+        counts.ifs += 1;
+        if (chained) counts.elseIfs += 1;
+        const rest = node.else ?? [];
+        if (rest.length === 1 && rest[0]!.op === "IF") walk(rest as Instruction[], inLoop, true);
+      } else if (node.op === "PROC") {
+        counts.procs += 1;
+        walk(node.body, false, false);
+      } else if (node.op === "CALL") counts.calls += 1;
+      else if (node.op === "INC") counts.incs += 1;
+      else if (node.op === "MARK") counts.marks += 1;
+    }
+  };
+  walk(program, false, false);
   return counts;
 }
 

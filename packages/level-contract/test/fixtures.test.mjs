@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   explainResult,
   simulate,
+  simulateAll,
   solve,
   validateAuthoringLevel,
   validateLevel,
@@ -18,6 +19,7 @@ const validFixtures = loadFixtures("levels/valid");
 const invalidFixtures = loadFixtures("levels/invalid");
 const runFixtures = loadFixtures("runs");
 const solverFixtures = loadFixtures("solver");
+const boardFixtures = loadFixtures("boards");
 
 test("the fixture suite is large enough and self-describing", () => {
   assert.ok(validFixtures.length >= 5);
@@ -29,6 +31,7 @@ test("the fixture suite is large enough and self-describing", () => {
     ...invalidFixtures,
     ...runFixtures,
     ...solverFixtures,
+    ...boardFixtures,
   ]) {
     assert.equal(typeof data.description, "string", `${name} needs a description`);
     assert.ok(data.description.length > 0, `${name} needs a description`);
@@ -71,6 +74,30 @@ for (const { name, data } of runFixtures) {
     assert.deepEqual(result, data.expected);
     assert.equal(result.steps, result.trace.length);
     assert.equal(typeof explainResult(result), "string");
+  });
+}
+
+for (const { name, data } of boardFixtures) {
+  test(`boards fixture: ${name}`, () => {
+    assert.deepEqual(validateLevel(data.level).issues, []);
+    assert.deepEqual(
+      normalize(validateProgram(data.level, data.program).issues),
+      normalize(data.programIssues),
+    );
+    const result = simulateAll(data.level, data.program);
+    const summary = {
+      status: result.status,
+      firstFailure: result.firstFailure,
+      steps: result.steps,
+      results: result.results.map((r) => ({
+        status: r.status,
+        reason: r.reason,
+        steps: r.steps,
+        finalState: r.finalState,
+        blockedCell: r.blockedCell,
+      })),
+    };
+    assert.deepEqual(summary, data.expected);
   });
 }
 

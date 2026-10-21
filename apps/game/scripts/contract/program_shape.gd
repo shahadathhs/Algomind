@@ -3,21 +3,24 @@ extends RefCounted
 ## Which program nodes the simulator can run. A node that fails these checks stops the run with
 ## INVALID_INSTRUCTION. Mirrors the runnable function of level-contract src/simulate.ts.
 
-## Where a node stands, which decides what it may hold.
-enum Place { TOP, LOOP_BODY, PROC_BODY, PROC_LOOP_BODY }
+## The place of a node in the main program: nothing encloses it.
+const TOP := {"top": true, "proc": false, "loops": 0, "branch": false}
 
 
-## True for one primitive node: an object whose op is MOVE_FORWARD, TURN_LEFT, or TURN_RIGHT.
+## Where a node stands, which decides what it may hold: top (a PROC may stand here), proc (inside
+## a procedure body: no CALL), loops (how many loops enclose it: a loop needs fewer than two) and
+## branch (inside an IF branch: only actions).
+static func place_of(top: bool, proc: bool, loops: int, branch: bool) -> Dictionary:
+	return {"top": top, "proc": proc, "loops": loops, "branch": branch}
+
+
+## True for one action node: an object whose op is a move, a turn, INC or MARK.
 static func is_primitive(node: Variant) -> bool:
-	return (
-		typeof(node) == TYPE_DICTIONARY
-		and typeof(node.get("op")) == TYPE_STRING
-		and ContractLimits.PRIMITIVE_COMMANDS.has(node["op"])
-	)
+	return typeof(node) == TYPE_DICTIONARY and ContractLimits.is_action(node.get("op"))
 
 
-## True for a list of primitives whose length is within [low, high].
-static func _is_primitive_list(list: Variant, low: int, high: int) -> bool:
+## True for a list of actions whose length is within [low, high].
+static func _is_action_list(list: Variant, low: int, high: int) -> bool:
 	if typeof(list) != TYPE_ARRAY:
 		return false
 	var items: Array = list
@@ -29,26 +32,31 @@ static func _is_primitive_list(list: Variant, low: int, high: int) -> bool:
 	return true
 
 
-## True for an IF the simulator can run: a known sensor, 1 to 4 primitives to run and 0 to 4 else.
-static func is_runnable_if(node: Variant) -> bool:
+## True for an IF the simulator can run: a known sensor, 1 to 4 actions to run and 0 to 4 actions
+## (or one more IF, up to the chain limit) otherwise. chain counts the IFs seen, this one included.
+static func is_runnable_if(node: Variant, chain: int = 1) -> bool:
 	if typeof(node) != TYPE_DICTIONARY or not ContractLimits.is_if(node.get("op")):
 		return false
+	if chain > ContractLimits.IF_CHAIN_MAX:
+		return false
 	var when: Variant = node.get("when")
-	return (
-		typeof(when) == TYPE_STRING
-		and ContractLimits.SENSORS.has(when)
-		and _is_primitive_list(
-			node.get("then"), ContractLimits.IF_THEN_MIN, ContractLimits.IF_THEN_MAX
-		)
-		and _is_primitive_list(
-			node.get("else"), ContractLimits.IF_ELSE_MIN, ContractLimits.IF_ELSE_MAX
-		)
-	)
+	if typeof(when) != TYPE_STRING or not ContractLimits.SENSORS.has(when):
+		return false
+	if not _is_action_list(
+		node.get("then"), ContractLimits.IF_THEN_MIN, ContractLimits.IF_THEN_MAX
+	):
+		return false
+	var other: Variant = node.get("else")
+	if typeof(other) == TYPE_ARRAY and (other as Array).size() == 1:
+		var only: Variant = (other as Array)[0]
+		if typeof(only) == TYPE_DICTIONARY and ContractLimits.is_if(only.get("op")):
+			return is_runnable_if(only, chain + 1)
+	return _is_action_list(other, ContractLimits.IF_ELSE_MIN, ContractLimits.IF_ELSE_MAX)
 
 
 ## True for a list of runnable items whose length is within [low, high].
 static func _is_runnable_list(
-	list: Variant, low: int, high: int, place: Place, procs: Dictionary
+	list: Variant, low: int, high: int, place: Dictionary, procs: Dictionary
 ) -> bool:
 	if typeof(list) != TYPE_ARRAY:
 		return false
@@ -63,25 +71,26 @@ static func _is_runnable_list(
 
 ## True when the node and everything inside it can be run: known ops and conditions, bodies and
 ## branches of the right size, and only what the place allows. procs maps the names a CALL may use.
-static func is_runnable(node: Variant, place: Place, procs: Dictionary) -> bool:
+## The simulator runs two loop levels whether or not the level lists nested_loops; a third stops it.
+static func is_runnable(node: Variant, place: Dictionary, procs: Dictionary) -> bool:
 	if typeof(node) != TYPE_DICTIONARY:
 		return false
 	if is_primitive(node):
 		return true
 	var op: Variant = node.get("op")
 	if ContractLimits.is_if(op):
-		return is_runnable_if(node)
+		return not place["branch"] and is_runnable_if(node)
 	if ContractLimits.is_call(op):
 		var name: Variant = node.get("name")
 		return (
-			(place == Place.TOP or place == Place.LOOP_BODY)
+			not place["proc"]
+			and not place["branch"]
 			and typeof(name) == TYPE_STRING
 			and procs.has(name)
 		)
 	if ContractLimits.is_loop(op):
-		if place == Place.LOOP_BODY or place == Place.PROC_LOOP_BODY:
+		if place["branch"] or int(place["loops"]) >= 2:
 			return false
-		var inner := Place.PROC_LOOP_BODY if place == Place.PROC_BODY else Place.LOOP_BODY
 		if ContractLimits.is_repeat(op):
 			if not _is_valid_count(node.get("count")):
 				return false
@@ -89,6 +98,7 @@ static func is_runnable(node: Variant, place: Place, procs: Dictionary) -> bool:
 			var until: Variant = node.get("until")
 			if typeof(until) != TYPE_STRING or not ContractLimits.UNTIL_CONDITIONS.has(until):
 				return false
+		var inner := place_of(false, place["proc"], int(place["loops"]) + 1, false)
 		return _is_runnable_list(
 			node.get("body"),
 			ContractLimits.REPEAT_BODY_MIN,
@@ -99,14 +109,14 @@ static func is_runnable(node: Variant, place: Place, procs: Dictionary) -> bool:
 	if ContractLimits.is_proc(op):
 		var proc_name: Variant = node.get("name")
 		return (
-			place == Place.TOP
+			place["top"]
 			and typeof(proc_name) == TYPE_STRING
 			and ContractLimits.PROCEDURE_NAMES.has(proc_name)
 			and _is_runnable_list(
 				node.get("body"),
 				ContractLimits.PROC_BODY_MIN,
 				ContractLimits.PROC_BODY_MAX,
-				Place.PROC_BODY,
+				place_of(false, true, 0, false),
 				procs
 			)
 		)
@@ -114,6 +124,8 @@ static func is_runnable(node: Variant, place: Place, procs: Dictionary) -> bool:
 
 
 static func _is_valid_count(count: Variant) -> bool:
+	if typeof(count) == TYPE_STRING:
+		return count == ContractLimits.COUNTER_REF
 	if typeof(count) == TYPE_FLOAT:
 		if count != floorf(count):
 			return false
@@ -136,6 +148,6 @@ static func reachable_procs(program: Array) -> Dictionary:
 		var name: Variant = node.get("name")
 		if typeof(name) != TYPE_STRING or procs.has(name):
 			continue
-		if is_runnable(node, Place.TOP, {}):
+		if is_runnable(node, TOP, {}):
 			procs[name] = {"node": node, "index": i}
 	return procs

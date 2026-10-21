@@ -62,6 +62,7 @@ test("a blocked move is a counted, traced step and leaves the position unchanged
       op: "MOVE_FORWARD",
       node: [0],
       call: null,
+      counter: 1,
       round: null,
       position: [1, 2],
       direction: "east",

@@ -85,3 +85,41 @@ func test_run_results_use_integers_for_positions() -> void:
 			if cell != null:
 				assert_eq(typeof(cell[0]), TYPE_INT, "%s x" % file_name)
 				assert_eq(typeof(cell[1]), TYPE_INT, "%s y" % file_name)
+
+
+func test_boards_match_the_expected_summary() -> void:
+	assert_gt(ContractSupport.fixture_names("boards").size(), 0, "boards fixtures")
+	var failures: Array[String] = []
+	for file_name in ContractSupport.fixture_names("boards"):
+		var data: Dictionary = ContractSupport.load_fixture("boards", file_name)
+		var level: Dictionary = data["level"]
+		var program: Array = data["program"]
+		if not LevelValidator.validate_level(level)["ok"]:
+			failures.append("%s: level does not validate" % file_name)
+		var program_check := LevelValidator.validate_program(level, program)
+		var got := ContractSupport.pairs(program_check["issues"])
+		if got != _expected_pairs(data["programIssues"]):
+			failures.append("%s: programIssues got %s" % [file_name, got])
+		var result := LevelSimulator.simulate_all(level, program)
+		var summary := {
+			"status": result["status"],
+			"firstFailure": result["firstFailure"],
+			"steps": result["steps"],
+			"results": [],
+		}
+		for one: Dictionary in result["results"]:
+			(
+				summary["results"]
+				. append(
+					{
+						"status": one["status"],
+						"reason": one["reason"],
+						"steps": one["steps"],
+						"finalState": one["finalState"],
+						"blockedCell": one["blockedCell"],
+					}
+				)
+			)
+		if not ContractSupport.same(summary, data["expected"]):
+			failures.append("%s: got %s, want %s" % [file_name, summary, data["expected"]])
+	assert_eq(failures, [], "boards fixtures that differ")

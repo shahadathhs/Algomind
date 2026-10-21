@@ -7,7 +7,17 @@ const SCHEMA_VERSION := 1
 
 ## The commands that move or turn the automaton, in the canonical order.
 const PRIMITIVE_COMMANDS: Array[String] = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
-## The loop instruction: a count and a body of primitives. A loop cannot contain a loop.
+## Adds one to the counter N (stops at 11). Offered by listing INC.
+const INC_OP := "INC"
+## Drops a breadcrumb on the current cell. Offered by listing MARK.
+const MARK_OP := "MARK"
+## Every instruction that moves, turns, counts or marks: one slot and one step each.
+const ACTION_COMMANDS: Array[String] = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "INC", "MARK"]
+## The value of REPEAT.count that means "the counter N, read when the loop starts".
+const COUNTER_REF := "N"
+## The mechanic a level lists in requires.mechanics to allow a loop inside a loop.
+const NESTED_LOOPS_MECHANIC := "nested_loops"
+## The loop instruction: a count (a number or "N") and a body of actions, IFs and one inner loop.
 const REPEAT_OP := "REPEAT"
 ## The conditional loop: it runs its body while the way ahead is open.
 const REPEAT_UNTIL_OP := "REPEAT_UNTIL"
@@ -16,8 +26,20 @@ const REPEAT_UNTIL_OP := "REPEAT_UNTIL"
 const UNTIL_CONDITIONS: Array[String] = ["BLOCKED", "GOAL"]
 ## The decision instruction: a sensor, a `then` branch and an `else` branch of primitives.
 const IF_OP := "IF"
-## What an IF can look at. Each is true when the cell on that side is on the board and not a wall.
-const SENSORS: Array[String] = ["CLEAR_AHEAD", "CLEAR_LEFT", "CLEAR_RIGHT"]
+## What an IF can look at, each about the cell ahead, left or right. CLEAR: on the board and not a
+## wall. FRESH: such a cell with no breadcrumb. BACK: the cell this cell's breadcrumb points to.
+## The FRESH and BACK sensors need MARK offered.
+const SENSORS: Array[String] = [
+	"CLEAR_AHEAD",
+	"CLEAR_LEFT",
+	"CLEAR_RIGHT",
+	"FRESH_AHEAD",
+	"FRESH_LEFT",
+	"FRESH_RIGHT",
+	"BACK_AHEAD",
+	"BACK_LEFT",
+	"BACK_RIGHT",
+]
 ## A named piece of program, defined once at the top level and run by CALL.
 const PROC_OP := "PROC"
 ## Runs the procedure of that name. Offered together with PROC: a level that lists PROC allows both.
@@ -26,12 +48,12 @@ const CALL_OP := "CALL"
 const PROCEDURE_NAMES: Array[String] = ["A", "B", "C"]
 ## Every command a level can offer, in the canonical order.
 const COMMAND_NAMES: Array[String] = [
-	"MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT", "REPEAT_UNTIL", "IF", "PROC"
+	"MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "INC", "MARK", "REPEAT", "REPEAT_UNTIL", "IF", "PROC"
 ]
 ## Clockwise order: turning right moves one step forward in this list.
 const DIRECTIONS: Array[String] = ["north", "east", "south", "west"]
 const DIFFICULTIES: Array[String] = ["easy", "medium", "hard"]
-const GOAL_TYPES: Array[String] = ["reach_tile"]
+const GOAL_TYPES: Array[String] = ["reach_tile", "visit_all"]
 
 ## Largest integer a JSON number may carry and still be exact (2^53 - 1).
 const MAX_SAFE_INTEGER := 9007199254740991
@@ -58,12 +80,20 @@ const REPEAT_BODY_MIN := 1
 const REPEAT_BODY_MAX := 8
 const REPEAT_COUNT_MIN := 2
 const REPEAT_COUNT_MAX := 11
+## Extra test boards a level may carry besides its own board.
+const EXTRA_BOARDS_MIN := 1
+const EXTRA_BOARDS_MAX := 5
 const PROC_BODY_MIN := 1
 const PROC_BODY_MAX := 8
 const IF_THEN_MIN := 1
 const IF_THEN_MAX := 4
 const IF_ELSE_MIN := 0
 const IF_ELSE_MAX := 4
+## How many IFs an else-if chain may hold (the first IF and each IF in an else).
+const IF_CHAIN_MAX := 6
+## The counter N: its value at the start of a run, and the most it reaches.
+const COUNTER_START := 1
+const COUNTER_MAX := 11
 const HINTS_MAX_COUNT := 5
 const HINT_MIN := 1
 const HINT_MAX := 140
@@ -110,3 +140,13 @@ static func is_call(op: Variant) -> bool:
 ## True when op is any op a program node can have: a command, or CALL (offered by PROC).
 static func is_node_op(op: Variant) -> bool:
 	return typeof(op) == TYPE_STRING and (COMMAND_NAMES.has(op) or op == CALL_OP)
+
+
+## True when op is a single-step action: a move, a turn, INC or MARK. Safe for any value.
+static func is_action(op: Variant) -> bool:
+	return typeof(op) == TYPE_STRING and ACTION_COMMANDS.has(op)
+
+
+## True when a sensor name reads breadcrumbs (and so needs MARK offered).
+static func is_marker_sensor(sensor: Variant) -> bool:
+	return typeof(sensor) == TYPE_STRING and not String(sensor).begins_with("CLEAR_")

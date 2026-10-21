@@ -9,7 +9,8 @@ static func build(p: PlayScreen, available: Array[String]) -> void:
 	p._board = BoardView.new()
 	p._board.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(p._board)
-	p._board.set_level(p._level)
+	p._board.set_level(p._session.level)
+	PlayBoards.build(p)
 	_build_tape(p)
 	_build_commands(p, available)
 	for caption in ["COMMANDS", "STEPS", "BEST"]:
@@ -127,6 +128,18 @@ static func _build_commands(p: PlayScreen, available: Array[String]) -> void:
 		p._else_button = _command_tile(p, PlayView.ELSE_COMMAND, maxi(offered, 5))
 		p._else_button.visible = false
 		p._else_button.pressed.connect(p._on_command.bind("ELSE"))
+		_extra_tile(p, "ELSE_IF", PlayView.ELSE_IF_COMMAND, offered)
+	if available.has("REPEAT") or available.has("REPEAT_UNTIL"):
+		if p._tape.nested_loops:
+			_extra_tile(p, "END_LOOP", PlayView.END_LOOP_COMMAND, offered)
+
+
+## A palette tile that shows only while a group is open (Else If, End Loop).
+static func _extra_tile(p: PlayScreen, key: String, command: Dictionary, offered: int) -> void:
+	var button := _command_tile(p, command, maxi(offered, 5))
+	button.visible = false
+	button.pressed.connect(p._on_command.bind(key))
+	p._extra_buttons[key] = button
 
 
 static func _command_tile(p: PlayScreen, command: Dictionary, offered: int) -> TileButton:

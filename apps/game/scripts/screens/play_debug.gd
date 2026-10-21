@@ -2,7 +2,7 @@ class_name PlayDebug
 extends RefCounted
 ## Debug screenshots only (see main.gd): put a program on the tape and show a point of its run.
 
-const LETTERS := {"M": "MOVE_FORWARD", "L": "TURN_LEFT", "R": "TURN_RIGHT"}
+const LETTERS := {"M": "MOVE_FORWARD", "L": "TURN_LEFT", "R": "TURN_RIGHT", "I": "INC", "K": "MARK"}
 
 
 ## Puts `program_text` on the tape and shows the state after `steps` events (-1 for the whole
@@ -45,9 +45,9 @@ static func overlay(p: PlayScreen, kind: String) -> void:
 		p._open_hint()
 
 
-## Letters are commands; "3{MRML}" is a loop of three rounds over that body and "U{M}" a loop
-## that runs its body until the way ahead is blocked. "P{MR}" defines the next procedure over
-## that body (no closing brace leaves it open) and "@A" calls procedure A.
+## Letters are commands (I is INC and K is MARK); "3{MRML}" is a loop of three rounds over that
+## body and "U{M}" a loop that runs its body until the way ahead is blocked. "P{MR}" defines the
+## next procedure over that body (no closing brace leaves it open) and "@A" calls procedure A.
 static func _fill_tape(tape: TapeModel, program_text: String) -> void:
 	var i := 0
 	while i < program_text.length():

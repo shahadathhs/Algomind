@@ -25,6 +25,16 @@ const COMMANDS: { command: Command; name: string; text: string }[] = [
   { command: "left", name: "Left", text: "Turn 90 degrees to the left without moving." },
   { command: "right", name: "Right", text: "Turn 90 degrees to the right without moving." },
   {
+    command: "inc",
+    name: "Count up",
+    text: "Add one to the counter N. It keeps its value between rounds and stops at 11.",
+  },
+  {
+    command: "mark",
+    name: "Mark",
+    text: "Drop a breadcrumb on the cell the automaton stands on: an arrow that points to the cell behind it.",
+  },
+  {
     command: "repeat",
     name: "Repeat",
     text: "Start a loop. Add commands to it, then end the loop.",
@@ -133,8 +143,61 @@ export default function HowToPlayPage() {
         </p>
         <p>
           An if block uses one slot, plus one for each command in then and in else. It can stand on
-          its own or inside a loop, but not inside another if block. A repeat until loop can also
-          wait for the goal, which keeps a program with decisions going until it arrives.
+          its own or inside a loop, but not inside the then of another if block. A repeat until loop
+          can also wait for the goal, which keeps a program with decisions going until it arrives.
+        </p>
+      </ProseSection>
+
+      <ProseSection title="The counter">
+        <p>
+          Some levels give you a counter named N. It starts at 1 each run. The count up command adds
+          one to it and takes one slot and one step. A repeat loop can take N as its count instead
+          of a number: it reads N when it starts and runs that many rounds, whatever happens to N
+          inside it.
+        </p>
+        <p>
+          Use it for shapes that grow: a loop that walks N cells, turns, and counts up, repeated
+          again and again, draws a spiral.
+        </p>
+      </ProseSection>
+
+      <ProseSection title="Loops inside loops">
+        <p>
+          A few levels let a loop hold one more loop. The inner loop runs all its rounds each time
+          the outer loop runs a round. That is two levels at most. Slots add up: a loop uses one
+          slot plus the slots of everything inside it, inner loop included.
+        </p>
+      </ProseSection>
+
+      <ProseSection title="Breadcrumbs and else if">
+        <p>
+          The mark command leaves a breadcrumb on the cell the automaton stands on. It is a small
+          arrow pointing to the cell behind the automaton, which is the cell it came from when it
+          has just stepped forward. A cell keeps the first breadcrumb it gets. Marking a cell again
+          changes nothing.
+        </p>
+        <p>
+          With marks on the board, an if block gains six sensors. Fresh ahead, left and right are
+          true for an open cell with no breadcrumb. Back ahead, left and right are true for the cell
+          that the breadcrumb under the automaton points to: the way back. Reading a sensor costs no
+          step.
+        </p>
+        <p>
+          The else of an if block can hold one more if block, called else if, instead of commands. A
+          chain of up to six ifs chooses between many cases, and the first sensor that is true wins.
+          Each if in the chain uses one slot plus its own then commands. Together they let a program
+          explore a maze that has loops: mark the cell, step onto a fresh cell, and follow the
+          breadcrumbs back when none is left.
+        </p>
+      </ProseSection>
+
+      <ProseSection title="Visit every cell">
+        <p>
+          Some boards have no target. The level is solved the moment the automaton has entered or
+          started on every floor cell, that is, every cell that is not a wall. The board shows the
+          cells visited so far and the game counts them, for example 12 of 30 cells. A step limit
+          still applies, so wandering fails. A common answer is to run to the wall, step over, and
+          run back, row by row.
         </p>
       </ProseSection>
 
@@ -149,6 +212,15 @@ export default function HowToPlayPage() {
           A call uses one slot. A definition uses one slot plus one for each command in it. A
           procedure can hold moves, turns, if blocks and loops, but not a call to another procedure.
           A call can stand on its own or inside a loop.
+        </p>
+      </ProseSection>
+
+      <ProseSection title="Several boards">
+        <p>
+          Some levels have more than one board. One program must solve every board, so a program
+          that counts the steps of the first board fails on the next. The board area shows one board
+          at a time with a tab for each. Run tries the program on the selected board, and a board it
+          has solved is marked with a check and the word. Editing the program clears the checks.
         </p>
       </ProseSection>
 

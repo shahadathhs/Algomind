@@ -1,10 +1,17 @@
 "use client";
 
-import { COMMANDS, MAX_COMMANDS, MAX_STEPS } from "@/lib/admin/level-model";
+import {
+  COMMANDS,
+  MAX_COMMANDS,
+  MAX_STEPS,
+  NESTED_LOOPS,
+  offersNestedLoops,
+} from "@/lib/admin/level-model";
 import { Field } from "../ui";
 import type { ContentProps } from "./content-props";
 
-function mechanicsFor(commands: string[]): string[] {
+/** The mechanics that follow the commands (the API adds counter and markers itself), plus nested_loops when kept. */
+function mechanicsFor(commands: string[], nested: boolean): string[] {
   const out: string[] = [];
   if (commands.includes("MOVE_FORWARD")) out.push("move");
   if (commands.includes("TURN_LEFT") || commands.includes("TURN_RIGHT")) out.push("turn");
@@ -12,6 +19,8 @@ function mechanicsFor(commands: string[]): string[] {
   if (commands.includes("REPEAT_UNTIL")) out.push("repeat_until");
   if (commands.includes("IF")) out.push("if");
   if (commands.includes("PROC")) out.push("procedures");
+  if (nested && (commands.includes("REPEAT") || commands.includes("REPEAT_UNTIL")))
+    out.push(NESTED_LOOPS);
   return out;
 }
 
@@ -21,8 +30,22 @@ export function LimitsPanel({ content, onChange }: ContentProps) {
     const next = COMMANDS.map((c) => c.op as string).filter((o) =>
       o === op ? !has : content.availableCommands.includes(o),
     );
-    onChange({ ...content, availableCommands: next, requires: { mechanics: mechanicsFor(next) } });
+    onChange({
+      ...content,
+      availableCommands: next,
+      requires: { mechanics: mechanicsFor(next, offersNestedLoops(content)) },
+    });
   };
+  const hasLoop =
+    content.availableCommands.includes("REPEAT") ||
+    content.availableCommands.includes("REPEAT_UNTIL");
+  const toggleNested = () =>
+    onChange({
+      ...content,
+      requires: {
+        mechanics: mechanicsFor(content.availableCommands, !offersNestedLoops(content)),
+      },
+    });
   return (
     <div className="grid max-w-[560px] gap-6">
       <fieldset>
@@ -38,9 +61,27 @@ export function LimitsPanel({ content, onChange }: ContentProps) {
                 checked={content.availableCommands.includes(c.op)}
                 onChange={() => toggle(c.op)}
               />
-              {c.label}
+              <span>
+                {c.label}
+                {c.note && <span className="block text-sm font-normal text-mute">{c.note}</span>}
+              </span>
             </label>
           ))}
+          <label className="flex min-h-11 items-center gap-3 text-base font-semibold">
+            <input
+              type="checkbox"
+              className="h-5 w-5 accent-[var(--ink)]"
+              checked={offersNestedLoops(content)}
+              disabled={!hasLoop}
+              onChange={toggleNested}
+            />
+            <span>
+              Nested loops
+              <span className="block text-sm font-normal text-mute">
+                A loop body may hold one more loop (two levels). Needs Repeat or Repeat until.
+              </span>
+            </span>
+          </label>
         </div>
         <p className="mt-2 text-sm font-semibold text-mute">
           Required mechanics follow the commands: {content.requires.mechanics.join(", ") || "none"}.

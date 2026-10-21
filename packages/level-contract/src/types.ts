@@ -1,4 +1,5 @@
 import type {
+  ACTION_COMMANDS,
   COMMAND_NAMES,
   DIFFICULTIES,
   DIRECTIONS,
@@ -8,7 +9,10 @@ import type {
   UNTIL_CONDITIONS,
 } from "./constants.js";
 
+/** A command that moves or turns the automaton: what the exact solver searches. */
 export type PrimitiveName = (typeof PRIMITIVE_COMMANDS)[number];
+/** Any single-step instruction: a move, a turn, INC or MARK. */
+export type ActionName = (typeof ACTION_COMMANDS)[number];
 export type CommandName = (typeof COMMAND_NAMES)[number];
 export type Sensor = (typeof SENSORS)[number];
 export type ProcedureName = (typeof PROCEDURE_NAMES)[number];
@@ -19,16 +23,17 @@ export type Difficulty = (typeof DIFFICULTIES)[number];
 /** [x, y]. x grows right, y grows down. */
 export type Position = [number, number];
 
-/** A move or a turn. */
+/** A move, a turn, INC or MARK. */
 export interface PrimitiveInstruction {
-  op: PrimitiveName;
+  op: ActionName;
 }
 /** A decision: `then` runs when the sensor is true, `else` (possibly empty) when it is false. */
 export interface IfInstruction {
   op: "IF";
   when: Sensor;
   then: PrimitiveInstruction[];
-  else: PrimitiveInstruction[];
+  /** Actions to run otherwise, or exactly one IF (an else-if chain). Possibly empty. */
+  else: PrimitiveInstruction[] | [IfInstruction];
 }
 /** Runs the procedure called `name`. Allowed at the top level and as an item of a loop body. */
 export interface CallInstruction {
@@ -40,7 +45,8 @@ export type BodyInstruction = PrimitiveInstruction | IfInstruction | CallInstruc
 /** A loop: `body` runs `count` times. The body holds primitives and IFs, not loops. */
 export interface RepeatInstruction {
   op: "REPEAT";
-  count: number;
+  /** Rounds: 2 to 11, or "N" for the counter's value when the loop starts. */
+  count: number | "N";
   body: BodyInstruction[];
 }
 /**
@@ -72,6 +78,24 @@ export type Instruction =
   | RepeatUntilInstruction;
 export type Program = Instruction[];
 
+/** Reach the target cell. */
+export interface ReachGoal {
+  type: "reach_tile";
+  position: Position;
+}
+/** Enter or start on every floor cell of the board. */
+export interface VisitAllGoal {
+  type: "visit_all";
+}
+export type Goal = ReachGoal | VisitAllGoal;
+
+/** One test board: the grid, where the automaton starts, and the target. */
+export interface BoardCase {
+  board: { width: number; height: number; walls: Position[] };
+  initialState: { position: Position; direction: Direction };
+  goal: Goal;
+}
+
 /** The public level definition served to the game. Never contains the reference solution. */
 export interface Level {
   schemaVersion: 1;
@@ -86,7 +110,12 @@ export interface Level {
   initialState: { position: Position; direction: Direction };
   availableCommands: CommandName[];
   constraints: { maxCommands: number; maxSteps: number };
-  goal: { type: "reach_tile"; position: Position };
+  goal: Goal;
+  /**
+   * More test boards. When present, one program must solve this level's own board and every one of
+   * these. Slots and the step limit are the same for each board; the limit applies to each run.
+   */
+  extraBoards?: BoardCase[];
   hints: string[];
 }
 
@@ -150,12 +179,18 @@ export type RunReason =
   | "INVALID_INSTRUCTION";
 
 export type TraceEvent =
-  "MOVED" | "TURNED" | "GOAL_REACHED" | "BLOCKED_BY_WALL" | "BLOCKED_BY_BOUNDARY";
+  | "MOVED"
+  | "TURNED"
+  | "COUNTED"
+  | "MARKED"
+  | "GOAL_REACHED"
+  | "BLOCKED_BY_WALL"
+  | "BLOCKED_BY_BOUNDARY";
 
 export interface TraceEntry {
   /** 0-based index of the executed step. */
   index: number;
-  op: PrimitiveName;
+  op: ActionName;
   /**
    * Where the instruction sits in the program: [i] at the top level, [i, j] inside the body of loop i,
    * [i, k] inside the branches of the IF at i, and [i, j, k] inside the IF at body item j of loop i. k
@@ -168,6 +203,8 @@ export interface TraceEntry {
    * program. A primitive inside a procedure has `node` `[p, ...]`, where p is the index of the PROC.
    */
   call: number[] | null;
+  /** The counter N after the step (1 when the level has no counter). */
+  counter: number;
   /** 1-based repetition of the loop the instruction ran in; null outside a loop. */
   round: number | null;
   /** State after the step. */
@@ -185,6 +222,17 @@ export interface RunResult {
   /** The cell the automaton tried to enter, for the two BLOCKED reasons; otherwise null. */
   blockedCell: Position | null;
   trace: TraceEntry[];
+}
+
+/** The result of one program on every board of a level: the level's own board first. */
+export interface MultiRunResult {
+  /** SUCCEEDED only when every board succeeded. */
+  status: RunStatus;
+  /** Index of the first board that failed (0 is the level's own board), or null. */
+  firstFailure: number | null;
+  /** The sum of the steps of all runs. */
+  steps: number;
+  results: RunResult[];
 }
 
 export interface SolveResult {

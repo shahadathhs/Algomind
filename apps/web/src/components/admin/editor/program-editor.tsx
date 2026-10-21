@@ -3,7 +3,7 @@
 import { TapeView } from "@/components/ui/tape-view";
 import { tapeFromProgram } from "@/lib/tape";
 import type { Instruction } from "@/lib/admin/admin-api";
-import { isCall, isIf, isLoop, isProc, primitivesOf, slotsOf } from "@/lib/admin/level-model";
+import { isCall, isIf, isLoop, isProc, slotsOf } from "@/lib/admin/level-model";
 import {
   asIf,
   definedNames,
@@ -23,11 +23,14 @@ export function ProgramEditor({
   program,
   onChange,
   available,
+  nested = false,
   idPrefix,
 }: {
   program: Instruction[];
   onChange: (next: Instruction[]) => void;
   available: string[];
+  /** The level lists nested_loops: a loop body may hold one loop. */
+  nested?: boolean;
   idPrefix: string;
 }) {
   const slots = slotsOf(program);
@@ -77,6 +80,7 @@ export function ProgramEditor({
                   idPrefix={`loop-${i}`}
                   available={available}
                   callNames={canProc ? names : undefined}
+                  nested={nested}
                   onCount={(count) => setNode(i, { count })}
                   onUntil={(until) => setNode(i, { until })}
                   onBody={(body) => setNode(i, { body })}
@@ -86,6 +90,7 @@ export function ProgramEditor({
                 <ProcBody
                   node={p}
                   available={available}
+                  nested={nested}
                   idPrefix={`${idPrefix}-proc-${i}`}
                   onBody={(body) => setNode(i, { body })}
                 />
@@ -104,7 +109,7 @@ export function ProgramEditor({
                   node={asIf(p)}
                   where={`step ${i + 1}`}
                   idPrefix={`${idPrefix}-if-${i}`}
-                  primitives={primitivesOf(available)}
+                  available={available}
                   onChange={(next) => onChange(program.map((node, j) => (j === i ? next : node)))}
                 />
               )}

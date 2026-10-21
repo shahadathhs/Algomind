@@ -184,7 +184,19 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
     await this.prisma.clientVersion.create({
       data: {
         version: APP_VERSION,
-        supportedMechanics: ["move", "turn", "repeat", "repeat_until", "if", "procedures"],
+        supportedMechanics: [
+          "move",
+          "turn",
+          "repeat",
+          "repeat_until",
+          "if",
+          "procedures",
+          "counter",
+          "markers",
+          "nested_loops",
+          "visit_all",
+          "multi_board",
+        ],
         isMinimum: !hasMinimum,
       },
     });

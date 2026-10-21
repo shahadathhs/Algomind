@@ -7,6 +7,7 @@ import { BoardView } from "@/components/ui/board-view";
 import { Caption } from "@/components/ui/caption";
 import { ApiError, SessionEndedError } from "@/lib/api/errors";
 import type { CheckIssue, LevelView, ValidateResult } from "@/lib/admin/admin-api";
+import { boardIssuePath } from "@/lib/admin/board-model";
 import { boardData, parName } from "@/lib/admin/level-model";
 import { diff } from "@/lib/admin/publish-diff";
 import { Notice, OutlineAction, PageHeading, PrimaryAction } from "./ui";
@@ -161,7 +162,7 @@ export function PublishReview({ levelId }: { levelId: string }) {
                     <span className="text-xs tracking-[2px] uppercase">
                       {issue.gate.replace("_", " ")}
                     </span>
-                    <span className="text-mute">{issue.path || "level"}</span>
+                    <span className="text-mute">{boardIssuePath(issue.path) || "level"}</span>
                     <span>{issue.message}</span>
                   </li>
                 ))}

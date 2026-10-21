@@ -10,9 +10,6 @@ extends RefCounted
 ## Numbers: JSON parsing yields floats, so every coordinate is read with int(). Positions in
 ## the result are Arrays of two ints, [x, y], and blockedCell is such an Array or null.
 
-const _LEFT := "TURN_LEFT"
-const _RIGHT := "TURN_RIGHT"
-
 
 ## Rotates a direction name 90 degrees. "left" is counterclockwise, "right" clockwise.
 static func turn(direction: String, side: String) -> String:
@@ -25,22 +22,6 @@ static func turn(direction: String, side: String) -> String:
 static func cell_ahead(position: Array, direction: String) -> Array:
 	var delta: Array = ContractLimits.DIRECTION_DELTAS[direction]
 	return [int(position[0]) + int(delta[0]), int(position[1]) + int(delta[1])]
-
-
-## True when the cell on a side of the automaton is on the board and not a wall. A sensor is
-## CLEAR_AHEAD, CLEAR_LEFT, or CLEAR_RIGHT.
-static func _is_clear(run: Dictionary, sensor: String) -> bool:
-	var facing: String = run["direction"]
-	if sensor == "CLEAR_LEFT":
-		facing = turn(facing, "left")
-	elif sensor == "CLEAR_RIGHT":
-		facing = turn(facing, "right")
-	var target := cell_ahead(run["position"], facing)
-	var tx := int(target[0])
-	var ty := int(target[1])
-	if tx < 0 or ty < 0 or tx >= int(run["width"]) or ty >= int(run["height"]):
-		return false
-	return not (run["walls"] as Dictionary).has(Vector2i(tx, ty))
 
 
 ## True when a wall or the board edge is straight ahead of position facing direction.
@@ -64,19 +45,10 @@ static func _run(
 ) -> Variant:
 	var op: String = node["op"]
 	if ProgramShape.is_primitive(node):
-		return _step(run, op, path, round_number, call_path)
+		return RunStep.step(run, op, path, round_number, call_path)
 	var result: Variant = null
 	if ContractLimits.is_if(op):
-		var taken_then := _is_clear(run, String(node["when"]))
-		var branch: Array = node["then"] if taken_then else node["else"]
-		var offset: int = 0 if taken_then else (node["then"] as Array).size()
-		for k in branch.size():
-			var inner_path := path.duplicate()
-			inner_path.append(offset + k)
-			result = _step(run, String(branch[k]["op"]), inner_path, round_number, call_path)
-			if result != null:
-				return result
-		return null
+		return _run_if(run, node, path, round_number, call_path)
 	if ContractLimits.is_call(op):
 		var target: Dictionary = run["procs"][node["name"]]
 		var body: Array = target["node"]["body"]
@@ -88,7 +60,10 @@ static func _run(
 
 	var items: Array = node["body"]
 	if ContractLimits.is_repeat(op):
-		for r in range(1, int(node["count"]) + 1):
+		var rounds: int = (
+			int(run["counter"]) if typeof(node["count"]) == TYPE_STRING else int(node["count"])
+		)
+		for r in range(1, rounds + 1):
 			result = _run_body(run, items, path, r, call_path)
 			if result != null:
 				return result
@@ -97,14 +72,38 @@ static func _run(
 	# REPEAT_UNTIL: the condition is checked before every round and costs no step. GOAL is never
 	# true at the start of a round. A round that ran no primitive would repeat for ever.
 	var round_number_until := 1
-	while not (node["until"] == "BLOCKED" and not _is_clear(run, "CLEAR_AHEAD")):
+	while not (node["until"] == "BLOCKED" and not RunSensors.sense(run, "CLEAR_AHEAD")):
 		var before := (run["trace"] as Array).size()
 		result = _run_body(run, items, path, round_number_until, call_path)
 		if result != null:
 			return result
 		if (run["trace"] as Array).size() == before:
-			return _finish("FAILED", "STEP_LIMIT", null, run)
+			return RunStep.finish("FAILED", "STEP_LIMIT", null, run)
 		round_number_until += 1
+	return null
+
+
+## Runs an IF: its then actions, or its else (actions, or the next IF of an else-if chain).
+static func _run_if(
+	run: Dictionary, node: Dictionary, path: Array, round_number: Variant, call_path: Variant
+) -> Variant:
+	var then: Array = node["then"]
+	var other: Array = node["else"]
+	var taken_then := RunSensors.sense(run, String(node["when"]))
+	if not taken_then and other.size() == 1 and ContractLimits.is_if(other[0]["op"]):
+		var next_path := path.duplicate()
+		next_path.append(then.size())
+		return _run_if(run, other[0], next_path, round_number, call_path)
+	var branch: Array = then if taken_then else other
+	var offset: int = 0 if taken_then else then.size()
+	for k in branch.size():
+		var inner_path := path.duplicate()
+		inner_path.append(offset + k)
+		var result: Variant = RunStep.step(
+			run, String(branch[k]["op"]), inner_path, round_number, call_path
+		)
+		if result != null:
+			return result
 	return null
 
 
@@ -138,13 +137,21 @@ static func simulate(level: Dictionary, program: Array) -> Dictionary:
 
 	var initial: Dictionary = level["initialState"]
 	var start: Array = initial["position"]
-	var goal_cell: Array = level["goal"]["position"]
+	var goal: Dictionary = level["goal"]
+	var goal_cell: Variant = null
+	if goal.has("position"):
+		goal_cell = Vector2i(int(goal["position"][0]), int(goal["position"][1]))
+	var start_cell := Vector2i(int(start[0]), int(start[1]))
 	# The run state lives in one Dictionary so that step() can change it.
 	var run := {
 		"width": int(board["width"]),
 		"height": int(board["height"]),
 		"walls": walls,
-		"goal": Vector2i(int(goal_cell[0]), int(goal_cell[1])),
+		"goal": goal_cell,
+		"counter": ContractLimits.COUNTER_START,
+		"crumbs": {},
+		"visited": {start_cell: true},
+		"floor_cells": int(board["width"]) * int(board["height"]) - walls.size(),
 		"position": [int(start[0]), int(start[1])],
 		"direction": String(initial["direction"]),
 		"trace": [],
@@ -156,113 +163,36 @@ static func simulate(level: Dictionary, program: Array) -> Dictionary:
 		var node: Variant = program[i]
 		if typeof(node) == TYPE_DICTIONARY and ContractLimits.is_proc(node.get("op")):
 			# A definition: skipped when well formed, a content error when not.
-			if not ProgramShape.is_runnable(node, ProgramShape.Place.TOP, {}):
-				return _finish("FAILED", "INVALID_INSTRUCTION", null, run)
+			if not ProgramShape.is_runnable(node, ProgramShape.TOP, {}):
+				return RunStep.finish("FAILED", "INVALID_INSTRUCTION", null, run)
 			continue
 		if (run["trace"] as Array).size() >= int(run["max_steps"]):
-			return _finish("FAILED", "STEP_LIMIT", null, run)
-		if not ProgramShape.is_runnable(node, ProgramShape.Place.TOP, run["procs"]):
-			return _finish("FAILED", "INVALID_INSTRUCTION", null, run)
+			return RunStep.finish("FAILED", "STEP_LIMIT", null, run)
+		if not ProgramShape.is_runnable(node, ProgramShape.TOP, run["procs"]):
+			return RunStep.finish("FAILED", "INVALID_INSTRUCTION", null, run)
 		var result: Variant = _run(run, node, [i], null, null)
 		if result != null:
 			return result
 
-	return _finish("FAILED", "PROGRAM_ENDED", null, run)
+	return RunStep.finish("FAILED", "PROGRAM_ENDED", null, run)
 
 
-## Runs one primitive. Returns the final result Dictionary when the run ends here, else null.
-static func _step(
-	run: Dictionary, command: String, node: Array, round_number: Variant, call_path: Variant
-) -> Variant:
-	var trace: Array = run["trace"]
-	if trace.size() >= int(run["max_steps"]):
-		return _finish("FAILED", "STEP_LIMIT", null, run)
-	var position: Array = run["position"]
-	var direction: String = run["direction"]
-	var index := trace.size()
-	if command == _LEFT or command == _RIGHT:
-		run["direction"] = turn(direction, "left" if command == _LEFT else "right")
-		trace.append(
-			_entry(
-				index, command, node, call_path, round_number, position, run["direction"], "TURNED"
-			)
-		)
-		return null
-
-	# MOVE_FORWARD
-	var target := cell_ahead(position, direction)
-	var tx := int(target[0])
-	var ty := int(target[1])
-	if tx < 0 or ty < 0 or tx >= int(run["width"]) or ty >= int(run["height"]):
-		trace.append(
-			_entry(
-				index,
-				command,
-				node,
-				call_path,
-				round_number,
-				position,
-				direction,
-				"BLOCKED_BY_BOUNDARY"
-			)
-		)
-		return _finish("FAILED", "BLOCKED_BY_BOUNDARY", target, run)
-	if (run["walls"] as Dictionary).has(Vector2i(tx, ty)):
-		trace.append(
-			_entry(
-				index,
-				command,
-				node,
-				call_path,
-				round_number,
-				position,
-				direction,
-				"BLOCKED_BY_WALL"
-			)
-		)
-		return _finish("FAILED", "BLOCKED_BY_WALL", target, run)
-
-	run["position"] = target
-	if Vector2i(tx, ty) == run["goal"]:
-		trace.append(
-			_entry(index, command, node, call_path, round_number, target, direction, "GOAL_REACHED")
-		)
-		return _finish("SUCCEEDED", "GOAL_REACHED", null, run)
-	trace.append(_entry(index, command, node, call_path, round_number, target, direction, "MOVED"))
-	return null
-
-
-static func _entry(
-	index: int,
-	op: String,
-	node: Array,
-	call_path: Variant,
-	round_number: Variant,
-	position: Array,
-	direction: String,
-	event: String
-) -> Dictionary:
+## Runs program on every board (all are always run).
+## Returns { status, firstFailure, steps, results }. firstFailure is the index of the first
+## failed board or null, steps the sum over all boards.
+static func simulate_all(level: Dictionary, program: Array) -> Dictionary:
+	var results: Array = []
+	var steps := 0
+	var failed: Variant = null
+	for i in BoardSet.boards_of(level).size():
+		var result := simulate(BoardSet.level_on_board(level, i), program)
+		results.append(result)
+		steps += int(result["steps"])
+		if failed == null and result["status"] != "SUCCEEDED":
+			failed = i
 	return {
-		"index": index,
-		"op": op,
-		"node": node,
-		"call": call_path,
-		"round": round_number,
-		"position": [position[0], position[1]],
-		"direction": direction,
-		"event": event,
-	}
-
-
-static func _finish(
-	status: String, reason: String, blocked_cell: Variant, run: Dictionary
-) -> Dictionary:
-	var position: Array = run["position"]
-	return {
-		"status": status,
-		"reason": reason,
-		"steps": (run["trace"] as Array).size(),
-		"finalState": {"position": [position[0], position[1]], "direction": run["direction"]},
-		"blockedCell": blocked_cell,
-		"trace": run["trace"],
+		"status": "SUCCEEDED" if failed == null else "FAILED",
+		"firstFailure": failed,
+		"steps": steps,
+		"results": results,
 	}

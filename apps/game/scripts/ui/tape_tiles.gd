@@ -57,6 +57,9 @@ static func _draw_command(
 ## alone) when a running CALL is inside it, -1 when the loop is finished, else 0.
 static func _round_of(view: TapeView, index: int) -> int:
 	if view.group_holds(index, view.current):
+		# A loop that holds another loop knows its own round only from the trace so far.
+		if view.outer_rounds.has(index):
+			return int(view.outer_rounds[index])
 		return maxi(view.current_round, 1)
 	if view.group_holds(index, view.call_index):
 		return 0
@@ -69,5 +72,9 @@ static func _icon_for(op: String) -> String:
 			return "left"
 		"TURN_RIGHT":
 			return "right"
+		"INC":
+			return "inc"
+		"MARK":
+			return "mark"
 		_:
 			return "move"

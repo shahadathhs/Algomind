@@ -1,5 +1,7 @@
 export type IconKind =
   | "move"
+  | "inc"
+  | "mark"
   | "repeat"
   | "until"
   | "if"
@@ -40,6 +42,13 @@ export function CommandIcon({ kind, cx, cy, size, tone }: Props) {
   return (
     <g transform={transform} className={tone} aria-hidden="true">
       {kind === "move" && <path d="M12 3 20.5 12H14.5V21H9.5V12H3.5Z" strokeWidth={0} />}
+      {kind === "inc" && <path d="M3 12H11M7 8V16M15 8 19 6V19" fill="none" strokeWidth={2.4} />}
+      {kind === "mark" && (
+        <>
+          <circle cx={17.5} cy={6.5} r={3} strokeWidth={0} />
+          <path d="M14 10 5 19M5 12.5V19H11.5" fill="none" strokeWidth={2.4} />
+        </>
+      )}
       {kind === "repeat" && (
         <path
           d="M4 8.5H17M13.5 5l3.5 3.5-3.5 3.5M20 15.5H7M10.5 12 7 15.5 10.5 19"

@@ -76,6 +76,7 @@
         "op": "MOVE_FORWARD",
         "node": [0, 0],
         "call": [2],
+        "counter": 1,
         "round": null,
         "position": [0, 7],
         "direction": "north",

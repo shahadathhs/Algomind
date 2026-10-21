@@ -121,7 +121,12 @@ func _draw_content(rect: Rect2, color: Color) -> void:
 		UiKit.text(self, label, lower, px, color, 1)
 		return
 	var icon_size := float(font_size) * 1.05
-	var text_w := UiKit.text_width(label, font_size)
+	# A label that is wider than the tile (ELSE IF) shrinks until it fits.
+	var text_px := font_size
+	if icon == "" and kind != Kind.TERTIARY:
+		while text_px > 8 and UiKit.text_width(label, text_px) > rect.size.x - 6.0:
+			text_px -= 1
+	var text_w := UiKit.text_width(label, text_px)
 	var gap := 8.0 if icon != "" and label != "" else 0.0
 	var icon_w := icon_size if icon != "" else 0.0
 	var total := icon_w + gap + text_w
@@ -135,7 +140,7 @@ func _draw_content(rect: Rect2, color: Color) -> void:
 		UiKit.icon(self, icon, center, icon_size, color)
 	if label != "":
 		var text_rect := Rect2(x + icon_w + gap, 0, text_w + 2.0, rect.size.y)
-		UiKit.text(self, label, text_rect, font_size, color, 1, HORIZONTAL_ALIGNMENT_LEFT)
+		UiKit.text(self, label, text_rect, text_px, color, 1, HORIZONTAL_ALIGNMENT_LEFT)
 		if kind == Kind.TERTIARY:
 			var y := rect.size.y / 2.0 + font_size * 0.5
 			draw_line(

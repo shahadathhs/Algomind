@@ -60,6 +60,7 @@
         "op": "MOVE_FORWARD",
         "node": [0],
         "call": null,
+        "counter": 1,
         "round": null,
         "position": [1, 1],
         "direction": "east",

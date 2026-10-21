@@ -72,7 +72,8 @@ static func after_step(p: PlayScreen) -> void:
 	if p._session.state == PlaySession.State.SUCCEEDED:
 		p.app.sfx("success")
 		p.app.haptic(60)
-		if p.persist:
+		# On a level with test boards the level is won only when every board is solved.
+		if not PlayBoards.after_success(p) and p.persist:
 			PlayCompletion.save(p)
 	elif p._session.state == PlaySession.State.FAILED:
 		p.app.sfx("fail")

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   programSlots,
-  simulate,
+  simulateAll,
   validateLevel,
   validateProgram,
   type Level,
@@ -28,7 +28,7 @@ export function verifySubmission(content: unknown, program: unknown): Verified {
   const checkedProgram = validateProgram(level, program);
   if (!checkedProgram.ok)
     return { ok: false, code: "PROGRAM_INVALID", issues: checkedProgram.issues };
-  const result = simulate(level, program as Program);
+  const result = simulateAll(level, program as Program);
   if (result.status !== "SUCCEEDED")
     return { ok: false, code: "PROGRAM_DID_NOT_SOLVE", issues: [] };
   return { ok: true, slots: programSlots(program as Program), steps: result.steps };
@@ -54,7 +54,16 @@ export function programHash(program: HashNode[]) {
       : n.op === "REPEAT_UNTIL"
         ? { op: n.op, until: n.until, body: (n.body ?? []).map(canonicalNode) }
         : n.op === "IF"
-          ? { op: n.op, when: n.when, then: ops(n.then), else: ops(n.else) }
+          ? {
+              op: n.op,
+              when: n.when,
+              then: ops(n.then),
+              // An else-if chain: the else holds one more IF, which has to be hashed in full.
+              else:
+                n.else?.length === 1 && n.else[0]!.op === "IF"
+                  ? [canonicalNode(n.else[0]!)]
+                  : ops(n.else),
+            }
           : n.op === "PROC"
             ? { op: n.op, name: n.name, body: (n.body ?? []).map(canonicalNode) }
             : n.op === "CALL"

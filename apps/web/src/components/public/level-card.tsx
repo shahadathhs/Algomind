@@ -16,6 +16,7 @@ export function LevelCard({ level }: { level: CampaignLevel }) {
       </p>
       <p className="mt-1 text-xs font-bold tracking-[2px] text-mute uppercase">
         {DIFFICULTY_LABEL[level.difficulty]} · Max {level.maxCommands} commands
+        {level.boardCount > 1 && ` · ${level.boardCount} boards`}
       </p>
     </li>
   );

@@ -7,7 +7,19 @@ import type { ClientVersion } from "@/lib/admin/admin-api";
 import { Field, Notice, PageHeading, PrimaryAction } from "./ui";
 import { useAdminApi } from "./use-admin-api";
 
-const MECHANICS = ["move", "turn", "repeat", "repeat_until", "if", "procedures"];
+const MECHANICS = [
+  "move",
+  "turn",
+  "repeat",
+  "repeat_until",
+  "if",
+  "procedures",
+  "multi_board",
+  "counter",
+  "nested_loops",
+  "markers",
+  "visit_all",
+];
 
 /** Which mechanics each released app version supports. Publishing checks the minimum version. */
 export function Capabilities() {

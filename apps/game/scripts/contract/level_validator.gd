@@ -27,6 +27,7 @@ const _PUBLIC_KEYS: Array[String] = [
 	"availableCommands",
 	"constraints",
 	"goal",
+	"extraBoards",
 	"hints",
 ]
 
@@ -294,7 +295,8 @@ static func _run(issues: Array[Dictionary], input: Variant, authoring: bool) -> 
 	)
 	_enum_field(issues, root, "", "difficulty", ContractLimits.DIFFICULTIES)
 	_validate_requires(issues, root)
-	_validate_board_and_cells(issues, root)
+	BoardValidator.check_board_and_cells(issues, root)
+	BoardValidator.check_extra_boards(issues, root)
 	_validate_commands(issues, root)
 	_validate_constraints(issues, root)
 	_validate_hints(issues, root)
@@ -309,100 +311,6 @@ static func _run(issues: Array[Dictionary], input: Variant, authoring: bool) -> 
 				"referenceSolution",
 				ProgramValidator.limits_of(root)
 			)
-
-
-static func _validate_board_and_cells(issues: Array[Dictionary], root: Dictionary) -> void:
-	var board: Variant = _object_field(issues, root, "", "board")
-	var size: Variant = null
-	var walls: Array = []
-	if board != null:
-		var board_dict: Dictionary = board
-		_reject_unknown(issues, board_dict, "board", ["width", "height", "walls"])
-		var width: Variant = _int_field(
-			issues,
-			board_dict,
-			"board",
-			"width",
-			ContractLimits.BOARD_SIDE_MIN,
-			ContractLimits.BOARD_SIDE_MAX
-		)
-		var height: Variant = _int_field(
-			issues,
-			board_dict,
-			"board",
-			"height",
-			ContractLimits.BOARD_SIDE_MIN,
-			ContractLimits.BOARD_SIDE_MAX
-		)
-		if width != null and height != null:
-			size = Vector2i(width, height)
-		walls = _validate_walls(issues, board_dict, size)
-
-	var initial: Variant = _object_field(issues, root, "", "initialState")
-	var start: Variant = null
-	if initial != null:
-		var initial_dict: Dictionary = initial
-		_reject_unknown(issues, initial_dict, "initialState", ["position", "direction"])
-		if initial_dict.has("position"):
-			start = _check_pair(issues, initial_dict["position"], "initialState.position", size)
-		else:
-			_add(issues, "initialState.position", "REQUIRED", "initialState.position is required.")
-		_enum_field(issues, initial_dict, "initialState", "direction", ContractLimits.DIRECTIONS)
-
-	var goal: Variant = _object_field(issues, root, "", "goal")
-	var goal_cell: Variant = null
-	if goal != null:
-		var goal_dict: Dictionary = goal
-		_reject_unknown(issues, goal_dict, "goal", ["type", "position"])
-		_enum_field(issues, goal_dict, "goal", "type", ContractLimits.GOAL_TYPES)
-		if goal_dict.has("position"):
-			goal_cell = _check_pair(issues, goal_dict["position"], "goal.position", size)
-		else:
-			_add(issues, "goal.position", "REQUIRED", "goal.position is required.")
-
-	if start != null and walls.has(start):
-		_add(issues, "initialState.position", "START_ON_WALL", "The start cell must not be a wall.")
-	if goal_cell != null and walls.has(goal_cell):
-		_add(issues, "goal.position", "GOAL_ON_WALL", "The goal cell must not be a wall.")
-	if start != null and goal_cell != null and start == goal_cell:
-		_add(
-			issues,
-			"goal.position",
-			"GOAL_EQUALS_START",
-			"The goal cell must differ from the start cell."
-		)
-
-
-## Returns the well-formed wall cells (Vector2i). Malformed entries are reported and left out.
-static func _validate_walls(issues: Array[Dictionary], board: Dictionary, size: Variant) -> Array:
-	if not board.has("walls"):
-		_add(issues, "board.walls", "REQUIRED", "board.walls is required.")
-		return []
-	var raw: Variant = board["walls"]
-	if typeof(raw) != TYPE_ARRAY:
-		_add(issues, "board.walls", "INVALID_TYPE", "board.walls must be an array.")
-		return []
-	var entries: Array = raw
-	if entries.size() > ContractLimits.MAX_WALLS:
-		_add(
-			issues,
-			"board.walls",
-			"LENGTH_OUT_OF_RANGE",
-			"board.walls must have at most %d entries." % ContractLimits.MAX_WALLS
-		)
-	var out: Array = []
-	var seen := {}
-	for i in entries.size():
-		var path := "board.walls[%d]" % i
-		var pair: Variant = _check_pair(issues, entries[i], path, size)
-		if pair == null:
-			continue
-		if seen.has(pair):
-			_add(issues, path, "DUPLICATE_WALL", "%s repeats an earlier wall." % path)
-		else:
-			seen[pair] = true
-			out.append(pair)
-	return out
 
 
 static func _validate_commands(issues: Array[Dictionary], root: Dictionary) -> void:

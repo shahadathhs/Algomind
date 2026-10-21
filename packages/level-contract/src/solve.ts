@@ -27,6 +27,8 @@ interface Node {
  * ignores both. Expects a level that passed `validateLevel`.
  */
 export function solve(level: Level): SolveResult | null {
+  // Only a target can be searched for; the sweep goal (visit_all) has no exact par.
+  if (level.goal.type !== "reach_tile") return null;
   if (
     level.availableCommands.includes(REPEAT_OP) ||
     level.availableCommands.includes(REPEAT_UNTIL_OP)

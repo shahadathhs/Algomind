@@ -3,7 +3,11 @@ import {
   REPEAT_OP,
   REPEAT_UNTIL_OP,
   CALL_OP,
+  COUNTER_REF,
   IF_OP,
+  INC_OP,
+  MARK_OP,
+  NESTED_LOOPS_MECHANIC,
   NODE_OPS,
   PROCEDURE_NAMES,
   PROC_OP,
@@ -38,6 +42,7 @@ const PUBLIC_KEYS = [
   "availableCommands",
   "constraints",
   "goal",
+  "extraBoards",
   "hints",
 ];
 
@@ -228,53 +233,73 @@ function samePair(a: [number, number], b: [number, number]): boolean {
   return a[0] === b[0] && a[1] === b[1];
 }
 
-function validateBoardAndCells(c: Collector, root: Obj): void {
-  const board = objectField(c, root, "", "board");
+/** The path of `key` under `prefix` ("" is the level itself, "extraBoards[0]" a test board). */
+function under(prefix: string, key: string): string {
+  return prefix === "" ? key : `${prefix}.${key}`;
+}
+
+function validateBoardAndCells(c: Collector, root: Obj, prefix = ""): void {
+  const boardPath = under(prefix, "board");
+  const initialPath = under(prefix, "initialState");
+  const goalBase = under(prefix, "goal");
+  const board = objectField(c, root, prefix, "board");
   let size: { width: number; height: number } | null = null;
   let walls: ([number, number] | null)[] = [];
   if (board) {
-    rejectUnknown(c, board, "board", ["width", "height", "walls"]);
+    rejectUnknown(c, board, boardPath, ["width", "height", "walls"]);
     const side = LIMITS.boardSide;
-    const width = intField(c, board, "board", "width", side.min, side.max);
-    const height = intField(c, board, "board", "height", side.min, side.max);
+    const width = intField(c, board, boardPath, "width", side.min, side.max);
+    const height = intField(c, board, boardPath, "height", side.min, side.max);
     if (width !== null && height !== null) size = { width, height };
-    walls = validateWalls(c, board, size);
+    walls = validateWalls(c, board, size, boardPath);
   }
 
   const wellFormedWalls = walls.filter((w): w is [number, number] => w !== null);
 
-  const initial = objectField(c, root, "", "initialState");
+  const initial = objectField(c, root, prefix, "initialState");
   let start: [number, number] | null = null;
   if (initial) {
-    rejectUnknown(c, initial, "initialState", ["position", "direction"]);
+    rejectUnknown(c, initial, initialPath, ["position", "direction"]);
     if (has(initial, "position")) {
-      start = checkPair(c, initial["position"], "initialState.position", size);
+      start = checkPair(c, initial["position"], `${initialPath}.position`, size);
     } else {
-      c.add("initialState.position", "REQUIRED", "initialState.position is required.");
+      c.add(`${initialPath}.position`, "REQUIRED", `${initialPath}.position is required.`);
     }
-    enumField(c, initial, "initialState", "direction", DIRECTIONS);
+    enumField(c, initial, initialPath, "direction", DIRECTIONS);
   }
 
-  const goal = objectField(c, root, "", "goal");
+  const goal = objectField(c, root, prefix, "goal");
   let goalPos: [number, number] | null = null;
+  let visitAll = false;
   if (goal) {
-    rejectUnknown(c, goal, "goal", ["type", "position"]);
-    enumField(c, goal, "goal", "type", GOAL_TYPES);
-    if (has(goal, "position")) {
-      goalPos = checkPair(c, goal["position"], "goal.position", size);
+    visitAll = goal["type"] === "visit_all";
+    rejectUnknown(c, goal, goalBase, visitAll ? ["type"] : ["type", "position"]);
+    enumField(c, goal, goalBase, "type", GOAL_TYPES);
+    if (visitAll) {
+      // The sweep needs somewhere to go: at least two floor cells, the start and one more.
+      const distinct = new Set(wellFormedWalls.map((w) => `${w[0]},${w[1]}`)).size;
+      if (size && size.width * size.height - distinct < 2) {
+        c.add(goalBase, "GOAL_EQUALS_START", "The board needs at least two floor cells to sweep.");
+      }
+    } else if (has(goal, "position")) {
+      goalPos = checkPair(c, goal["position"], `${goalBase}.position`, size);
     } else {
-      c.add("goal.position", "REQUIRED", "goal.position is required.");
+      c.add(`${goalBase}.position`, "REQUIRED", `${goalBase}.position is required.`);
     }
   }
 
   if (start && wellFormedWalls.some((w) => samePair(w, start))) {
-    c.add("initialState.position", "START_ON_WALL", "The start cell must not be a wall.");
+    c.add(`${initialPath}.position`, "START_ON_WALL", "The start cell must not be a wall.");
   }
   if (goalPos && wellFormedWalls.some((w) => samePair(w, goalPos))) {
-    c.add("goal.position", "GOAL_ON_WALL", "The goal cell must not be a wall.");
+    c.add(`${goalBase}.position`, "GOAL_ON_WALL", "The goal cell must not be a wall.");
   }
   if (start && goalPos && samePair(start, goalPos)) {
-    c.add("goal.position", "GOAL_EQUALS_START", "The goal cell must differ from the start cell.");
+    c.add(
+      `${goalBase}.position`,
+      "GOAL_EQUALS_START",
+      "The goal cell must differ from the start cell.",
+    );
   }
 }
 
@@ -283,27 +308,29 @@ function validateWalls(
   c: Collector,
   board: Obj,
   size: { width: number; height: number } | null,
+  boardPath = "board",
 ): ([number, number] | null)[] {
+  const wallsPath = `${boardPath}.walls`;
   if (!has(board, "walls")) {
-    c.add("board.walls", "REQUIRED", "board.walls is required.");
+    c.add(wallsPath, "REQUIRED", `${wallsPath} is required.`);
     return [];
   }
   const raw = board["walls"];
   if (!Array.isArray(raw)) {
-    c.add("board.walls", "INVALID_TYPE", "board.walls must be an array.");
+    c.add(wallsPath, "INVALID_TYPE", `${wallsPath} must be an array.`);
     return [];
   }
   if (raw.length > LIMITS.maxWalls) {
     c.add(
-      "board.walls",
+      wallsPath,
       "LENGTH_OUT_OF_RANGE",
-      `board.walls must have at most ${LIMITS.maxWalls} entries.`,
+      `${wallsPath} must have at most ${LIMITS.maxWalls} entries.`,
     );
   }
   const out: ([number, number] | null)[] = [];
   const seen: [number, number][] = [];
   raw.forEach((entry, i) => {
-    const path = `board.walls[${i}]`;
+    const path = `${wallsPath}[${i}]`;
     const pair = checkPair(c, entry, path, size);
     out.push(pair);
     if (pair) {
@@ -315,6 +342,32 @@ function validateWalls(
     }
   });
   return out;
+}
+
+function validateExtraBoards(c: Collector, root: Obj): void {
+  if (!has(root, "extraBoards")) return;
+  const raw = root["extraBoards"];
+  if (!Array.isArray(raw)) {
+    c.add("extraBoards", "INVALID_TYPE", "extraBoards must be an array.");
+    return;
+  }
+  const lim = LIMITS.extraBoards;
+  if (raw.length < lim.min || raw.length > lim.max) {
+    c.add(
+      "extraBoards",
+      "LENGTH_OUT_OF_RANGE",
+      `extraBoards must have ${lim.min} to ${lim.max} boards, or be left out.`,
+    );
+  }
+  raw.forEach((entry, i) => {
+    const path = `extraBoards[${i}]`;
+    if (!isObject(entry)) {
+      c.add(path, "INVALID_TYPE", `${path} must be an object.`);
+      return;
+    }
+    rejectUnknown(c, entry, path, ["board", "initialState", "goal"]);
+    validateBoardAndCells(c, entry, path);
+  });
 }
 
 function validateCommands(c: Collector, root: Obj): void {
@@ -457,6 +510,7 @@ function run(c: Collector, input: unknown, authoring: boolean): void {
   enumField(c, input, "", "difficulty", DIFFICULTIES);
   validateRequires(c, input);
   validateBoardAndCells(c, input);
+  validateExtraBoards(c, input);
   validateCommands(c, input);
   validateConstraints(c, input);
   validateHints(c, input);
@@ -471,8 +525,15 @@ function run(c: Collector, input: unknown, authoring: boolean): void {
 }
 
 /** Best-effort read of availableCommands / maxCommands from a level that may have other problems. */
-function programLimits(level: unknown): { available: CommandName[] | null; max: number | null } {
-  if (!isObject(level)) return { available: null, max: null };
+type ProgramLimits = {
+  available: CommandName[] | null;
+  max: number | null;
+  /** The level lists the mechanic nested_loops: a loop may hold one loop. */
+  nested: boolean;
+};
+
+function programLimits(level: unknown): ProgramLimits {
+  if (!isObject(level)) return { available: null, max: null, nested: false };
   let available: CommandName[] | null = null;
   if (Array.isArray(level["availableCommands"])) {
     available = level["availableCommands"].filter(isCommandName);
@@ -480,15 +541,13 @@ function programLimits(level: unknown): { available: CommandName[] | null; max: 
   let max: number | null = null;
   const constraints = level["constraints"];
   if (isObject(constraints) && isInt(constraints["maxCommands"])) max = constraints["maxCommands"];
-  return { available, max };
+  const requires = level["requires"];
+  const mechanics = isObject(requires) ? requires["mechanics"] : undefined;
+  const nested = Array.isArray(mechanics) && mechanics.includes(NESTED_LOOPS_MECHANIC);
+  return { available, max, nested };
 }
 
-function checkProgram(
-  c: Collector,
-  program: unknown,
-  base: string,
-  limits: { available: CommandName[] | null; max: number | null },
-): void {
+function checkProgram(c: Collector, program: unknown, base: string, limits: ProgramLimits): void {
   if (!Array.isArray(program)) {
     c.add(base, "INVALID_TYPE", `${base} must be an array of instructions.`);
     return;
@@ -496,10 +555,19 @@ function checkProgram(
   // Slots: a primitive and a CALL are 1; a loop, an IF and a PROC are 1 plus what they hold.
   let slots = 0;
   /**
-   * Where a node stands: at the top, in the body of a loop of the main program, inside an IF branch, in a
-   * procedure body, or in the body of a loop inside a procedure.
+   * Where a node stands: at the top, in a loop body (and how deep), inside an IF branch, or in a
+   * procedure body.
    */
-  type Place = "top" | "body" | "branch" | "procBody" | "procLoopBody";
+  type Place = {
+    top: boolean;
+    /** Inside a procedure body (a CALL may not stand there). */
+    inProc: boolean;
+    /** How many loops enclose the node. */
+    loops: number;
+    /** Inside an IF branch. */
+    branch: boolean;
+  };
+  const TOP: Place = { top: true, inProc: false, loops: 0, branch: false };
   const procNames = new Set<string>();
   for (const node of program) {
     if (isObject(node) && node["op"] === PROC_OP && typeof node["name"] === "string") {
@@ -529,20 +597,22 @@ function checkProgram(
       return { op: null, nested: false };
     }
     const isLoopOp = op === REPEAT_OP || op === REPEAT_UNTIL_OP;
-    const loopAllowed = place === "top" || place === "procBody";
+    // A loop may hold one more loop only when the level lists the mechanic nested_loops.
+    const loopAllowed =
+      !place.branch && (place.loops === 0 || (place.loops === 1 && limits.nested));
     if (isLoopOp && !loopAllowed) {
-      c.add(opPath, "NESTED_REPEAT", `${opPath}: a loop cannot contain a loop.`);
+      c.add(opPath, "NESTED_REPEAT", `${opPath}: a loop cannot contain a loop here.`);
       return { op: null, nested: true };
     }
-    if (op === IF_OP && place === "branch") {
+    if (op === IF_OP && place.branch) {
       c.add(opPath, "NESTED_IF", `${opPath}: an IF cannot contain an IF.`);
       return { op: null, nested: true };
     }
-    if (op === PROC_OP && place !== "top") {
+    if (op === PROC_OP && !place.top) {
       c.add(opPath, "NESTED_PROC", `${opPath}: a procedure can only be defined at the top level.`);
       return { op: null, nested: true };
     }
-    if (op === CALL_OP && place !== "top" && place !== "body") {
+    if (op === CALL_OP && (place.inProc || place.branch)) {
       c.add(
         opPath,
         "CALL_NOT_ALLOWED",
@@ -632,9 +702,9 @@ function checkProgram(
     }
     slots += 1;
     if (op === REPEAT_OP || op === REPEAT_UNTIL_OP) {
-      checkLoop(item, path, op, place === "procBody" ? "procLoopBody" : "body");
+      checkLoop(item, path, op, { ...place, top: false, loops: place.loops + 1 });
     } else if (op === IF_OP) {
-      checkIf(item, path);
+      checkIf(item, path, place);
     } else if (op === PROC_OP) {
       checkProc(item, path);
     } else if (op === CALL_OP) {
@@ -658,11 +728,15 @@ function checkProgram(
       defined.add(name);
     }
     const body = checkList(node, "body", path, LIMITS.procBody, true);
-    body?.forEach((inner, j) => checkItem(inner, `${path}.body[${j}]`, "procBody"));
+    const procPlace: Place = { top: false, inProc: true, loops: 0, branch: false };
+    body?.forEach((inner, j) => checkItem(inner, `${path}.body[${j}]`, procPlace));
   };
 
-  /** The fields and branches of an IF node whose op was already checked. */
-  const checkIf = (node: Obj, path: string): void => {
+  /**
+   * The fields and branches of an IF node whose op was already checked. `chain` is how many IFs of an
+   * else-if chain have been seen, this one included.
+   */
+  const checkIf = (node: Obj, path: string, place: Place, chain = 1): void => {
     const whenPath = `${path}.when`;
     if (!has(node, "when")) {
       c.add(whenPath, "REQUIRED", `${whenPath} is required.`);
@@ -670,14 +744,41 @@ function checkProgram(
       c.add(whenPath, "INVALID_TYPE", `${whenPath} must be a string.`);
     } else if (!(SENSORS as readonly string[]).includes(node["when"])) {
       c.add(whenPath, "INVALID_VALUE", `${whenPath} must be one of ${SENSORS.join(", ")}.`);
+    } else if (
+      !node["when"].startsWith("CLEAR_") &&
+      limits.available &&
+      !limits.available.includes(MARK_OP)
+    ) {
+      c.add(
+        whenPath,
+        "COMMAND_NOT_AVAILABLE",
+        `${node["when"]} needs MARK, which is not available in this level.`,
+      );
     }
-    for (const [key, range, required] of [
-      ["then", LIMITS.ifThen, true],
-      ["else", LIMITS.ifElse, true],
-    ] as const) {
-      const list = checkList(node, key, path, range, required);
-      list?.forEach((inner, j) => checkItem(inner, `${path}.${key}[${j}]`, "branch"));
+    const branchPlace: Place = { ...place, top: false, branch: true };
+    const thenList = checkList(node, "then", path, LIMITS.ifThen, true);
+    thenList?.forEach((inner, j) => checkItem(inner, `${path}.then[${j}]`, branchPlace));
+    const other = checkList(node, "else", path, LIMITS.ifElse, true);
+    if (!other) return;
+    const next =
+      other.length === 1 && isObject(other[0]) && other[0]["op"] === IF_OP ? other[0] : null;
+    if (next === null) {
+      other.forEach((inner, j) => checkItem(inner, `${path}.else[${j}]`, branchPlace));
+      return;
     }
+    // An else-if chain: the else holds exactly one more IF.
+    const nextPath = `${path}.else[0]`;
+    if (chain >= LIMITS.ifChain) {
+      c.add(
+        `${nextPath}.op`,
+        "NESTED_IF",
+        `${nextPath}.op: an else-if chain holds at most ${LIMITS.ifChain} IFs.`,
+      );
+      return;
+    }
+    rejectUnknown(c, next, nextPath, allowedKeys(IF_OP));
+    slots += 1;
+    checkIf(next, nextPath, place, chain + 1);
   };
 
   const checkLoop = (node: Obj, path: string, known: CommandName, bodyPlace: Place): void => {
@@ -685,8 +786,17 @@ function checkProgram(
       const countPath = `${path}.count`;
       if (!has(node, "count")) {
         c.add(countPath, "REQUIRED", `${countPath} is required.`);
+      } else if (node["count"] === COUNTER_REF) {
+        // The counter needs INC offered.
+        if (limits.available && !limits.available.includes(INC_OP)) {
+          c.add(
+            countPath,
+            "COMMAND_NOT_AVAILABLE",
+            `${countPath}: the counter needs INC, which is not available in this level.`,
+          );
+        }
       } else if (!isInt(node["count"])) {
-        c.add(countPath, "INVALID_TYPE", `${countPath} must be an integer.`);
+        c.add(countPath, "INVALID_TYPE", `${countPath} must be an integer or "${COUNTER_REF}".`);
       } else if (node["count"] < LIMITS.repeatCount.min || node["count"] > LIMITS.repeatCount.max) {
         c.add(
           countPath,
@@ -712,7 +822,7 @@ function checkProgram(
     body?.forEach((inner, j) => checkItem(inner, `${path}.body[${j}]`, bodyPlace));
   };
 
-  program.forEach((node, i) => checkItem(node, `${base}[${i}]`, "top"));
+  program.forEach((node, i) => checkItem(node, `${base}[${i}]`, TOP));
   if (limits.max !== null && slots > limits.max) {
     c.add(
       base,

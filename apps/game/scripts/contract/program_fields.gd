@@ -70,13 +70,24 @@ static func check_until(issues: Array[Dictionary], node: Dictionary, path: Strin
 		)
 
 
-static func check_count(issues: Array[Dictionary], node: Dictionary, path: String) -> void:
+## Checks the count of a REPEAT: an integer from 2 to 11, or "N" when the level offers INC.
+static func check_count(
+	issues: Array[Dictionary], node: Dictionary, path: String, available: Variant
+) -> void:
 	var count_path := path + ".count"
 	if not node.has("count"):
 		LevelValidator._add(issues, count_path, "REQUIRED", "%s is required." % count_path)
+	elif typeof(node["count"]) == TYPE_STRING and node["count"] == ContractLimits.COUNTER_REF:
+		if available != null and not (available as Array).has(ContractLimits.INC_OP):
+			LevelValidator._add(
+				issues,
+				count_path,
+				"COMMAND_NOT_AVAILABLE",
+				"%s: the counter needs INC, which is not available in this level." % count_path
+			)
 	elif not LevelValidator._is_int(node["count"]):
 		LevelValidator._add(
-			issues, count_path, "INVALID_TYPE", "%s must be an integer." % count_path
+			issues, count_path, "INVALID_TYPE", '%s must be an integer or "N".' % count_path
 		)
 	else:
 		var count := int(node["count"])

@@ -12,6 +12,8 @@ var persist := true
 var _entry: Dictionary
 var _level: Dictionary
 var _session: PlaySession
+var _boards: BoardProgress
+var _tab_row: BoardTabs  # null for a single board
 var _tape: TapeModel
 ## Bumped whenever a run is stopped, so an animation that was waiting ends quietly.
 var _run_id := 0
@@ -43,6 +45,8 @@ var _group_buttons := {}
 var _call_buttons: Array[TileButton] = []
 ## The Else tile, shown while an IF is open; null when the level does not offer IF.
 var _else_button: TileButton
+## The Else If and End Loop tiles by key ("ELSE_IF", "END_LOOP"); they show only while needed.
+var _extra_buttons := {}
 var _stats: Array[StatTile] = []
 var _step: TileButton
 var _run: TileButton
@@ -65,11 +69,12 @@ func _build() -> void:
 		navigate.emit.call_deferred("daily" if args.has("daily") else "worlds", {})
 		return
 	_level = _entry["level"]
-	_session = PlaySession.new(_level)
-	var available: Array[String] = []
-	for op: String in _level["availableCommands"]:
-		available.append(op)
-	_tape = TapeModel.new(int(_level["constraints"]["maxCommands"]), available)
+	_boards = BoardProgress.new(_level)
+	_session = PlaySession.new(_boards.board_level())
+	var available := LevelMechanics.available(_level)
+	_tape = TapeModel.new(
+		int(_level["constraints"]["maxCommands"]), available, LevelMechanics.nested_loops(_level)
+	)
 	if persist and not _entry.has("daily"):
 		app.progress.set_last_level(_entry["id"])
 		app.progress.save()
@@ -108,6 +113,7 @@ func _layout() -> void:
 
 ## Brings every control in line with the session state. No animation.
 func _refresh() -> void:
+	PlayBoards.refresh(self)
 	var state := _session.state
 	var finished := _session.is_finished()
 	var plan := PlayLayout.control_plan(self)
@@ -146,6 +152,7 @@ func _refresh() -> void:
 	_counter.visible = state != PlaySession.State.FAILED
 
 	PlayView.refresh_tools(self)
+	_program_caption.text = PlayView.program_caption(self)
 
 	_tape_view.running = state != PlaySession.State.READY
 	_tape_view.set_content(
@@ -159,14 +166,6 @@ func _refresh() -> void:
 	queue_redraw()
 	for node in [_badge, _tape_view]:
 		node.queue_redraw()
-
-
-## A wrapping label first measured at zero width keeps a huge minimum height, so it is sized
-## again one frame later, after the label has recomputed its minimum for the real width.
-func _settle_message() -> void:
-	await get_tree().process_frame
-	if is_instance_valid(_message):
-		_message.size = _message_box
 
 
 # ----- player actions ---------------------------------------------------------------------------
@@ -258,6 +257,7 @@ func _on_next() -> void:
 
 func _start(next_state: PlaySession.State) -> bool:
 	_tape.clear_selection()
+	_boards.notice = ""
 	if _tape.is_empty() or _tape.is_incomplete() or not _session.start(_tape.program(), next_state):
 		return false
 	_run_id += 1

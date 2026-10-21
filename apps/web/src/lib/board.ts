@@ -1,16 +1,20 @@
 export type Dir = "N" | "E" | "S" | "W";
 export type Point = { x: number; y: number };
-export type Command = "move" | "left" | "right" | "repeat" | "until" | "if" | "proc" | "call";
+export type Command =
+  "move" | "left" | "right" | "inc" | "mark" | "repeat" | "until" | "if" | "proc" | "call";
 
 /** Everything the board renderer needs. Cells are addressed from the top-left, x to the right. */
 export type BoardData = {
   width: number;
   height: number;
   walls: Point[];
-  goal: Point;
+  /** The target cell. Absent on a board whose goal is to visit every cell: it draws no target. */
+  goal?: Point;
   automaton: Point & { dir: Dir };
-  /** Cells the automaton has passed. */
+  /** Cells the automaton has passed (the visited cells on a sweep board). */
   trail?: Point[];
+  /** Breadcrumbs: a marked cell and the direction its arrow points (to the cell behind). */
+  crumbs?: (Point & { dir: Dir })[];
   /** The wall that stopped a failed run. */
   hitWall?: Point;
 };
@@ -22,6 +26,8 @@ export const COMMAND_LABEL: Record<Command, string> = {
   move: "MOVE",
   left: "LEFT",
   right: "RIGHT",
+  inc: "COUNT",
+  mark: "MARK",
   repeat: "REPEAT",
   until: "UNTIL",
   if: "IF",
@@ -40,5 +46,6 @@ export function hasPoint(list: readonly Point[] | undefined, p: Point): boolean 
 /** A short plain-language description of a board, for the accessible name of its drawing. */
 export function describeBoard(board: BoardData): string {
   const walls = board.walls.length === 1 ? "1 wall" : `${board.walls.length} walls`;
-  return `Board of ${board.width} by ${board.height} cells with ${walls} and one target.`;
+  const goal = board.goal ? "one target" : "no target, every cell to be visited";
+  return `Board of ${board.width} by ${board.height} cells with ${walls} and ${goal}.`;
 }

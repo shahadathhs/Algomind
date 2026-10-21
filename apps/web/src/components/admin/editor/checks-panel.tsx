@@ -8,6 +8,8 @@ import type { ValidateResult } from "@/lib/admin/admin-api";
 import { Notice, OutlineAction } from "../ui";
 import { useAdminApi } from "../use-admin-api";
 import { apiMessage } from "@/lib/admin/messages";
+import type { MultiRunResult } from "@/lib/admin/level-model";
+import { BoardResults } from "./board-results";
 import { IssueList } from "./issue-list";
 
 export function ChecksPanel({
@@ -15,12 +17,15 @@ export function ChecksPanel({
   dirty,
   hasDraft,
   parIsReference = false,
+  localRun = null,
 }: {
   levelId: string;
   dirty: boolean;
   /** The level offers IF or PROC: the API sets par to the reference solution. */
   parIsReference?: boolean;
   hasDraft: boolean;
+  /** The reference solution run on every board in the browser, when the level has several boards. */
+  localRun?: MultiRunResult | null;
 }) {
   const api = useAdminApi();
   const [result, setResult] = useState<ValidateResult | null>(null);
@@ -63,6 +68,14 @@ export function ChecksPanel({
         )}
       </div>
       {error && <Notice>{error}</Notice>}
+      {localRun && localRun.results.length > 1 && (
+        <div>
+          <Caption as="h3" className="mb-2">
+            Reference solution on each board
+          </Caption>
+          <BoardResults run={localRun} />
+        </div>
+      )}
       {result && (
         <div className="grid gap-6">
           <div>

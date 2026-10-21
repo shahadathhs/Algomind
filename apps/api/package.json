@@ -1,7 +1,7 @@
 {
   "name": "@algomind/api",
   "private": true,
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "description": "Algomind API: authentication, levels, campaign, publishing (NestJS, Prisma, PostgreSQL).",
   "scripts": {
