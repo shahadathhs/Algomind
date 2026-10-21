@@ -113,16 +113,19 @@ func _fill() -> void:
 			row.state = "current"
 		elif app.progress.level_state(app.campaign, int(entries[0]["number"]) - 1) == "locked":
 			row.state = "locked"
-			row.subtitle = "LOCKED"
+			row.subtitle = "LOCKED · %02d LEVELS" % entries.size()
 		else:
 			row.state = "current"
 		row.accessibility_name = "World %d, %s, %s" % [row.number, world["title"], row.subtitle]
+		if row.state == "locked":
+			row.accessibility_name += ", opens a preview of its levels"
 		row.custom_minimum_size = Vector2(0, ROW_HEIGHT)
 		if row.state == "update":
 			row.pressed.connect(
 				func() -> void: navigate.emit("update_required", {"title": world["title"]})
 			)
-		elif row.state != "locked":
+		else:
+			# A locked world can still be opened to look at its chapters and levels.
 			row.pressed.connect(func() -> void: navigate.emit("world", {"world": world_index}))
 		_list.add_child(row)
 	for pending_index in app.campaign.pending_worlds.size():
@@ -209,8 +212,6 @@ class _WorldRow:
 		mouse_filter = Control.MOUSE_FILTER_PASS
 
 	func _gui_input(event: InputEvent) -> void:
-		if state == "locked":
-			return
 		var click := event as InputEventMouseButton
 		var motion := event as InputEventMouseMotion
 		if click != null and click.button_index == MOUSE_BUTTON_LEFT:

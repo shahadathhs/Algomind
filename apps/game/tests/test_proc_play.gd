@@ -14,7 +14,10 @@ func _state() -> AppState:
 	]
 	var campaign := Campaign.new()
 	campaign.entries.append({"id": "proc-t", "number": 1, "world": 0, "chapter": 0, "level": level})
-	return AppState.new(campaign, ProgressStore.new("user://test_proc_play.json"))
+	# An empty content store of its own: the real one holds the campaign a run of the game downloaded,
+	# and AppState prefers that campaign to the one given here.
+	var content := ContentStore.new("user://test_proc_play_content")
+	return AppState.new(campaign, ProgressStore.new("user://test_proc_play.json"), content)
 
 
 func _screen(at: Vector2) -> PlayScreen:
