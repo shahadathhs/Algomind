@@ -156,7 +156,7 @@ static func counter_text(p: PlayScreen) -> String:
 				"difficulty": p._level["difficulty"],
 				"par": par,
 				"slots": p._tape.slots(),
-				"steps": int(p._session.result.get("steps", 0)),
+				"steps": run_steps(p),
 			}
 		)
 	)
@@ -168,12 +168,27 @@ static func counter_text(p: PlayScreen) -> String:
 static func message_text(p: PlayScreen) -> String:
 	match p._session.state:
 		PlaySession.State.SUCCEEDED, PlaySession.State.FAILED:
-			var special := LoopMessages.for_result(p._level, p._tape.program(), p._session.result)
-			if special != "":
-				return special.to_upper().trim_suffix(".")
-			return ResultMessages.for_result(p._session.result).to_upper().trim_suffix(".")
-		_:
-			return LoopMessages.building_text(p._tape)
+			return result_text(p)
+		PlaySession.State.READY:
+			if p._boards.notice != "":
+				return p._boards.notice
+	return LoopMessages.building_text(p._tape)
+
+
+## The text of a finished run. A failure on a level with test boards names its board.
+static func result_text(p: PlayScreen) -> String:
+	var result := p._session.result
+	var special := LoopMessages.for_result(p._session.level, p._tape.program(), result)
+	var text := special if special != "" else ResultMessages.for_result(result)
+	var prefix := p._boards.prefix() if p._session.state == PlaySession.State.FAILED else ""
+	return prefix + text.to_upper().trim_suffix(".")
+
+
+## The steps that results and scoring count: all boards added together for a multi-board level.
+static func run_steps(p: PlayScreen) -> int:
+	if p._boards.is_multi():
+		return p._boards.total_steps(p._tape.program())
+	return int(p._session.result.get("steps", 0))
 
 
 static func update_stats(p: PlayScreen) -> void:
@@ -182,7 +197,7 @@ static func update_stats(p: PlayScreen) -> void:
 	if p._entry.has("daily"):
 		best = int(p.app.progress.results.daily_best.get(p._entry["daily"], {}).get("slots", 0))
 	stats[0].value = "%d / %d" % [p._tape.slots(), p._tape.limit]
-	stats[1].value = str(int(p._session.result.get("steps", 0)))
+	stats[1].value = str(run_steps(p))
 	var par: Dictionary = p._entry.get("par", {})
 	if par.has("commands"):
 		stats[2].caption = "BEST / PAR"

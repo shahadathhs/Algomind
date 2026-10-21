@@ -266,3 +266,24 @@ static func _finish(
 		"blockedCell": blocked_cell,
 		"trace": run["trace"],
 	}
+
+
+## Runs program on every board (all are always run).
+## Returns { status, firstFailure, steps, results }. firstFailure is the index of the first
+## failed board or null, steps the sum over all boards.
+static func simulate_all(level: Dictionary, program: Array) -> Dictionary:
+	var results: Array = []
+	var steps := 0
+	var failed: Variant = null
+	for i in BoardSet.boards_of(level).size():
+		var result := simulate(BoardSet.level_on_board(level, i), program)
+		results.append(result)
+		steps += int(result["steps"])
+		if failed == null and result["status"] != "SUCCEEDED":
+			failed = i
+	return {
+		"status": "SUCCEEDED" if failed == null else "FAILED",
+		"firstFailure": failed,
+		"steps": steps,
+		"results": results,
+	}

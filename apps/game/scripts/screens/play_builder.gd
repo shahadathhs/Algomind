@@ -9,7 +9,8 @@ static func build(p: PlayScreen, available: Array[String]) -> void:
 	p._board = BoardView.new()
 	p._board.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(p._board)
-	p._board.set_level(p._level)
+	p._board.set_level(p._session.level)
+	PlayBoards.build(p)
 	_build_tape(p)
 	_build_commands(p, available)
 	for caption in ["COMMANDS", "STEPS", "BEST"]:

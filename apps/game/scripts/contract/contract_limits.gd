@@ -58,6 +58,9 @@ const REPEAT_BODY_MIN := 1
 const REPEAT_BODY_MAX := 8
 const REPEAT_COUNT_MIN := 2
 const REPEAT_COUNT_MAX := 11
+## Extra test boards a level may carry besides its own board.
+const EXTRA_BOARDS_MIN := 1
+const EXTRA_BOARDS_MAX := 5
 const PROC_BODY_MIN := 1
 const PROC_BODY_MAX := 8
 const IF_THEN_MIN := 1

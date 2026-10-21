@@ -30,6 +30,7 @@ static func apply(p: PlayScreen) -> void:
 		_place_row([p._share, p._ranking], actions_y, ACTION_HEIGHT, width, m)
 		tape_bottom = actions_y - 8.0
 	var cursor := _tape_area(p, m, tape_bottom, width, compact)
+	y = PlayBoards.place(p, m, y, width)
 	var board_h := cursor - y
 	var side := minf(width, board_h)
 	p._board.size = Vector2(side, side)

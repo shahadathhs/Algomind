@@ -12,6 +12,8 @@ var persist := true
 var _entry: Dictionary
 var _level: Dictionary
 var _session: PlaySession
+var _boards: BoardProgress
+var _tab_row: BoardTabs  # null for a single board
 var _tape: TapeModel
 ## Bumped whenever a run is stopped, so an animation that was waiting ends quietly.
 var _run_id := 0
@@ -65,7 +67,8 @@ func _build() -> void:
 		navigate.emit.call_deferred("daily" if args.has("daily") else "worlds", {})
 		return
 	_level = _entry["level"]
-	_session = PlaySession.new(_level)
+	_boards = BoardProgress.new(_level)
+	_session = PlaySession.new(_boards.board_level())
 	var available: Array[String] = []
 	for op: String in _level["availableCommands"]:
 		available.append(op)
@@ -108,6 +111,7 @@ func _layout() -> void:
 
 ## Brings every control in line with the session state. No animation.
 func _refresh() -> void:
+	PlayBoards.refresh(self)
 	var state := _session.state
 	var finished := _session.is_finished()
 	var plan := PlayLayout.control_plan(self)
@@ -258,6 +262,7 @@ func _on_next() -> void:
 
 func _start(next_state: PlaySession.State) -> bool:
 	_tape.clear_selection()
+	_boards.notice = ""
 	if _tape.is_empty() or _tape.is_incomplete() or not _session.start(_tape.program(), next_state):
 		return false
 	_run_id += 1

@@ -113,6 +113,7 @@ func _build() -> void:
 	)
 	_add_decisions()
 	_add_procedures()
+	_add_test_boards()
 	_list.add_child(UiKit.label("CONTROLS", 14, Palette.MUTE, 3))
 	for item in CONTROLS:
 		_list.add_child(_Row.make(item["icon"], item["name"], item["text"]))
@@ -191,6 +192,24 @@ func _add_procedures() -> void:
 				+ "another procedure. A CALL stands in the program or inside a loop. If a "
 				+ "procedure is removed, its CALL tiles stay and the program cannot run until "
 				+ "the procedure is made again or the calls are removed."
+			)
+		)
+	)
+
+
+## The test boards section: one program that has to work on several boards.
+func _add_test_boards() -> void:
+	_list.add_child(UiKit.label("TEST BOARDS", 14, Palette.MUTE, 3))
+	_list.add_child(
+		_paragraph(
+			(
+				"Some levels have more than one board. One program has to solve all of them. Tap "
+				+ "a board tab to choose a board. RUN, STEP and RESET work on the board you "
+				+ "chose. A board your program has solved shows a check. Change the program and "
+				+ "the checks go away. When a board is solved the next one is chosen. The level "
+				+ "is solved when the same program has solved every board. A program that counts "
+				+ "moves fits one board and fails on the next, so ask the board instead: move "
+				+ "until blocked, or look before each move."
 			)
 		)
 	)
