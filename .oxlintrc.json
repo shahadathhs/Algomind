@@ -34,7 +34,9 @@
     "pnpm-lock.yaml",
     "apps/api/src/generated",
     "apps/api/dist",
-    ".claude"
+    ".claude",
+    "apps/api/.agents",
+    "apps/api/.windsurf"
   ],
   "overrides": [
     {
