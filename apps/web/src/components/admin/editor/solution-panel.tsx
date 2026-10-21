@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Caption } from "@/components/ui/caption";
 import type { Instruction, LevelContent } from "@/lib/admin/admin-api";
 import { boardCount } from "@/lib/admin/board-model";
-import { localCheck, parIsReferenceFor, slotsOf } from "@/lib/admin/level-model";
+import { localCheck, offersNestedLoops, parIsReferenceFor, slotsOf } from "@/lib/admin/level-model";
 import { Notice } from "../ui";
 import { BoardResults } from "./board-results";
 import { ProgramEditor } from "./program-editor";
@@ -28,6 +28,7 @@ export function SolutionPanel({
           program={solution}
           onChange={onSolution}
           available={content.availableCommands}
+          nested={offersNestedLoops(content)}
           idPrefix="Reference"
         />
       </div>

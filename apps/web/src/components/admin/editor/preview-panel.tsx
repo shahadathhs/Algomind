@@ -5,7 +5,16 @@ import { BoardView } from "@/components/ui/board-view";
 import { Caption } from "@/components/ui/caption";
 import type { Instruction, LevelContent } from "@/lib/admin/admin-api";
 import { boardCaseOf, boardCount, onBoard } from "@/lib/admin/board-model";
-import { boardData, explainResult, simulateAll } from "@/lib/admin/level-model";
+import { floorCells, isSweep } from "@/lib/admin/goal-model";
+import {
+  boardData,
+  explainResult,
+  offersCounter,
+  offersNestedLoops,
+  offersMarks,
+  simulateAll,
+} from "@/lib/admin/level-model";
+import { crumbsOf, visitedOf } from "@/lib/admin/run-view";
 import type { Level, Program } from "@algomind/level-contract";
 import { OutlineAction } from "../ui";
 import { BoardResults, ResultMark } from "./board-results";
@@ -44,9 +53,12 @@ export function PreviewPanel({
   const finished = result !== null && shown >= total;
   const blocked = finished && result?.blockedCell ? result.blockedCell : undefined;
 
+  const sweep = isSweep(view.goal);
+  const visited = visitedOf([sx, sy], trace);
   const board = boardData(view, {
     automaton: { x: position[0], y: position[1], dir: direction },
-    trail: trace.map((t) => t.position),
+    trail: sweep ? visited : trace.map((t) => t.position),
+    crumbs: offersMarks(content) ? crumbsOf(trace) : undefined,
     hit: blocked && blocked[0] >= 0 && blocked[1] >= 0 ? blocked : undefined,
   });
 
@@ -61,6 +73,7 @@ export function PreviewPanel({
             setStep(0);
           }}
           available={content.availableCommands}
+          nested={offersNestedLoops(content)}
           idPrefix="Preview"
         />
         <div className="mt-4 flex flex-wrap gap-3">
@@ -119,6 +132,16 @@ export function PreviewPanel({
               ? `${count > 1 ? `Board ${index + 1}: ` : ""}${explainResult(result)} ${total} ${total === 1 ? "step" : "steps"}.`
               : `Step ${shown} of ${total}.`}
         </p>
+        {(offersCounter(content) || sweep) && result !== null && (
+          <p className="mt-2 flex flex-wrap gap-x-6 text-sm font-semibold tracking-[1px] tabular-nums uppercase">
+            {offersCounter(content) && <span>N {entry?.counter ?? 1}</span>}
+            {sweep && (
+              <span>
+                {visited.length} / {floorCells(view.board)} CELLS
+              </span>
+            )}
+          </p>
+        )}
         {run && count > 1 && (
           <div className="mt-4 grid gap-2">
             <BoardResults run={run} />

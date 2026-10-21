@@ -1,14 +1,15 @@
 "use client";
 
 import { moveItem } from "@/lib/admin/list-ops";
-import type { BodyNode, Instruction } from "@/lib/admin/admin-api";
-import { REPEAT_LIMITS, isCall, isIf, primitivesOf } from "@/lib/admin/level-model";
+import type { Instruction } from "@/lib/admin/admin-api";
+import { REPEAT_LIMITS, isCall, isIf, isLoop, offersCounter } from "@/lib/admin/level-model";
 import { UNTIL_LABELS, asIf, nodeLabel } from "@/lib/admin/program-model";
 import { SelectField } from "../ui";
 import { AddCommands } from "./add-commands";
 import { CallName } from "./call-name";
 import { IfBranches } from "./if-branches";
 import { ItemRow } from "./item-row";
+import { LoopCount } from "./loop-count";
 
 /** The count and body of one loop, shown indented under its row. */
 export function LoopBody({
@@ -17,6 +18,7 @@ export function LoopBody({
   idPrefix,
   available,
   callNames,
+  nested = false,
   onCount,
   onUntil,
   onBody,
@@ -28,9 +30,11 @@ export function LoopBody({
   available: string[];
   /** The defined procedure names when a CALL may stand in this body (the main program); else omitted. */
   callNames?: readonly string[];
-  onCount: (count: number) => void;
+  /** The level allows nested loops and this loop is the outer one: its body may hold a loop. */
+  nested?: boolean;
+  onCount: (count: number | "N") => void;
   onUntil: (until: string) => void;
-  onBody: (body: BodyNode[]) => void;
+  onBody: (body: Instruction[]) => void;
 }) {
   const body = node.body ?? [];
   const full = body.length >= REPEAT_LIMITS.body.max;
@@ -58,27 +62,12 @@ export function LoopBody({
           </p>
         </>
       ) : (
-        <div className="flex flex-wrap items-center gap-3">
-          <label htmlFor={id} className="text-xs tracking-[2px] text-mute uppercase">
-            Rounds ({REPEAT_LIMITS.count.min} to {REPEAT_LIMITS.count.max})
-          </label>
-          <input
-            id={id}
-            type="number"
-            min={REPEAT_LIMITS.count.min}
-            max={REPEAT_LIMITS.count.max}
-            value={node.count ?? REPEAT_LIMITS.count.min}
-            onChange={(e) =>
-              onCount(
-                Math.min(
-                  REPEAT_LIMITS.count.max,
-                  Math.max(REPEAT_LIMITS.count.min, Math.round(Number(e.target.value)) || 2),
-                ),
-              )
-            }
-            className="h-11 w-20 border-2 border-ink bg-floor px-3 text-base text-ink"
-          />
-        </div>
+        <LoopCount
+          id={id}
+          value={node.count}
+          counter={offersCounter({ availableCommands: available })}
+          onChange={onCount}
+        />
       )}
       {body.length === 0 && (
         <p className="text-sm font-semibold text-mute">
@@ -101,8 +90,22 @@ export function LoopBody({
                 node={asIf(b)}
                 where={`command ${j + 1} of ${name}`}
                 idPrefix={`${idPrefix}-if-${j}`}
-                primitives={primitivesOf(available)}
+                available={available}
                 onChange={(next) => onBody(body.map((x, k) => (k === j ? next : x)))}
+              />
+            )}
+            {isLoop(b) && (
+              <LoopBody
+                node={b as Instruction}
+                name={`inner loop ${j + 1} of ${name}`}
+                idPrefix={`${idPrefix}-loop-${j}`}
+                available={available}
+                callNames={callNames}
+                onCount={(count) => onBody(body.map((x, k) => (k === j ? { ...x, count } : x)))}
+                onUntil={(until) => onBody(body.map((x, k) => (k === j ? { ...x, until } : x)))}
+                onBody={(inner) =>
+                  onBody(body.map((x, k) => (k === j ? { ...x, body: inner } : x)))
+                }
               />
             )}
             {isCall(b) && callNames && (
@@ -123,6 +126,7 @@ export function LoopBody({
         available={available}
         label={`Add a command to ${name}`}
         disabled={full}
+        loops={nested}
         callNames={callNames}
         onAdd={(node) => onBody([...body, node])}
       />

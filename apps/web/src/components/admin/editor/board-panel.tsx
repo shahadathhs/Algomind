@@ -11,15 +11,14 @@ import {
   onBoard,
   removeBoard,
 } from "@/lib/admin/board-model";
+import { applyTool, resizeBoard, type Tool } from "@/lib/admin/board-tools";
+import { GOAL_LABELS, isSweep, setGoalType } from "@/lib/admin/goal-model";
 import {
-  applyTool,
   BOARD_MAX,
   BOARD_MIN,
   boardData,
   DIRECTIONS,
-  resizeBoard,
   type Direction,
-  type Tool,
 } from "@/lib/admin/level-model";
 import { Field, OutlineAction, SelectField } from "../ui";
 import { BoardTabs } from "./board-tabs";
@@ -42,7 +41,10 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
   const onChange = (next: typeof content) => onLevelChange(editBoard(level, index, () => next));
   const { width, height } = content.board;
   const [sx, sy] = content.initialState.position;
-  const [gx, gy] = content.goal.position;
+  const sweep = isSweep(content.goal);
+  const [gx, gy] = content.goal.position ?? [-1, -1];
+  const tools = sweep ? TOOLS.filter((t) => t.id !== "goal") : TOOLS;
+  const activeTool = tools.some((t) => t.id === tool) ? tool : "wall";
   const cells = [];
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -55,7 +57,7 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
           key={`${x}-${y}`}
           type="button"
           aria-label={label}
-          onClick={() => onChange(applyTool(content, tool, x, y))}
+          onClick={() => onChange(applyTool(content, activeTool, x, y))}
           className={`flex aspect-square items-center justify-center text-[15px] font-bold outline-offset-[-4px] ${
             isWall
               ? "bg-wall text-on-ink"
@@ -74,10 +76,10 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
     const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
     if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(e.key)) return;
     e.preventDefault();
-    const next = TOOLS[(index + step + TOOLS.length) % TOOLS.length]!;
+    const next = tools[(index + step + tools.length) % tools.length]!;
     setTool(next.id);
     (
-      e.currentTarget.parentElement?.children[TOOLS.indexOf(next)] as HTMLElement | undefined
+      e.currentTarget.parentElement?.children[tools.indexOf(next)] as HTMLElement | undefined
     )?.focus();
   }
   return (
@@ -123,17 +125,17 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div>
           <div role="radiogroup" aria-label="Board tool" className="mb-4 flex flex-wrap gap-3">
-            {TOOLS.map((t, i) => (
+            {tools.map((t, i) => (
               <button
                 key={t.id}
                 type="button"
                 role="radio"
-                aria-checked={tool === t.id}
-                tabIndex={tool === t.id ? 0 : -1}
+                aria-checked={activeTool === t.id}
+                tabIndex={activeTool === t.id ? 0 : -1}
                 onClick={() => setTool(t.id)}
                 onKeyDown={(e) => moveTool(e, i)}
                 className={`tile inline-flex h-11 items-center px-5 text-[13px] tracking-[2px] uppercase ${
-                  tool === t.id ? "bg-ink text-on-ink" : "bg-strip text-ink"
+                  activeTool === t.id ? "bg-ink text-on-ink" : "bg-strip text-ink"
                 }`}
                 style={{ ["--chamfer" as string]: "10px" }}
               >
@@ -150,7 +152,9 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
             {cells}
           </div>
           <p className="mt-3 text-sm font-semibold text-mute">
-            Pick a tool, then select cells. S marks the start, G the goal, W a wall.
+            {sweep
+              ? "Pick a tool, then select cells. S marks the start, W a wall. The run succeeds when every floor cell has been entered."
+              : "Pick a tool, then select cells. S marks the start, G the goal, W a wall."}
           </p>
         </div>
         <div className="grid content-start gap-5">
@@ -176,6 +180,18 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
               onChange(resizeBoard(content, width, Number(e.target.value) || BOARD_MIN))
             }
           />
+          <SelectField
+            label="Goal"
+            id="ed-goal-type"
+            value={content.goal.type}
+            onChange={(e) => onChange(setGoalType(content, e.target.value))}
+          >
+            {Object.entries(GOAL_LABELS).map(([value, text]) => (
+              <option key={value} value={value}>
+                {text}
+              </option>
+            ))}
+          </SelectField>
           <SelectField
             label="Start facing"
             id="ed-facing"

@@ -61,7 +61,7 @@ export const READY_BOARD: BoardData = {
   width: level.board.width,
   height: level.board.height,
   walls: level.board.walls.map(cell),
-  goal: cell(level.goal.position),
+  goal: level.goal.type === "reach_tile" ? cell(level.goal.position) : undefined,
   automaton: {
     ...cell(level.initialState.position),
     dir: DIR_OF[level.initialState.direction]!,

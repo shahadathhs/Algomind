@@ -65,9 +65,11 @@ export function boardFromContent(content: unknown): BoardData | null {
   if (!Number.isInteger(width) || !Number.isInteger(height) || !Array.isArray(walls)) return null;
   const start = point(content.initialState.position);
   const dir = DIRECTION[String(content.initialState.direction)];
-  const goal = point(content.goal.position);
+  // A sweep board (visit_all) has no target; any other goal needs a position.
+  const sweep = content.goal.type === "visit_all";
+  const goal = sweep ? undefined : (point(content.goal.position) ?? undefined);
   const wallPoints = walls.map(point);
-  if (!start || !dir || !goal || wallPoints.some((p) => p === null)) return null;
+  if (!start || !dir || (!sweep && !goal) || wallPoints.some((p) => p === null)) return null;
   return {
     width: width as number,
     height: height as number,
