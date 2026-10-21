@@ -125,6 +125,57 @@
           "levels": ["any-bend", "any-maze", "big-and-small", "every-board"]
         }
       ]
+    },
+    {
+      "id": "counters",
+      "title": "Counters",
+      "summary": "A number that grows with every lap.",
+      "chapters": [
+        {
+          "id": "growing",
+          "title": "Growing",
+          "levels": ["wider-steps", "growing-diagonal", "tall-steps"]
+        },
+        {
+          "id": "spirals",
+          "title": "Spirals",
+          "levels": ["small-spiral", "left-spiral", "big-spiral"]
+        }
+      ]
+    },
+    {
+      "id": "memory",
+      "title": "Memory",
+      "summary": "Leave a mark so you never walk in circles.",
+      "chapters": [
+        {
+          "id": "breadcrumbs",
+          "title": "Breadcrumbs",
+          "levels": ["first-loop", "two-mazes", "wider-mazes", "three-mazes"]
+        },
+        {
+          "id": "dead-ends",
+          "title": "Dead ends",
+          "levels": ["long-halls", "many-dead-ends", "large-mazes", "tangle"]
+        }
+      ]
+    },
+    {
+      "id": "sweep",
+      "title": "Sweep",
+      "summary": "Visit every cell, and waste no steps.",
+      "chapters": [
+        {
+          "id": "rooms",
+          "title": "Rooms",
+          "levels": ["small-room", "tall-room", "wide-room", "big-room"]
+        },
+        {
+          "id": "halls",
+          "title": "Halls",
+          "levels": ["comb", "long-comb", "spiral-hall", "maze-sweep"]
+        }
+      ]
     }
   ],
   "par": {
@@ -367,6 +418,94 @@
     "every-board": {
       "commands": 4,
       "steps": 5
+    },
+    "wider-steps": {
+      "commands": 16,
+      "steps": 24
+    },
+    "growing-diagonal": {
+      "commands": 20,
+      "steps": 27
+    },
+    "tall-steps": {
+      "commands": 16,
+      "steps": 27
+    },
+    "small-spiral": {
+      "commands": 19,
+      "steps": 44
+    },
+    "left-spiral": {
+      "commands": 23,
+      "steps": 57
+    },
+    "big-spiral": {
+      "commands": 29,
+      "steps": 72
+    },
+    "first-loop": {
+      "commands": 14,
+      "steps": 20
+    },
+    "two-mazes": {
+      "commands": 11,
+      "steps": 21
+    },
+    "wider-mazes": {
+      "commands": 2,
+      "steps": 7
+    },
+    "three-mazes": {
+      "commands": 15,
+      "steps": 23
+    },
+    "long-halls": {
+      "commands": 14,
+      "steps": 17
+    },
+    "many-dead-ends": {
+      "commands": 18,
+      "steps": 24
+    },
+    "large-mazes": {
+      "commands": 19,
+      "steps": 35
+    },
+    "tangle": {
+      "commands": 18,
+      "steps": 26
+    },
+    "small-room": {
+      "commands": 11,
+      "steps": 18
+    },
+    "tall-room": {
+      "commands": 11,
+      "steps": 33
+    },
+    "wide-room": {
+      "commands": 11,
+      "steps": 57
+    },
+    "big-room": {
+      "commands": 11,
+      "steps": 107
+    },
+    "comb": {
+      "commands": 11,
+      "steps": 60
+    },
+    "long-comb": {
+      "commands": 11,
+      "steps": 129
+    },
+    "spiral-hall": {
+      "commands": 4,
+      "steps": 80
+    },
+    "maze-sweep": {
+      "commands": 6,
+      "steps": 108
     }
   }
 }

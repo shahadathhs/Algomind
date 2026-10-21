@@ -23,8 +23,14 @@ export function readBoard(rows: readonly string[]) {
       else if (cell in FACING) start = { position: [x, y], direction: FACING[cell]! };
     });
   });
-  if (!goal || !start) throw new Error("A starter board needs a target and an automaton");
+  // A board without a target is a sweep: the goal is to visit every floor cell.
+  if (!start) throw new Error("A starter board needs an automaton");
   return { width: rows[0]!.length, height: rows.length, walls, goal, start };
+}
+
+/** The goal of a board read from rows: the target cell, or the sweep when the board has none. */
+function goalOf(position: [number, number] | undefined) {
+  return position ? { type: "reach_tile" as const, position } : { type: "visit_all" as const };
 }
 
 export type LevelDef = {
@@ -39,6 +45,8 @@ export type LevelDef = {
   solution?: readonly unknown[];
   /** Defaults to 100. */
   maxSteps?: number;
+  /** Mechanics the level requires besides those of its commands (for example nested_loops). */
+  requires?: readonly string[];
   /** More test boards as text rows (the same alphabet as `rows`): one program must solve them all. */
   extraBoards?: readonly (readonly string[])[];
 };
@@ -56,12 +64,12 @@ export function buildLevel(def: LevelDef, id: string): Level {
     title: def.title,
     description: "",
     difficulty: def.difficulty,
-    requires: { mechanics: [] },
+    requires: { mechanics: [...(def.requires ?? [])] },
     board: { width: board.width, height: board.height, walls: board.walls },
     initialState: board.start,
     availableCommands: [...def.commands],
     constraints: { maxCommands: def.maxCommands, maxSteps: def.maxSteps ?? 100 },
-    goal: { type: "reach_tile", position: board.goal },
+    goal: goalOf(board.goal),
     ...(def.extraBoards
       ? {
           extraBoards: def.extraBoards.map((rows) => {
@@ -69,7 +77,7 @@ export function buildLevel(def: LevelDef, id: string): Level {
             return {
               board: { width: extra.width, height: extra.height, walls: extra.walls },
               initialState: extra.start,
-              goal: { type: "reach_tile" as const, position: extra.goal },
+              goal: goalOf(extra.goal),
             };
           }),
         }

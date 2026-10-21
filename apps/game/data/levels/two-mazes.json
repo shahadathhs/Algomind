@@ -1,0 +1,92 @@
+{
+  "goal": {
+    "type": "reach_tile",
+    "position": [3, 4]
+  },
+  "slug": "two-mazes",
+  "board": {
+    "walls": [
+      [3, 0],
+      [0, 1],
+      [1, 1],
+      [5, 1],
+      [6, 1],
+      [3, 2],
+      [1, 3],
+      [2, 3],
+      [3, 3],
+      [4, 3],
+      [5, 3],
+      [1, 4],
+      [1, 5],
+      [2, 5],
+      [3, 5],
+      [5, 5],
+      [5, 6]
+    ],
+    "width": 7,
+    "height": 7
+  },
+  "hints": [
+    "One program has to solve both mazes.",
+    "When no cell is fresh, follow the breadcrumb back to where you came from."
+  ],
+  "title": "Two mazes",
+  "levelId": "d7d1a40c-2cbe-405e-8b81-44b15713180b",
+  "requires": {
+    "mechanics": []
+  },
+  "difficulty": "medium",
+  "constraints": {
+    "maxSteps": 220,
+    "maxCommands": 21
+  },
+  "description": "",
+  "extraBoards": [
+    {
+      "goal": {
+        "type": "reach_tile",
+        "position": [6, 4]
+      },
+      "board": {
+        "walls": [
+          [1, 0],
+          [1, 1],
+          [2, 1],
+          [3, 1],
+          [4, 1],
+          [5, 1],
+          [7, 1],
+          [8, 1],
+          [5, 2],
+          [0, 3],
+          [1, 3],
+          [3, 3],
+          [5, 3],
+          [6, 3],
+          [7, 3],
+          [3, 4],
+          [1, 5],
+          [2, 5],
+          [3, 5],
+          [4, 5],
+          [5, 5],
+          [7, 5]
+        ],
+        "width": 9,
+        "height": 7
+      },
+      "initialState": {
+        "position": [0, 0],
+        "direction": "south"
+      }
+    }
+  ],
+  "initialState": {
+    "position": [0, 0],
+    "direction": "east"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT_UNTIL", "IF", "MARK"]
+}

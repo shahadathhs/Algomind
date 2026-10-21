@@ -1,4 +1,4 @@
-// The starter campaign: seven worlds, fourteen chapters, sixty levels, in play order.
+// The starter campaign: ten worlds, twenty chapters, eighty-two levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
@@ -2727,6 +2727,2180 @@ export const CAMPAIGN = {
               "hints": [
                 "Rooms, halls, mazes and spirals: the rule is the same.",
                 "Every board has to reach its target with the one program."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Counters",
+      "description": "A number that grows with every lap.",
+      "chapters": [
+        {
+          "title": "Growing",
+          "levels": [
+            {
+              "slug": "wider-steps",
+              "title": "Wider steps",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "INC"
+              ],
+              "requires": [
+                "nested_loops"
+              ],
+              "maxCommands": 8,
+              "maxSteps": 100,
+              "rows": [
+                "##########G",
+                "######.....",
+                "######.####",
+                "###....####",
+                "###.#######",
+                "#...#######",
+                "#.#########",
+                ">.#########"
+              ],
+              "hints": [
+                "Each step is one cell wider than the one before.",
+                "Count up with Count after each step, and let Repeat read the count."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT",
+                      "count": "N",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "INC"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "growing-diagonal",
+              "title": "Growing diagonal",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "INC"
+              ],
+              "requires": [
+                "nested_loops"
+              ],
+              "maxCommands": 8,
+              "maxSteps": 100,
+              "rows": [
+                "G..######",
+                "##.######",
+                "##.######",
+                "##.######",
+                "##....###",
+                "#####.###",
+                "#####.###",
+                "#####...#",
+                "#######.#",
+                "#######..",
+                "########^"
+              ],
+              "hints": [
+                "Both legs of each stair grow by one every time.",
+                "A loop inside a loop is allowed here. Repeat can count with N."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT",
+                      "count": "N",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "REPEAT",
+                      "count": "N",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "INC"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "tall-steps",
+              "title": "Tall steps",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "INC"
+              ],
+              "requires": [
+                "nested_loops"
+              ],
+              "maxCommands": 8,
+              "maxSteps": 100,
+              "rows": [
+                "########v",
+                "######...",
+                "######.##",
+                "####...##",
+                "####.####",
+                "####.####",
+                "##...####",
+                "##.######",
+                "##.######",
+                "##.######",
+                "...######",
+                "G########"
+              ],
+              "hints": [
+                "The rise stays two cells while the run grows.",
+                "Count up once per step, so the next run is longer."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT",
+                      "count": "N",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "INC"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Spirals",
+          "levels": [
+            {
+              "slug": "small-spiral",
+              "title": "Small spiral",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "INC"
+              ],
+              "requires": [
+                "nested_loops"
+              ],
+              "maxCommands": 9,
+              "maxSteps": 110,
+              "rows": [
+                "##......",
+                "##.####.",
+                "##.#..#.",
+                "G#.#^.#.",
+                ".#.##.#.",
+                ".#....#.",
+                ".######.",
+                "........"
+              ],
+              "hints": [
+                "Each lap is wider than the last. Count up twice per lap.",
+                "Walk N cells, turn, walk N cells, turn, then count up."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT",
+                      "count": "N",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "REPEAT",
+                      "count": "N",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "INC"
+                    },
+                    {
+                      "op": "INC"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "left-spiral",
+              "title": "Left spiral",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "INC"
+              ],
+              "requires": [
+                "nested_loops"
+              ],
+              "maxCommands": 9,
+              "maxSteps": 140,
+              "rows": [
+                "#########G",
+                "#########.",
+                "........#.",
+                ".######.#.",
+                ".#....#.#.",
+                ".#.#>.#.#.",
+                ".#.####.#.",
+                ".#......#.",
+                ".########.",
+                ".........."
+              ],
+              "hints": [
+                "The same spiral, turning the other way.",
+                "Two counts per lap keep a wall between the laps."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT",
+                      "count": "N",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "REPEAT",
+                      "count": "N",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "INC"
+                    },
+                    {
+                      "op": "INC"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "big-spiral",
+              "title": "Big spiral",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "REPEAT_UNTIL",
+                "INC"
+              ],
+              "requires": [
+                "nested_loops"
+              ],
+              "maxCommands": 9,
+              "maxSteps": 170,
+              "rows": [
+                "............",
+                ".##########.",
+                ".#........#G",
+                ".#.######.##",
+                ".#.#....#.##",
+                ".#.#.<#.#.##",
+                ".#.####.#.##",
+                ".#......#.##",
+                ".########.##",
+                "..........##"
+              ],
+              "hints": [
+                "A big spiral is still the same short program.",
+                "Let the outer loop run until the goal."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT",
+                      "count": "N",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "REPEAT",
+                      "count": "N",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "INC"
+                    },
+                    {
+                      "op": "INC"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Memory",
+      "description": "Leave a mark so you never walk in circles.",
+      "chapters": [
+        {
+          "title": "Breadcrumbs",
+          "levels": [
+            {
+              "slug": "first-loop",
+              "title": "First loop",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF",
+                "MARK"
+              ],
+              "maxCommands": 21,
+              "maxSteps": 200,
+              "rows": [
+                "v#.....",
+                ".#.#.##",
+                ".#.#...",
+                ".#.#.#.",
+                "...#G#.",
+                "##.###.",
+                "......."
+              ],
+              "extraBoards": [
+                [
+                  "v#.....",
+                  ".#.####",
+                  ".#.....",
+                  ".#####.",
+                  "....G#.",
+                  "#.##.#.",
+                  "......."
+                ]
+              ],
+              "hints": [
+                "The maze has a loop, so a hand on the wall goes round for ever.",
+                "Drop a breadcrumb in each cell and step only on cells that have none."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "MARK"
+                    },
+                    {
+                      "op": "IF",
+                      "when": "FRESH_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "IF",
+                          "when": "FRESH_RIGHT",
+                          "then": [
+                            {
+                              "op": "TURN_RIGHT"
+                            },
+                            {
+                              "op": "MOVE_FORWARD"
+                            }
+                          ],
+                          "else": [
+                            {
+                              "op": "IF",
+                              "when": "FRESH_LEFT",
+                              "then": [
+                                {
+                                  "op": "TURN_LEFT"
+                                },
+                                {
+                                  "op": "MOVE_FORWARD"
+                                }
+                              ],
+                              "else": [
+                                {
+                                  "op": "IF",
+                                  "when": "BACK_AHEAD",
+                                  "then": [
+                                    {
+                                      "op": "MOVE_FORWARD"
+                                    }
+                                  ],
+                                  "else": [
+                                    {
+                                      "op": "IF",
+                                      "when": "BACK_RIGHT",
+                                      "then": [
+                                        {
+                                          "op": "TURN_RIGHT"
+                                        },
+                                        {
+                                          "op": "MOVE_FORWARD"
+                                        }
+                                      ],
+                                      "else": [
+                                        {
+                                          "op": "IF",
+                                          "when": "BACK_LEFT",
+                                          "then": [
+                                            {
+                                              "op": "TURN_LEFT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ],
+                                          "else": [
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "two-mazes",
+              "title": "Two mazes",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF",
+                "MARK"
+              ],
+              "maxCommands": 21,
+              "maxSteps": 220,
+              "rows": [
+                ">..#...",
+                "##...##",
+                "...#...",
+                ".#####.",
+                ".#.G...",
+                ".###.#.",
+                ".....#."
+              ],
+              "extraBoards": [
+                [
+                  "v#.......",
+                  ".#####.##",
+                  ".....#...",
+                  "##.#.###.",
+                  "...#..G..",
+                  ".#####.#.",
+                  "........."
+                ]
+              ],
+              "hints": [
+                "One program has to solve both mazes.",
+                "When no cell is fresh, follow the breadcrumb back to where you came from."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "MARK"
+                    },
+                    {
+                      "op": "IF",
+                      "when": "FRESH_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "IF",
+                          "when": "FRESH_RIGHT",
+                          "then": [
+                            {
+                              "op": "TURN_RIGHT"
+                            },
+                            {
+                              "op": "MOVE_FORWARD"
+                            }
+                          ],
+                          "else": [
+                            {
+                              "op": "IF",
+                              "when": "FRESH_LEFT",
+                              "then": [
+                                {
+                                  "op": "TURN_LEFT"
+                                },
+                                {
+                                  "op": "MOVE_FORWARD"
+                                }
+                              ],
+                              "else": [
+                                {
+                                  "op": "IF",
+                                  "when": "BACK_AHEAD",
+                                  "then": [
+                                    {
+                                      "op": "MOVE_FORWARD"
+                                    }
+                                  ],
+                                  "else": [
+                                    {
+                                      "op": "IF",
+                                      "when": "BACK_RIGHT",
+                                      "then": [
+                                        {
+                                          "op": "TURN_RIGHT"
+                                        },
+                                        {
+                                          "op": "MOVE_FORWARD"
+                                        }
+                                      ],
+                                      "else": [
+                                        {
+                                          "op": "IF",
+                                          "when": "BACK_LEFT",
+                                          "then": [
+                                            {
+                                              "op": "TURN_LEFT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ],
+                                          "else": [
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "wider-mazes",
+              "title": "Wider mazes",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF",
+                "MARK"
+              ],
+              "maxCommands": 21,
+              "maxSteps": 300,
+              "rows": [
+                ">......G.",
+                "######.#.",
+                ".........",
+                ".####.###",
+                ".#.......",
+                ".#.#####.",
+                "...#....."
+              ],
+              "extraBoards": [
+                [
+                  "v#.......",
+                  ".#.#.###.",
+                  "...#...#.",
+                  ".#.#.#.#.",
+                  ".#.#.#.#.",
+                  ".###.#G#.",
+                  ".....#.#.",
+                  "####.#.#.",
+                  "........."
+                ]
+              ],
+              "hints": [
+                "Fresh ahead, then right, then left. Then back.",
+                "Mark first, then decide, every time round."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "MARK"
+                    },
+                    {
+                      "op": "IF",
+                      "when": "FRESH_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "IF",
+                          "when": "FRESH_RIGHT",
+                          "then": [
+                            {
+                              "op": "TURN_RIGHT"
+                            },
+                            {
+                              "op": "MOVE_FORWARD"
+                            }
+                          ],
+                          "else": [
+                            {
+                              "op": "IF",
+                              "when": "FRESH_LEFT",
+                              "then": [
+                                {
+                                  "op": "TURN_LEFT"
+                                },
+                                {
+                                  "op": "MOVE_FORWARD"
+                                }
+                              ],
+                              "else": [
+                                {
+                                  "op": "IF",
+                                  "when": "BACK_AHEAD",
+                                  "then": [
+                                    {
+                                      "op": "MOVE_FORWARD"
+                                    }
+                                  ],
+                                  "else": [
+                                    {
+                                      "op": "IF",
+                                      "when": "BACK_RIGHT",
+                                      "then": [
+                                        {
+                                          "op": "TURN_RIGHT"
+                                        },
+                                        {
+                                          "op": "MOVE_FORWARD"
+                                        }
+                                      ],
+                                      "else": [
+                                        {
+                                          "op": "IF",
+                                          "when": "BACK_LEFT",
+                                          "then": [
+                                            {
+                                              "op": "TURN_LEFT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ],
+                                          "else": [
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "three-mazes",
+              "title": "Three mazes",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF",
+                "MARK"
+              ],
+              "maxCommands": 21,
+              "maxSteps": 370,
+              "rows": [
+                ">..#.....",
+                "##.#.#.#.",
+                ".....#...",
+                ".#####.#.",
+                ".....#.#.",
+                "####.#.#.",
+                ".#...G.#.",
+                ".#.###.#.",
+                ".......#."
+              ],
+              "extraBoards": [
+                [
+                  ">......",
+                  "#.####.",
+                  ".....G.",
+                  ".######",
+                  "...#...",
+                  "##.###.",
+                  "......."
+                ],
+                [
+                  ">........",
+                  "##..####.",
+                  ".....#..G",
+                  ".###.#.##",
+                  "...#.#.#.",
+                  "##.#.#.#.",
+                  "...#....."
+                ]
+              ],
+              "hints": [
+                "Dead ends cost steps, not slots.",
+                "The breadcrumb always points back along the way you came."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "MARK"
+                    },
+                    {
+                      "op": "IF",
+                      "when": "FRESH_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "IF",
+                          "when": "FRESH_RIGHT",
+                          "then": [
+                            {
+                              "op": "TURN_RIGHT"
+                            },
+                            {
+                              "op": "MOVE_FORWARD"
+                            }
+                          ],
+                          "else": [
+                            {
+                              "op": "IF",
+                              "when": "FRESH_LEFT",
+                              "then": [
+                                {
+                                  "op": "TURN_LEFT"
+                                },
+                                {
+                                  "op": "MOVE_FORWARD"
+                                }
+                              ],
+                              "else": [
+                                {
+                                  "op": "IF",
+                                  "when": "BACK_AHEAD",
+                                  "then": [
+                                    {
+                                      "op": "MOVE_FORWARD"
+                                    }
+                                  ],
+                                  "else": [
+                                    {
+                                      "op": "IF",
+                                      "when": "BACK_RIGHT",
+                                      "then": [
+                                        {
+                                          "op": "TURN_RIGHT"
+                                        },
+                                        {
+                                          "op": "MOVE_FORWARD"
+                                        }
+                                      ],
+                                      "else": [
+                                        {
+                                          "op": "IF",
+                                          "when": "BACK_LEFT",
+                                          "then": [
+                                            {
+                                              "op": "TURN_LEFT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ],
+                                          "else": [
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Dead ends",
+          "levels": [
+            {
+              "slug": "long-halls",
+              "title": "Long halls",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF",
+                "MARK"
+              ],
+              "maxCommands": 21,
+              "maxSteps": 360,
+              "rows": [
+                "v#.........",
+                ".#.#####G#.",
+                ".......#.#.",
+                "######.###.",
+                ".#...#.#...",
+                ".#...#.#...",
+                "...#.....#."
+              ],
+              "extraBoards": [
+                [
+                  ">....#...",
+                  "####.#.#.",
+                  "...#...#.",
+                  ".#.#.###.",
+                  ".#.#...G.",
+                  "##.##.##.",
+                  ".........",
+                  ".#######.",
+                  "........."
+                ]
+              ],
+              "hints": [
+                "Look ahead for a fresh cell before anything else.",
+                "Long halls are just more of the same."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "MARK"
+                    },
+                    {
+                      "op": "IF",
+                      "when": "FRESH_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "IF",
+                          "when": "FRESH_RIGHT",
+                          "then": [
+                            {
+                              "op": "TURN_RIGHT"
+                            },
+                            {
+                              "op": "MOVE_FORWARD"
+                            }
+                          ],
+                          "else": [
+                            {
+                              "op": "IF",
+                              "when": "FRESH_LEFT",
+                              "then": [
+                                {
+                                  "op": "TURN_LEFT"
+                                },
+                                {
+                                  "op": "MOVE_FORWARD"
+                                }
+                              ],
+                              "else": [
+                                {
+                                  "op": "IF",
+                                  "when": "BACK_AHEAD",
+                                  "then": [
+                                    {
+                                      "op": "MOVE_FORWARD"
+                                    }
+                                  ],
+                                  "else": [
+                                    {
+                                      "op": "IF",
+                                      "when": "BACK_RIGHT",
+                                      "then": [
+                                        {
+                                          "op": "TURN_RIGHT"
+                                        },
+                                        {
+                                          "op": "MOVE_FORWARD"
+                                        }
+                                      ],
+                                      "else": [
+                                        {
+                                          "op": "IF",
+                                          "when": "BACK_LEFT",
+                                          "then": [
+                                            {
+                                              "op": "TURN_LEFT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ],
+                                          "else": [
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "many-dead-ends",
+              "title": "Many dead ends",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF",
+                "MARK"
+              ],
+              "maxCommands": 21,
+              "maxSteps": 440,
+              "rows": [
+                ">..........",
+                "#.####.###.",
+                ".....#.....",
+                ".#.###.####",
+                ".#...#.....",
+                ".###.#####.",
+                ".#.#...#...",
+                ".#.#.#.G.##",
+                ".....#....."
+              ],
+              "extraBoards": [
+                [
+                  ">..#...",
+                  "##.#.#.",
+                  "...#.#.",
+                  ".#.###.",
+                  ".#..G#.",
+                  ".###.#.",
+                  "......."
+                ],
+                [
+                  ">........",
+                  "####.###.",
+                  "......G#.",
+                  ".##.####.",
+                  ".#...#...",
+                  ".#.#.#.##",
+                  "...#....."
+                ]
+              ],
+              "hints": [
+                "Every dead end is visited once.",
+                "Back out of a dead end by following the breadcrumb."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "MARK"
+                    },
+                    {
+                      "op": "IF",
+                      "when": "FRESH_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "IF",
+                          "when": "FRESH_RIGHT",
+                          "then": [
+                            {
+                              "op": "TURN_RIGHT"
+                            },
+                            {
+                              "op": "MOVE_FORWARD"
+                            }
+                          ],
+                          "else": [
+                            {
+                              "op": "IF",
+                              "when": "FRESH_LEFT",
+                              "then": [
+                                {
+                                  "op": "TURN_LEFT"
+                                },
+                                {
+                                  "op": "MOVE_FORWARD"
+                                }
+                              ],
+                              "else": [
+                                {
+                                  "op": "IF",
+                                  "when": "BACK_AHEAD",
+                                  "then": [
+                                    {
+                                      "op": "MOVE_FORWARD"
+                                    }
+                                  ],
+                                  "else": [
+                                    {
+                                      "op": "IF",
+                                      "when": "BACK_RIGHT",
+                                      "then": [
+                                        {
+                                          "op": "TURN_RIGHT"
+                                        },
+                                        {
+                                          "op": "MOVE_FORWARD"
+                                        }
+                                      ],
+                                      "else": [
+                                        {
+                                          "op": "IF",
+                                          "when": "BACK_LEFT",
+                                          "then": [
+                                            {
+                                              "op": "TURN_LEFT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ],
+                                          "else": [
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "large-mazes",
+              "title": "Large mazes",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF",
+                "MARK"
+              ],
+              "maxCommands": 21,
+              "maxSteps": 390,
+              "rows": [
+                ">........#.",
+                "########.#.",
+                ".....#...#.",
+                ".##.##.###.",
+                ".#.........",
+                ".#.#######.",
+                ".....#.....",
+                ".###.##G.#.",
+                ".........#."
+              ],
+              "extraBoards": [
+                [
+                  "v#...#.....",
+                  ".###...###.",
+                  "...#...#...",
+                  "##.###.#.#.",
+                  ".#...G.#.#.",
+                  ".###.#.#.#.",
+                  "...#.#.....",
+                  ".#.#.###.#.",
+                  ".#.......#."
+                ],
+                [
+                  "v#...#...",
+                  ".#.###.#.",
+                  ".#.....#.",
+                  ".#######.",
+                  ".......G.",
+                  "###.###..",
+                  ".....#...",
+                  ".#.#.#.##",
+                  "...#....."
+                ]
+              ],
+              "hints": [
+                "A bigger maze changes the steps, not the program.",
+                "If it feels slow, it is still finishing."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "MARK"
+                    },
+                    {
+                      "op": "IF",
+                      "when": "FRESH_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "IF",
+                          "when": "FRESH_RIGHT",
+                          "then": [
+                            {
+                              "op": "TURN_RIGHT"
+                            },
+                            {
+                              "op": "MOVE_FORWARD"
+                            }
+                          ],
+                          "else": [
+                            {
+                              "op": "IF",
+                              "when": "FRESH_LEFT",
+                              "then": [
+                                {
+                                  "op": "TURN_LEFT"
+                                },
+                                {
+                                  "op": "MOVE_FORWARD"
+                                }
+                              ],
+                              "else": [
+                                {
+                                  "op": "IF",
+                                  "when": "BACK_AHEAD",
+                                  "then": [
+                                    {
+                                      "op": "MOVE_FORWARD"
+                                    }
+                                  ],
+                                  "else": [
+                                    {
+                                      "op": "IF",
+                                      "when": "BACK_RIGHT",
+                                      "then": [
+                                        {
+                                          "op": "TURN_RIGHT"
+                                        },
+                                        {
+                                          "op": "MOVE_FORWARD"
+                                        }
+                                      ],
+                                      "else": [
+                                        {
+                                          "op": "IF",
+                                          "when": "BACK_LEFT",
+                                          "then": [
+                                            {
+                                              "op": "TURN_LEFT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ],
+                                          "else": [
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "tangle",
+              "title": "Tangle",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF",
+                "MARK"
+              ],
+              "maxCommands": 21,
+              "maxSteps": 460,
+              "rows": [
+                ">....#...#.",
+                "#.##.#.#.#.",
+                "...#.......",
+                "##.#######.",
+                ".........#.",
+                ".#########.",
+                ".......#...",
+                ".#####.G.##",
+                ".#...#...#.",
+                ".###.#.#...",
+                ".....#....."
+              ],
+              "extraBoards": [
+                [
+                  ">..#.....",
+                  "##.#.###.",
+                  ".......#.",
+                  ".####..#.",
+                  ".#...G.#.",
+                  ".#.#####.",
+                  ".#.....#.",
+                  ".#.###.#.",
+                  "...#....."
+                ],
+                [
+                  "v#.........",
+                  ".###.###..#",
+                  ".......#...",
+                  "###.##G###.",
+                  ".....#...#.",
+                  ".###.###.#.",
+                  "...#......."
+                ]
+              ],
+              "hints": [
+                "The goal can be anywhere in the maze.",
+                "The search reaches every cell it can."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "MARK"
+                    },
+                    {
+                      "op": "IF",
+                      "when": "FRESH_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "IF",
+                          "when": "FRESH_RIGHT",
+                          "then": [
+                            {
+                              "op": "TURN_RIGHT"
+                            },
+                            {
+                              "op": "MOVE_FORWARD"
+                            }
+                          ],
+                          "else": [
+                            {
+                              "op": "IF",
+                              "when": "FRESH_LEFT",
+                              "then": [
+                                {
+                                  "op": "TURN_LEFT"
+                                },
+                                {
+                                  "op": "MOVE_FORWARD"
+                                }
+                              ],
+                              "else": [
+                                {
+                                  "op": "IF",
+                                  "when": "BACK_AHEAD",
+                                  "then": [
+                                    {
+                                      "op": "MOVE_FORWARD"
+                                    }
+                                  ],
+                                  "else": [
+                                    {
+                                      "op": "IF",
+                                      "when": "BACK_RIGHT",
+                                      "then": [
+                                        {
+                                          "op": "TURN_RIGHT"
+                                        },
+                                        {
+                                          "op": "MOVE_FORWARD"
+                                        }
+                                      ],
+                                      "else": [
+                                        {
+                                          "op": "IF",
+                                          "when": "BACK_LEFT",
+                                          "then": [
+                                            {
+                                              "op": "TURN_LEFT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ],
+                                          "else": [
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "TURN_RIGHT"
+                                            },
+                                            {
+                                              "op": "MOVE_FORWARD"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Sweep",
+      "description": "Visit every cell, and waste no steps.",
+      "chapters": [
+        {
+          "title": "Rooms",
+          "levels": [
+            {
+              "slug": "small-room",
+              "title": "Small room",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 11,
+              "maxSteps": 22,
+              "rows": [
+                ">....",
+                ".....",
+                "....."
+              ],
+              "hints": [
+                "Visit every cell. There is no target to reach.",
+                "Run to the wall, step over, run back. Keep going until every cell is done."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    }
+                  ]
+                }
+              ],
+              "requires": [
+                "nested_loops"
+              ]
+            },
+            {
+              "slug": "tall-room",
+              "title": "Tall room",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 11,
+              "maxSteps": 40,
+              "rows": [
+                "...v",
+                "....",
+                "....",
+                "....",
+                "....",
+                "....",
+                "...."
+              ],
+              "hints": [
+                "The same sweep works when the rows run down the board.",
+                "Run along a side, step over, run back."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    }
+                  ]
+                }
+              ],
+              "requires": [
+                "nested_loops"
+              ]
+            },
+            {
+              "slug": "wide-room",
+              "title": "Wide room",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 11,
+              "maxSteps": 69,
+              "rows": [
+                "..........",
+                "..........",
+                "..........",
+                "..........",
+                ".........<"
+              ],
+              "hints": [
+                "Start in a corner and sweep towards the other side.",
+                "The sweep ends the moment the last cell is entered."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    }
+                  ]
+                }
+              ],
+              "requires": [
+                "nested_loops"
+              ]
+            },
+            {
+              "slug": "big-room",
+              "title": "Big room",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 11,
+              "maxSteps": 129,
+              "rows": [
+                "...........",
+                "...........",
+                "...........",
+                "...........",
+                "...........",
+                "...........",
+                "...........",
+                "^.........."
+              ],
+              "hints": [
+                "Every row is the same move. Only the number of rows changes.",
+                "A tight step limit means no wandering."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    }
+                  ]
+                }
+              ],
+              "requires": [
+                "nested_loops"
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Halls",
+          "levels": [
+            {
+              "slug": "comb",
+              "title": "Comb",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 11,
+              "maxSteps": 72,
+              "rows": [
+                ">......",
+                ".######",
+                ".......",
+                ".######",
+                ".......",
+                ".######",
+                "......."
+              ],
+              "hints": [
+                "Each tooth is a dead end. Walk it to the end and back.",
+                "The spine on the left joins the teeth."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    }
+                  ]
+                }
+              ],
+              "requires": [
+                "nested_loops"
+              ]
+            },
+            {
+              "slug": "long-comb",
+              "title": "Long comb",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 11,
+              "maxSteps": 155,
+              "rows": [
+                ">.........",
+                ".#########",
+                "..........",
+                ".#########",
+                "..........",
+                ".#########",
+                "..........",
+                ".#########",
+                "..........",
+                ".#########",
+                ".........."
+              ],
+              "hints": [
+                "More teeth, the same trip.",
+                "Back at the spine, step down two cells and turn."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    }
+                  ]
+                }
+              ],
+              "requires": [
+                "nested_loops"
+              ]
+            },
+            {
+              "slug": "spiral-hall",
+              "title": "Spiral hall",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 4,
+              "maxSteps": 96,
+              "rows": [
+                ">..........",
+                "##########.",
+                ".........#.",
+                ".#######.#.",
+                ".#.....#.#.",
+                ".#.###.#.#.",
+                ".#.#...#.#.",
+                ".#.#####.#.",
+                ".#.......#.",
+                ".#########.",
+                "..........."
+              ],
+              "hints": [
+                "The hall bends the same way every time.",
+                "Run until the wall, turn, repeat."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "REPEAT_UNTIL",
+                      "until": "BLOCKED",
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    }
+                  ]
+                }
+              ],
+              "requires": [
+                "nested_loops"
+              ]
+            },
+            {
+              "slug": "maze-sweep",
+              "title": "Maze sweep",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 130,
+              "rows": [
+                ">....#...",
+                "####.###.",
+                "...#...#.",
+                ".#####.#.",
+                ".#...#...",
+                ".#.#.###.",
+                "...#...#.",
+                ".###.###.",
+                "...#....."
+              ],
+              "hints": [
+                "Visit every cell of the maze, dead ends too.",
+                "A hand on the right wall passes every cell of a maze like this."
               ],
               "solution": [
                 {

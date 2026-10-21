@@ -19,6 +19,8 @@ export const COMMAND_MECHANICS: Record<CommandName, string> = {
   REPEAT_UNTIL: "repeat_until",
   IF: "if",
   PROC: "procedures",
+  INC: "counter",
+  MARK: "markers",
 };
 
 export type Analysis = {
@@ -58,14 +60,21 @@ export function contentHash(content: unknown): string {
   return createHash("sha256").update(canonicalJson(subject)).digest("hex");
 }
 
-/** True when the level offers a command the exact par search does not cover. */
+/** True when the level uses something the exact par search does not cover (the par is then the reference). */
 function offersUnsearched(level: {
   availableCommands: readonly string[];
   extraBoards?: unknown;
+  goal: { type: string };
+  requires: { mechanics: readonly string[] };
 }): boolean {
+  const c = level.availableCommands;
   return (
-    level.availableCommands.includes("IF") ||
-    level.availableCommands.includes("PROC") ||
+    c.includes("IF") ||
+    c.includes("PROC") ||
+    c.includes("INC") ||
+    c.includes("MARK") ||
+    level.requires.mechanics.includes("nested_loops") ||
+    level.goal.type !== "reach_tile" ||
     level.extraBoards !== undefined
   );
 }
@@ -244,6 +253,9 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
 
   const required = new Set<string>(level.requires.mechanics);
   if (level.extraBoards !== undefined) required.add("multi_board");
+  // A sweep goal on any board needs the client to draw and count it.
+  const goals = [level.goal, ...(level.extraBoards ?? []).map((b) => b.goal)];
+  if (goals.some((g) => g.type === "visit_all")) required.add("visit_all");
   for (const command of level.availableCommands) required.add(COMMAND_MECHANICS[command]);
 
   return { errors, warnings, par, referenceSolved, requiredMechanics: [...required].sort(), level };

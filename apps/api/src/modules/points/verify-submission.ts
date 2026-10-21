@@ -54,7 +54,16 @@ export function programHash(program: HashNode[]) {
       : n.op === "REPEAT_UNTIL"
         ? { op: n.op, until: n.until, body: (n.body ?? []).map(canonicalNode) }
         : n.op === "IF"
-          ? { op: n.op, when: n.when, then: ops(n.then), else: ops(n.else) }
+          ? {
+              op: n.op,
+              when: n.when,
+              then: ops(n.then),
+              // An else-if chain: the else holds one more IF, which has to be hashed in full.
+              else:
+                n.else?.length === 1 && n.else[0]!.op === "IF"
+                  ? [canonicalNode(n.else[0]!)]
+                  : ops(n.else),
+            }
           : n.op === "PROC"
             ? { op: n.op, name: n.name, body: (n.body ?? []).map(canonicalNode) }
             : n.op === "CALL"
