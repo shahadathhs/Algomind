@@ -1,4 +1,4 @@
-import { GameScreen } from "@/components/public/game-screen";
+import { HeroScreen } from "@/components/public/hero-screen";
 import { Container } from "@/components/ui/container";
 import { DownloadIcon } from "@/components/ui/download-icon";
 import { PrimaryButton } from "@/components/ui/primary-button";
@@ -36,7 +36,7 @@ export function Hero({ release }: { release: ReleaseState }) {
           </div>
         </div>
         <ScreenFrame>
-          <GameScreen state="running" />
+          <HeroScreen />
         </ScreenFrame>
       </Container>
     </section>

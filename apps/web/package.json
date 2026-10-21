@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@algomind/level-contract": "workspace:*",
+    "motion": "^14.4.0",
     "next": "16.4.2",
     "qrcode": "^1.5.4",
     "react": "19.3.1",

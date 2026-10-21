@@ -1,5 +1,5 @@
 import { ButtonGraphic } from "@/components/ui/button-graphic";
-import type { GameScreenState } from "../game-screen";
+import type { GameScreenState } from "../game-screen-view";
 
 export function Controls({ state }: { state: GameScreenState }) {
   const y = 714;

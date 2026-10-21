@@ -1,12 +1,20 @@
 import { CommandIcon } from "@/components/ui/command-icon";
 import { TileGraphic } from "@/components/ui/tile-graphic";
-import { COMMAND_BUDGET, READY_COUNT, SOLUTION } from "@/lib/sample-screens";
 import { TILE_TONE } from "@/lib/tile-variants";
-import type { GameScreenState } from "../game-screen";
+import type { GameScreenState } from "../game-screen-view";
 import { TEXT } from "./svg-text";
 
 /** The row under the top bar: the goal and command count, or a plain-language result. */
-export function StatusRow({ state }: { state: GameScreenState }) {
+export function StatusRow({
+  state,
+  count,
+  budget,
+}: {
+  state: GameScreenState;
+  /** The commands on the tape. */
+  count: number;
+  budget: number;
+}) {
   if (state === "failed" || state === "solved") {
     const failed = state === "failed";
     return (
@@ -70,7 +78,7 @@ export function StatusRow({ state }: { state: GameScreenState }) {
         className="fill-mute"
         {...TEXT}
       >
-        {`${state === "ready" ? READY_COUNT : SOLUTION.length} / ${COMMAND_BUDGET} COMMANDS`}
+        {`${count} / ${budget} COMMANDS`}
       </text>
     </g>
   );

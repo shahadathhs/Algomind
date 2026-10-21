@@ -13,7 +13,7 @@ const SCREENS: { title: string; state: GameScreenState | "levels" }[] = [
 
 export function ScreensSection() {
   return (
-    <Section id="screens">
+    <Section id="screens" reveal>
       <Caption as="h2">The screens</Caption>
       <ul className="mt-8 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4 lg:gap-x-6">
         {SCREENS.map((screen) => (

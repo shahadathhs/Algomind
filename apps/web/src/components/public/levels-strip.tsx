@@ -27,7 +27,7 @@ function levelsToShow(campaign: CampaignState): Shown[] {
 export async function LevelsStrip() {
   const shown = levelsToShow(await getCampaign());
   return (
-    <Section id="levels">
+    <Section id="levels" reveal>
       <Caption>Levels</Caption>
       <h2 className="mt-4 max-w-[760px] text-[32px] leading-[1.02] tracking-[0.5px] uppercase sm:text-[40px]">
         New levels arrive without an app update.

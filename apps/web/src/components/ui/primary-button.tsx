@@ -19,7 +19,7 @@ export function PrimaryButton({
   className?: string;
 }) {
   // Smaller type and padding on phones so the label stays on one line; full size from sm up.
-  const classes = `tile inline-flex items-center justify-center gap-2.5 bg-signal tracking-[1.5px] text-on-signal sm:tracking-[2px] ${
+  const classes = `tile inline-flex transition-transform duration-100 active:translate-y-px items-center justify-center gap-2.5 bg-signal tracking-[1.5px] text-on-signal sm:tracking-[2px] ${
     size === "lg"
       ? "h-16 px-4 text-[18px] sm:px-8 sm:text-[22px]"
       : "h-14 px-4 text-base sm:px-6 sm:text-lg"

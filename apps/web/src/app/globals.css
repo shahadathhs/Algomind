@@ -102,7 +102,11 @@ summary,
   fill: var(--ground);
 }
 
-/* Nothing animates in this site; this keeps it that way if something is added later. */
+/*
+ * Motion on this site is small and happens once: sections slide in as they scroll into view (Reveal, built
+ * on motion), the landing demo plays once (HeroRun), and a pressed tile moves one pixel. Reduced motion
+ * switches all of it off, and without JavaScript every section is simply there.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

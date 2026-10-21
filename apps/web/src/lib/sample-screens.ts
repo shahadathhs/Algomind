@@ -92,6 +92,8 @@ export const RUNNING_STEP = 4;
 export const READY_COUNT = 4;
 
 export const RUNNING_BOARD = boardAfter(solved.trace, RUNNING_STEP + 1);
+/** The board after each step of the solving run, in order (the last one reaches the target). */
+export const RUN_BOARDS: BoardData[] = solved.trace.map((_, i) => boardAfter(solved.trace, i + 1));
 export const FAILED_BOARD = boardAfter(failed.trace, failed.steps, failed.blockedCell ?? undefined);
 export const SOLVED_BOARD = boardAfter(solved.trace, solved.steps);
 

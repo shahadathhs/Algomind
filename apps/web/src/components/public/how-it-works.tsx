@@ -30,7 +30,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <Section id="how-it-works">
+    <Section id="how-it-works" reveal>
       <Caption as="h2">How it works</Caption>
       <ol className="mt-8 grid gap-12 lg:grid-cols-3 lg:gap-8">
         {STEPS.map((step, i) => (
