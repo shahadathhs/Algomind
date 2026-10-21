@@ -103,9 +103,9 @@ Do not implement these all at once. Introduce each command only when the level d
 
 A program is an ordered list of instruction nodes (not bare strings), so `REPEAT` and `IF_FRONT_BLOCKED` can contain nested instructions later without breaking the level format. The same representation is used by the player's program, the reference solution, and the shared fixtures.
 
-### 3.1 REPEAT (specified, not built)
+### 3.1 REPEAT
 
-> **Status:** proposed. The par search was prototyped and measured (bodies up to 8 instructions on boards up to 12 by 12 solve in 3 to 70 ms; allowing a loop inside a loop costs 0.4 to 1.8 s for little gain). Nothing in the contract, either simulator, the editor, or the game implements it yet.
+> **Status:** built (contract, both simulators, the editors, world 3). Original note: The par search was prototyped and measured (bodies up to 8 instructions on boards up to 12 by 12 solve in 3 to 70 ms; allowing a loop inside a loop costs 0.4 to 1.8 s for little gain). Nothing in the contract, either simulator, the editor, or the game implements it yet.
 
 A program node is either a primitive (`MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`) or a loop:
 
@@ -131,6 +131,92 @@ A program node is either a primitive (`MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`)
 4. **Check par with the solver, never by eye.** On open boards the solver finds patterns the author did not intend (a free 10 by 10 board was solved by `REPEAT 9 { M R M L }`).
 
 **Editing:** the palette gains a Repeat tile. Tapping it appends a group with a count of 2 and an empty body that takes the next tapped commands until it is closed; the count is changed with minus and plus tiles on the group. A group is drawn as a count tile followed by its body tiles inside one outlined bracket (dashed while the loop is open). While a loop is open the Repeat tile reads End loop and works once the body has a command; a loop with an empty body is not a program, so Run and Step stay off and the message says to add a command. The limit counter counts slots, one per tape cell. While a program runs, the count tile shows the round ("2/6"); when a run fails inside a loop the X sits on the blocked body tile and the count tile shows the round it failed in. Visual rules are in [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md) (to be updated when this is built).
+
+### 3.2 REPEAT_UNTIL (world 4)
+
+> **Status:** built (contract, both simulators, the dashboard and game editors, world 4).
+
+A conditional loop, the second loop node:
+
+```json
+{ "op": "REPEAT_UNTIL", "until": "BLOCKED", "body": [{ "op": "MOVE_FORWARD" }] }
+```
+
+- **Condition:** `until` is `BLOCKED`, true when a wall or the board edge is straight ahead of the automaton. It is the only condition in version 1 (`IF` sensors in world 5 add more, as separate data).
+- **When it is checked:** before every round, never in the middle of one. The body runs again only while the condition is false, so a loop whose way ahead is already blocked runs its body zero times, and a loop ends the first time a round starts blocked. The check costs no step and no slot.
+- **Body:** one to 8 primitives, as for `REPEAT`. A loop cannot contain a loop of either kind (`NESTED_REPEAT`). There is no `count`; a `count` is an unknown field.
+- **Availability:** a level lists `REPEAT_UNTIL` in `availableCommands`. The mechanic `repeat_until` is derived from that, as for `repeat`.
+- **Slots and steps:** 1 plus the body for the slots; each executed primitive is one step; the loop node costs none. The step limit is checked before every primitive, which is what stops a loop that is never blocked (a body of only turns): the run fails with the step-limit outcome.
+- **Reaching the goal** inside the loop succeeds at once, as in `REPEAT`. A failure in the body sits on that body node, and the trace carries the 1-based round.
+- **Par:** the solver adds `REPEAT_UNTIL(BLOCKED, body)` edges for every body, after the counted loops of the same body, and only when `REPEAT_UNTIL` is offered; ties go to the counted loop.
+- **Why it matters:** the loop does not need the distance. `REPEAT_UNTIL BLOCKED { MOVE_FORWARD }` runs any corridor to its end, so one program serves boards of every size, which is the point of world 7 (generalize).
+
+**Level design rules for world 4:**
+
+1. A level offers `REPEAT_UNTIL` and not `REPEAT`, so the player learns the condition, not a count to measure.
+2. Flat par must be above the limit and `REPEAT_UNTIL` par at or below it, as for loops.
+3. Corridors are long (7 to 12 cells) and their lengths are never needed: the point is turning at the wall, so the player reads the shape, not the distance.
+4. The goal is at a corner or a dead end, or beside the end of a corridor, never in the middle of a run (a loop would pass through it and the level would teach nothing).
+
+**Editing:** the palette gains a Repeat until tile beside Repeat when a level offers it. A group shows "UNTIL BLOCKED" instead of a count, with no plus and minus tiles; the body is built as for Repeat. While it runs, the group shows the round. Visual rules are in [README_VISUAL_DESIGN.md](README_VISUAL_DESIGN.md).
+
+### 3.3 IF and the sensors (world 5)
+
+> **Status:** built (contract, both simulators, the dashboard and game editors, world 5).
+
+A decision node, the third kind of instruction:
+
+```json
+{ "op": "IF", "when": "CLEAR_RIGHT", "then": [{ "op": "TURN_RIGHT" }], "else": [] }
+```
+
+- **Sensors** (`when`): `CLEAR_AHEAD`, `CLEAR_LEFT`, `CLEAR_RIGHT`. A sensor is true when the cell on that side of the automaton (straight ahead, or one quarter turn left or right of its facing) is on the board and not a wall. Reading a sensor costs no step and no slot. A sensor does not see the goal as different from floor.
+- **Branches:** `then` holds 1 to 4 primitives and `else` holds 0 to 4 (`else` is always present, and may be empty). The `then` branch runs when the sensor is true, the `else` branch when it is false. An `IF` cannot contain an `IF` or a loop (`NESTED_IF` for an `IF`, `NESTED_REPEAT` for a loop).
+- **Where it may stand:** at the top level of a program, or as an item of a loop body (the body of `REPEAT` and `REPEAT_UNTIL` is 1 to 8 items, each a primitive or an `IF`). A loop still cannot contain a loop.
+- **Slots:** an `IF` is 1 plus the primitives in `then` plus the primitives in `else`. A loop is 1 plus the slots of its body items. `maxCommands` bounds the sum.
+- **Steps:** each executed primitive is one step. Choosing a branch is free. The step limit is checked before each primitive.
+- **Trace:** the trace `node` of a primitive inside an `IF` is `[i, k]` at the top level and `[i, j, k]` inside loop `i`, body item `j`, where `k` counts the `then` primitives first and the `else` primitives after them. `round` is the loop's round, as before.
+- **Availability:** a level lists `IF` in `availableCommands`; the mechanic is `if`.
+- **`REPEAT_UNTIL` gains a second condition:** `until` is `BLOCKED` or `GOAL`. `GOAL` is never true at the start of a round (the run ends the moment the goal is entered), so the loop runs until the goal is reached, a move fails, or the step limit stops it. It is how a program with a decision keeps going.
+- **The right-hand rule** in two decisions, the algorithm world 5 teaches: `REPEAT_UNTIL GOAL { IF CLEAR_RIGHT { TURN_RIGHT }, IF CLEAR_AHEAD { MOVE_FORWARD } else { TURN_LEFT } }` is 6 slots. In a maze whose walls are all joined to the outer wall, it reaches every cell, so it reaches the goal.
+- **Par:** the exact search does not cover `IF` (the number of programs is too large). For a level that offers `IF`, par is the slots and steps of its reference solution, which must solve the level; the publish gate also runs the exact solver with `IF` removed, and the level is accepted as needing `IF` only when that best program does not fit `maxCommands`. The solver in the package ignores `IF`.
+
+**Level design rules for world 5:**
+
+1. The limit equals the slots of the reference solution, and the best program without `IF` does not fit it (by at least 1.5 times).
+2. Corridor levels come first (one decision), maze levels after (the right-hand rule).
+3. Mazes are simply connected (every wall joined to the outer wall), so the right-hand rule is guaranteed to finish; `maxSteps` is at least twice the steps of the reference run.
+
+**Editing:** the palette gains an If tile. Tapping it opens an `IF` group with the sensor `CLEAR_AHEAD`; tapping the sensor tile on the group cycles through the three sensors. The next tapped commands go to the `then` branch; the palette's Else tile switches to the `else` branch; End if (the If tile while a group is open) closes it. Inside an open loop an `IF` is one of its items; at most one `IF` and one loop are open at the same time, and the loop closes last. An `IF` with an empty `then` is not a program.
+
+### 3.4 PROC and CALL (world 6)
+
+> **Status:** built (contract, both simulators, the dashboard and game editors, world 6).
+
+Two more nodes. A procedure is a named piece of program, defined once and run from several places:
+
+```json
+{ "op": "PROC", "name": "A", "body": [{ "op": "MOVE_FORWARD" }, { "op": "TURN_RIGHT" }] }
+{ "op": "CALL", "name": "A" }
+```
+
+- **Names:** `A`, `B`, or `C`. A name is defined at most once (`DUPLICATE_PROCEDURE` at the later `name`), and a `CALL` to a name no `PROC` defines is `UNDEFINED_PROCEDURE`. A `CALL` may come before the definition in the list.
+- **Where they stand:** a `PROC` only at the top level (`NESTED_PROC` elsewhere). A `CALL` at the top level or as an item of a loop body of the main program. A procedure cannot call a procedure (no recursion in version 1), so a `CALL` inside a `PROC` body, inside an `IF` branch, or inside a loop that stands in a procedure is `CALL_NOT_ALLOWED`.
+- **A procedure body:** 1 to 8 items, each a primitive, an `IF`, or a loop (`REPEAT` or `REPEAT_UNTIL`, with the bodies and rules they already have; a loop still cannot hold a loop).
+- **Running:** a `PROC` is not run where it stands. The main program is the other top-level nodes in order; a `CALL` runs the body of the first `PROC` of that name and then goes on. A `PROC` costs no step and a `CALL` itself costs none.
+- **Slots:** a `CALL` is 1; a `PROC` is 1 plus the slots of its body items. The whole program, definitions included, is bounded by `maxCommands`. Reuse is what pays: a six-instruction procedure used three times costs 7 + 3 slots instead of 18.
+- **Trace:** a primitive run inside a procedure has `node` `[p, j, ...]`, where `p` is the index of the `PROC` in the program and the path goes on as if the `PROC` were a loop. Every trace entry has `call`: the path of the `CALL` that is running it, or `null` in the main program. `round` is the round of the innermost loop the instruction stands in (null for a procedure's own top-level items).
+- **Availability:** a level lists `PROC` in `availableCommands`; that offers both the definition and the call. The mechanic is `procedures`.
+- **Par:** as for `IF`, the exact search does not cover procedures. Par for a level that offers `PROC` is the slots and steps of its reference solution. The publish gate also runs the exact solver without `PROC`, and the level is accepted as needing procedures only when that best program does not fit `maxCommands`.
+
+**Level design rules for world 6:**
+
+1. The idea is a shape that comes back at uneven intervals: the same sequence of moves and turns appears three or four times along the route with different runs between, so a counted loop cannot say it once but a named procedure can.
+2. The limit is the slots of the reference solution, and the best program without procedures is at least 1.3 times the limit.
+3. Levels offer `REPEAT` and `PROC` (not `REPEAT_UNTIL` and `IF`), so the player decomposes the route and does not solve it with a wall follower.
+4. Later chapters use two procedures (`A` and `B`) and a procedure that contains a loop.
+
+**Editing:** the palette gains a Proc tile. Tapping it starts the next free name (A, then B, then C) as a definition group drawn at the top of the tape with its name; tapped commands go into it until the tile (now reading End proc) is tapped. While no definition is open, each defined name has a Call tile that appends a call to the main program. The main program is drawn below the definitions. A definition with an empty body is not a program.
 
 ## 4. Execution model and feedback
 
@@ -184,9 +270,9 @@ Teach concepts progressively rather than making early levels arbitrarily difficu
 | 1   | Basics     | Sequencing and turning               | Step-by-step execution: trace a program by hand and predict where it ends                            | nothing new                                                                | 8      |
 | 2   | Routes     | Planning and budgets                 | Shortest-path search (turns cost too) and working backward from the goal                             | nothing new                                                                | 10     |
 | 3   | Loops      | Repeating a pattern                  | Pattern detection (find the repeating unit); split a route into loops plus the moves between them    | `REPEAT n` (specified in 3.1; rules package built, no editor UI yet)       | 8-10   |
-| 4   | Until      | One program for any distance         | Scan until a condition holds (linear search with a stop condition); reason about when a loop ends    | `REPEAT UNTIL` (blocked, or at the goal)                                   | 8-10   |
+| 4   | Until      | One program for any distance         | Scan until a condition holds (linear search with a stop condition); reason about when a loop ends    | `REPEAT_UNTIL` (built; section 3.2: until blocked)                         | 8      |
 | 5   | Decisions  | Choosing by what you sense           | Wall-following (the right-hand rule) and a greedy local rule; decisions based on the current state   | `IF` sensors (wall ahead, goal ahead)                                      | 8-10   |
-| 6   | Procedures | Naming and reusing steps             | Abstraction and decomposition: build big solutions from small named parts                            | named procedures                                                           | 8      |
+| 6   | Procedures | Naming and reusing steps             | Abstraction and decomposition: build big solutions from small named parts                            | `PROC` and `CALL` (built; 3.4)                                             | 8      |
 | 7   | Generalize | One program, many boards             | Generalization and edge cases: the solution must work on every test board, including the tricky ones | multi-board levels (below)                                                 | 8      |
 | 8   | Counters   | Remembering a number and changing it | Accumulation: a value that grows each round (spirals, widening stairs, count to n then act)          | one counter variable: set, add one, use as a loop count                    | 8      |
 | 9   | Memory     | Marking where you have been          | Depth-first search with backtracking (the Tremaux idea): explore, mark, return, never repeat a path  | markers: `DROP MARK`, `IF MARK AHEAD` (the board changes during a run)     | 8      |

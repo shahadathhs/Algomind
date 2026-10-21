@@ -7,6 +7,7 @@ import { HowItWorks } from "@/components/public/how-it-works";
 import { LevelsStrip } from "@/components/public/levels-strip";
 import { ScreensSection } from "@/components/public/screens-section";
 import { ShortList } from "@/components/public/short-list";
+import { WorldsSection } from "@/components/public/worlds-section";
 import { getLatestRelease } from "@/lib/releases";
 import { mobileApplicationJsonLd, pageMetadata, websiteJsonLd } from "@/lib/seo";
 
@@ -35,6 +36,7 @@ export default async function LandingPage() {
       <HowItWorks />
       <ScreensSection />
       <LevelsStrip />
+      <WorldsSection />
       <ShortList />
       <DownloadBand />
     </>

@@ -9,7 +9,12 @@
 // Build the contract first: pnpm --filter @algomind/level-contract build
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { validateLevel } from "../../packages/level-contract/dist/index.js";
+import {
+  programSlots,
+  simulate,
+  solve,
+  validateLevel,
+} from "../../packages/level-contract/dist/index.js";
 import { levelFromRows } from "./board.mjs";
 import { FAMILIES } from "./families.mjs";
 import { measure } from "./metrics.mjs";
@@ -27,7 +32,7 @@ const flag = (name, fallback) => {
 function describe(m) {
   return [
     m.loops
-      ? `par ${m.par} slots, ${m.flatPar} without REPEAT`
+      ? `par ${m.par} slots, ${m.flatPar} without loops`
       : `par ${m.par} (${m.moves} moves, ${m.turns} turns)`,
     `walls cost ${m.excess}, decoy ${m.decoy}, dead ends ${m.deadEnds}`,
     `${m.optimalPrograms} shortest program${m.optimalPrograms === 1 ? "" : "s"}, ${m.size}`,
@@ -82,6 +87,40 @@ if (command === "families") {
   for (const def of defs) {
     const level = levelFromRows(def.rows, def);
     const valid = validateLevel(level);
+    if (def.solution) {
+      // A level with an IF has no exact par: the reference solution is par, and the best program
+      // without IF must not fit the limit.
+      const issues = [];
+      if (!valid.ok)
+        issues.push(`invalid: ${valid.issues.map((i) => `${i.path} ${i.code}`).join(", ")}`);
+      else {
+        const run = simulate(level, def.solution);
+        const slots = programSlots(def.solution);
+        const plain = solve({
+          ...level,
+          availableCommands: level.availableCommands.filter((c) => c !== "IF" && c !== "PROC"),
+        });
+        if (run.status !== "SUCCEEDED") issues.push(`the solution fails: ${run.reason}`);
+        if (slots !== def.maxCommands)
+          issues.push(`limit ${def.maxCommands} is not the solution's ${slots} slots`);
+        if (
+          plain &&
+          plain.commands < (level.availableCommands.includes("PROC") ? 1.3 : 1.5) * def.maxCommands
+        )
+          issues.push(
+            `a program without IF or PROC of ${plain.commands} slots is too close to the limit ${def.maxCommands}`,
+          );
+        if (run.steps * 2 > level.constraints.maxSteps)
+          issues.push(
+            `maxSteps ${level.constraints.maxSteps} is under twice the ${run.steps} steps of the solution`,
+          );
+        console.log(
+          `${def.slug.padEnd(22)} solution ${slots} slots, ${run.steps} steps; without IF ${plain ? plain.commands : "none"}${issues.length ? `\n   PROBLEM: ${issues.join("; ")}` : ""}`,
+        );
+      }
+      problems += issues.length;
+      continue;
+    }
     const m = valid.ok ? measure(level) : null;
     const issues = [];
     if (!valid.ok)

@@ -1,0 +1,73 @@
+class_name TapeTiles
+extends RefCounted
+## Draws one cell of the tape in the state the view is in (editing, running, finished). The view
+## owns the state; this only reads it.
+
+
+## Draws cells[index] of `view` into `rect`.
+static func draw(view: TapeView, index: int, rect: Rect2) -> void:
+	var cell := view.cells[index]
+	var running := view.running
+	var chosen := not running and view.selected == index
+	if cell["kind"] == "else":
+		TapeIfCells.draw_else(view, rect)
+	elif TapeHeaders.is_header(cell):
+		var solid := chosen or view.header_passed(index)
+		TapeHeaders.draw(view, cell, rect, solid, _round_of(view, index) if running else 0)
+	elif TapeProcCells.is_header(cell):
+		var header_fill := TapeProcCells.Fill.PLAIN
+		if chosen or view.header_passed(index):
+			header_fill = TapeProcCells.Fill.SOLID
+		TapeProcCells.draw(view, cell, rect, header_fill)
+	elif TapeProcCells.is_call(cell):
+		var fill := TapeProcCells.Fill.PLAIN
+		if running and index == view.call_index:
+			fill = TapeProcCells.Fill.ACTIVE
+		elif chosen or view.is_passed(index):
+			fill = TapeProcCells.Fill.SOLID
+		TapeProcCells.draw(view, cell, rect, fill)
+	elif TapeIfCells.is_header(cell):
+		TapeIfCells.draw_header(view, cell, rect, view.header_passed(index) or chosen)
+	else:
+		_draw_command(view, index, rect, view.is_passed(index), chosen)
+
+
+static func _draw_command(
+	view: TapeView, index: int, rect: Rect2, passed: bool, chosen: bool
+) -> void:
+	var kind := _icon_for(view.cells[index]["op"])
+	var center := rect.get_center()
+	var icon_size := rect.size.x * 0.5
+	if index == view.failed_index and view.running:
+		UiKit.fill_chamfer(view, rect, Palette.SIGNAL)
+		UiKit.icon(view, "x", center, icon_size, Palette.ON_SIGNAL)
+	elif view.running and index == view.current:
+		UiKit.fill_chamfer(view, rect, Palette.SIGNAL)
+		UiKit.icon(view, kind, center, icon_size, Palette.ON_SIGNAL)
+	elif passed or chosen:
+		UiKit.fill_chamfer(view, rect, Palette.INK)
+		UiKit.icon(view, kind, center, icon_size, Palette.ON_INK)
+	else:
+		UiKit.fill_chamfer(view, rect, Palette.FLOOR)
+		UiKit.outline_chamfer(view, rect, Palette.INK)
+		UiKit.icon(view, kind, center, icon_size, Palette.INK)
+
+
+## The round a loop header shows: the read-head's round when it is inside the loop, 0 (the count
+## alone) when a running CALL is inside it, -1 when the loop is finished, else 0.
+static func _round_of(view: TapeView, index: int) -> int:
+	if view.group_holds(index, view.current):
+		return maxi(view.current_round, 1)
+	if view.group_holds(index, view.call_index):
+		return 0
+	return -1 if view.header_passed(index) else 0
+
+
+static func _icon_for(op: String) -> String:
+	match op:
+		"TURN_LEFT":
+			return "left"
+		"TURN_RIGHT":
+			return "right"
+		_:
+			return "move"

@@ -7,7 +7,7 @@ import { tapeFromProgram } from "@/lib/tape";
 const STEPS = [
   {
     title: "Build",
-    text: "Pick instructions and arrange them on the tape. Move, turn left, turn right, and repeat a group.",
+    text: "Pick instructions and arrange them on the tape. Move, turn left, turn right, and repeat a group a set number of times or until a wall, use an if block to choose by what is beside the automaton, and name a group of commands as a procedure to run it from several places.",
     label: `A tape with ${READY_COUNT} instructions and an empty slot to add more.`,
     tiles: tapeFromProgram(SOLUTION.slice(0, READY_COUNT), { emptySlot: "plus" }),
     head: undefined,
@@ -30,7 +30,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <Section id="how-it-works">
+    <Section id="how-it-works" reveal>
       <Caption as="h2">How it works</Caption>
       <ol className="mt-8 grid gap-12 lg:grid-cols-3 lg:gap-8">
         {STEPS.map((step, i) => (

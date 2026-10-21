@@ -21,8 +21,8 @@
 | `/`                        | Landing: explain the game and drive the download                   | Per request; fetches cached (see below)       |
 | `/download`                | Install page: the APK, install steps, QR code for desktop visitors | Static shell, release data revalidated hourly |
 | `/how-to-play`             | The commands, loops, the tape, what failure messages mean          | Static                                        |
-| `/privacy`                 | What is and is not collected; account deletion instructions        | Static                                        |
-| `/contact`                 | How to reach the developer                                         | Static                                        |
+| `/privacy`                 | What is and is not collected; account deletion instructions        | Static; wide layout                           |
+| `/contact`                 | How to reach the developer; details read from `GET /v1/contact`    | Server-rendered, revalidated every 60 s; wide |
 | `/robots`, `/sitemap`, 404 | `/admin` excluded from both                                        | n/a                                           |
 
 **After launch (not blockers):**
@@ -131,7 +131,7 @@ These slot into the main plan; see [README_IMPLEMENTATION_PLAN.md](README_IMPLEM
 
 - Minimum supported Android version and real APK size (renders show placeholders).
 - Whether the source repository is public, which decides the "Source" link.
-- Contact method and address for the contact and privacy pages.
+- Contact details are no longer an open item: an admin sets them in the dashboard (Contact page) and `/contact` reads them from the API. If the API is down the page shows a plain notice and a link to the GitHub issues; with no email set it says no address is published. `/api/revalidate` also refreshes `/contact`.
 - Real QR generation (the render's QR is a placeholder pattern, not scannable).
 - Whether the first release notes come from GitHub's generated notes or a curated file.
 - Final font (shared decision with the game).

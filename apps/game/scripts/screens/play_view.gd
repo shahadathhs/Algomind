@@ -2,32 +2,142 @@ class_name PlayView
 extends RefCounted
 ## Texts and tool states of the play screen, derived from the session and the tape.
 
+## The commands of the palette, in order. A level shows the ones it offers.
+const COMMANDS: Array[Dictionary] = [
+	{"op": "MOVE_FORWARD", "label": "MOVE", "icon": "move"},
+	{"op": "TURN_LEFT", "label": "LEFT", "icon": "left"},
+	{"op": "TURN_RIGHT", "label": "RIGHT", "icon": "right"},
+	{"op": "REPEAT", "label": "REPEAT", "icon": "repeat"},
+	{"op": "REPEAT_UNTIL", "label": "UNTIL", "icon": "until", "name": "Repeat until"},
+	{"op": "IF", "label": "IF", "icon": "if", "name": "If"},
+	{"op": "PROC", "label": "PROC", "icon": "proc", "name": "Procedure"},
+]
+## The Else tile, shown beside If while an IF is open.
+const ELSE_COMMAND := {"label": "ELSE", "icon": "", "name": "Else"}
+## Palette tiles at which the tiles of a loop that is not open give way to Else while an IF is open.
+const CROWDED := 6
 
-## Shows the tools that apply to the selected cell: rounds only for a loop's count tile.
+
+## The COMMANDS entry of an op.
+static func command_meta(op: String) -> Dictionary:
+	for command in COMMANDS:
+		if command["op"] == op:
+			return command
+	return {}
+
+
+## The op of the loop that is open on the tape (in the main program or a definition), or "".
+static func open_op(tape: TapeModel) -> String:
+	var path := tape.open_loop_path()
+	return "" if path.is_empty() else String(TapeCells.node_at(tape.nodes, path)["op"])
+
+
+## True while the group a palette tile starts (IF, PROC, REPEAT, REPEAT_UNTIL) is open.
+static func group_is_open(tape: TapeModel, op: String) -> bool:
+	if op == "IF":
+		return not tape.open_if().is_empty()
+	if op == "PROC":
+		return tape.open_proc() >= 0
+	return open_op(tape) == op
+
+
+## Does a palette tile: ends the open group when its own tile is tapped, switches an open IF to
+## its else branch for Else, otherwise adds the command.
+static func apply_command(tape: TapeModel, op: String) -> void:
+	if op == "ELSE":
+		tape.start_else()
+	elif op == "IF" and group_is_open(tape, op):
+		tape.end_if()
+	elif op == "PROC" and group_is_open(tape, op):
+		tape.end_proc()
+	elif ContractLimits.is_loop(op) and group_is_open(tape, op):
+		tape.end_loop()
+	else:
+		tape.append(op)
+
+
+## Shows the palette: the commands while editing, the group tiles with the label and state they
+## have now, a CALL tile for each defined procedure while no definition is open, and Else while
+## an IF is open. Nothing shows once the level is solved.
+static func refresh_palette(p: PlayScreen, solved: bool, running: bool) -> void:
+	var tape := p._tape
+	for button: TileButton in p._command_buttons:
+		var op: String = button.get_meta("op")
+		button.visible = not solved
+		button.set_disabled(running or not tape.can_append(op))
+	var if_open := not tape.open_if().is_empty()
+	var crowded := p._command_buttons.size() >= CROWDED
+	for op: String in p._group_buttons:
+		var button: TileButton = p._group_buttons[op]
+		var meta := command_meta(op)
+		if group_is_open(tape, op):
+			var can_end := tape.can_end_if() if op == "IF" else tape.can_end_loop()
+			if op == "PROC":
+				can_end = tape.can_end_proc()
+			button.label = {"IF": "END IF", "PROC": "END PROC"}.get(op, "END LOOP")
+			button.icon = "check"
+			button.set_disabled(running or not can_end)
+		else:
+			button.label = meta["label"]
+			button.icon = meta["icon"]
+		# With a crowded palette, the loop tiles that cannot be used while an IF is open give way.
+		if not solved and if_open and crowded and ContractLimits.is_loop(op):
+			button.visible = group_is_open(tape, op)
+		button.queue_redraw()
+	for button: TileButton in p._call_buttons:
+		var name: String = button.get_meta("name")
+		button.visible = not solved and tape.open_proc() < 0 and tape.defined_names().has(name)
+		button.set_disabled(running or not tape.can_call(name))
+		button.queue_redraw()
+	if p._else_button != null:
+		p._else_button.visible = if_open and not solved
+		p._else_button.set_disabled(running or not tape.can_start_else())
+		p._else_button.queue_redraw()
+
+
+## True when the selected cell is one whose tap changes its sensor or condition.
+static func can_cycle(tape: TapeModel) -> bool:
+	var kind := tape.selected_kind()
+	return kind == "if" or (kind == "until" and tape.available.has("IF"))
+
+
+## The trace paths (see TapeCells.key_of) of the commands the run has shown so far.
+static func executed_paths(session: PlaySession) -> Dictionary:
+	var out := {}
+	for i in session.cursor:
+		out[TapeCells.key_of(session.trace()[i]["node"])] = true
+	return out
+
+
+## Shows the tools that apply to the selected cell: rounds only for a loop's count tile, the
+## sensor or condition for an IF or a REPEAT_UNTIL that can be changed.
 static func refresh_tools(p: PlayScreen) -> void:
 	var tape := p._tape
 	var tools := p._tools
 	var has_selection := tape.selected >= 0 and not p._session.is_active()
 	var is_count := tape.selected_is_count()
-	# Order: minus, plus, earlier, later, remove.
+	# Order: minus, plus, earlier, later, remove, condition.
 	tools[0].visible = has_selection and is_count
 	tools[1].visible = has_selection and is_count
 	for i in range(2, 5):
 		tools[i].visible = has_selection
+	tools[5].visible = has_selection and can_cycle(tape)
 	if not has_selection:
 		return
-	var path: Array = tape.cells()[tape.selected]["path"]
-	var siblings := (
-		tape.nodes.size()
-		if path.size() == 1
-		else (tape.nodes[int(path[0])]["body"] as Array).size()
-	)
-	var place := int(path[path.size() - 1])
-	tools[2].set_disabled(place <= 0)
-	tools[3].set_disabled(place >= siblings - 1)
-	var count := int(tape.cells()[tape.selected].get("count", 0))
+	var cell := tape.cells()[tape.selected]
+	tools[2].set_disabled(not tape.can_move(-1))
+	tools[3].set_disabled(not tape.can_move(1))
+	var count := int(cell.get("count", 0))
 	tools[0].set_disabled(count <= ContractLimits.REPEAT_COUNT_MIN)
 	tools[1].set_disabled(count >= ContractLimits.REPEAT_COUNT_MAX)
+	if tools[5].visible:
+		var node := tape.node_of(cell)
+		tools[5].icon = (
+			TapeIfCells.icon(node["when"])
+			if cell["kind"] == "if"
+			else ("goal" if node["until"] == "GOAL" else "until")
+		)
+		tools[5].queue_redraw()
 
 
 ## The text at the right of the objective row: commands used while building, and the stars and
@@ -58,11 +168,12 @@ static func counter_text(p: PlayScreen) -> String:
 static func message_text(p: PlayScreen) -> String:
 	match p._session.state:
 		PlaySession.State.SUCCEEDED, PlaySession.State.FAILED:
+			var special := LoopMessages.for_result(p._level, p._tape.program(), p._session.result)
+			if special != "":
+				return special.to_upper().trim_suffix(".")
 			return ResultMessages.for_result(p._session.result).to_upper().trim_suffix(".")
 		_:
-			if p._tape.has_empty_loop():
-				return "ADD A COMMAND TO THE LOOP"
-			return "REACH THE TARGET"
+			return LoopMessages.building_text(p._tape)
 
 
 static func update_stats(p: PlayScreen) -> void:

@@ -161,8 +161,8 @@ game-lint: ## GDScript style gate: gdlint + gdformat --check (config: gdlintrc)
 game-format: ## Fix GDScript style in place (gdformat)
 	$(GDFORMAT) $(GDPATHS)
 
-game-run: ## Play the game on this machine
-	$(GODOT) --path $(GAME)
+game-run: ## Play the game on this machine, talking to the local API (ALGOMIND_API_BASE_URL=<url>, or empty for offline)
+	ALGOMIND_API_BASE_URL=$${ALGOMIND_API_BASE_URL-http://localhost:8000/v1} $(GODOT) --path $(GAME)
 
 game-shots: game-import ## Debug screenshots of every screen, 3 phone sizes x 2 themes, into apps/game/build/shots
 	GODOT=$(GODOT) sh $(GAME)/tools/screenshots.sh

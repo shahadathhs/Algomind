@@ -16,6 +16,9 @@ export const COMMAND_MECHANICS: Record<CommandName, string> = {
   TURN_LEFT: "turn",
   TURN_RIGHT: "turn",
   REPEAT: "repeat",
+  REPEAT_UNTIL: "repeat_until",
+  IF: "if",
+  PROC: "procedures",
 };
 
 export type Analysis = {
@@ -55,6 +58,11 @@ export function contentHash(content: unknown): string {
   return createHash("sha256").update(canonicalJson(subject)).digest("hex");
 }
 
+/** True when the level offers a command the exact par search does not cover. */
+function offersUnsearched(commands: readonly string[]): boolean {
+  return commands.includes("IF") || commands.includes("PROC");
+}
+
 /**
  * Runs every content check: the contract validator, the reference solution through the reference
  * simulator, and the solver (par, budget versus par). Pure; never throws.
@@ -91,7 +99,15 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
   }
 
   let par: Par | null = null;
-  const best = solve(publicLevel);
+  // The exact search does not cover IF or PROC. For a level that offers either, par is the better of the
+  // best program without them and the reference solution (which the simulator has just checked).
+  let best = solve(publicLevel);
+  if (offersUnsearched(publicLevel.availableCommands) && referenceSolved) {
+    const slots = programSlots(program);
+    if (!best || slots < best.commands || (slots === best.commands && run.steps < best.steps)) {
+      best = { commands: slots, steps: run.steps, program, fitsConstraints: true };
+    }
+  }
   if (!best) {
     errors.push({
       gate: "par",
@@ -138,17 +154,55 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
   // A level that offers REPEAT should need it: if the shortest program without loops already fits
   // the limit, a loop is optional and the level does not teach loops. A warning, not an error:
   // an introductory level may allow either.
-  if (level.availableCommands.includes("REPEAT") && best) {
+  const offersLoop =
+    level.availableCommands.includes("REPEAT") || level.availableCommands.includes("REPEAT_UNTIL");
+  if (offersLoop && best) {
     const flat = solve({
       ...level,
-      availableCommands: level.availableCommands.filter((c) => c !== "REPEAT"),
+      availableCommands: level.availableCommands.filter(
+        (c) => c !== "REPEAT" && c !== "REPEAT_UNTIL",
+      ),
     });
     if (flat && flat.commands <= level.constraints.maxCommands) {
       warnings.push({
         gate: "par",
         path: "constraints.maxCommands",
         code: "LOOP_NOT_REQUIRED",
-        message: `The shortest program without REPEAT needs ${flat.commands} commands and the limit is ${level.constraints.maxCommands}, so a loop is optional here.`,
+        message: `The shortest program without loops needs ${flat.commands} commands and the limit is ${level.constraints.maxCommands}, so a loop is optional here.`,
+      });
+    }
+  }
+
+  // A level that offers IF should need it: if the best program without IF already fits the limit, the
+  // decision is optional and the level does not teach decisions.
+  if (level.availableCommands.includes("IF") && best) {
+    const withoutIf = solve({
+      ...level,
+      availableCommands: level.availableCommands.filter((c) => c !== "IF"),
+    });
+    if (withoutIf && withoutIf.commands <= level.constraints.maxCommands) {
+      warnings.push({
+        gate: "par",
+        path: "constraints.maxCommands",
+        code: "IF_NOT_REQUIRED",
+        message: `A program without IF needs ${withoutIf.commands} commands and the limit is ${level.constraints.maxCommands}, so a decision is optional here.`,
+      });
+    }
+  }
+
+  // The same for procedures: if the best program without PROC already fits the limit, naming a part
+  // is optional and the level does not teach procedures.
+  if (level.availableCommands.includes("PROC") && best) {
+    const withoutProc = solve({
+      ...level,
+      availableCommands: level.availableCommands.filter((c) => c !== "PROC"),
+    });
+    if (withoutProc && withoutProc.commands <= level.constraints.maxCommands) {
+      warnings.push({
+        gate: "par",
+        path: "constraints.maxCommands",
+        code: "PROC_NOT_REQUIRED",
+        message: `A program without PROC needs ${withoutProc.commands} commands and the limit is ${level.constraints.maxCommands}, so a procedure is optional here.`,
       });
     }
   }

@@ -85,6 +85,16 @@ export type LevelStat = {
   nearPar: number;
 };
 
+export type ContactInput = {
+  displayName: string;
+  email: string;
+  github: string;
+  website: string;
+  issues: string;
+  note: string;
+};
+export type AdminContact = ContactInput & { updatedAt: string; updatedByEmail: string | null };
+
 export function socialApi(client: ApiClient) {
   return {
     listDaily: (from: string, days: number) =>
@@ -109,6 +119,8 @@ export function socialApi(client: ApiClient) {
 
     setLeaderboardHidden: (playerId: string, hidden: boolean) =>
       client.put<unknown>(`admin/players/${playerId}/leaderboard-hidden`, { hidden }),
+    getContact: () => client.get<AdminContact>("admin/contact"),
+    saveContact: (body: ContactInput) => client.put<AdminContact>("admin/contact", body),
     levelStats: () => client.get<{ items: LevelStat[] }>("admin/level-stats"),
   };
 }

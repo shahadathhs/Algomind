@@ -120,10 +120,11 @@ function deadEnds(level) {
 export function measure(level) {
   const solved = solve(level);
   if (!solved) return null;
-  const loops = level.availableCommands.includes("REPEAT");
-  // Without REPEAT the shortest program is the flat one; with it, flat par is searched separately.
+  const isLoop = (c) => c === "REPEAT" || c === "REPEAT_UNTIL";
+  const loops = level.availableCommands.some(isLoop);
+  // Without a loop the shortest program is the flat one; with one, flat par is searched separately.
   const flat = loops
-    ? solve({ ...level, availableCommands: level.availableCommands.filter((c) => c !== "REPEAT") })
+    ? solve({ ...level, availableCommands: level.availableCommands.filter((c) => !isLoop(c)) })
     : solved;
   const moves = solved.program.filter((n) => n.op === "MOVE_FORWARD").length;
   // Wall cost is a flat-program idea; the loop solver is slower and the number is not needed.

@@ -67,7 +67,15 @@ A program is an ordered list of instruction nodes. A node is a primitive (`{ "op
 { "op": "REPEAT", "count": 6, "body": [{ "op": "MOVE_FORWARD" }, { "op": "TURN_RIGHT" }] }
 ```
 
-A loop's `count` is a whole number from 2 to 11 and its `body` is 1 to 8 primitives. **A loop cannot contain a loop.** A level offers loops by listing `REPEAT` in `availableCommands`; the mechanic name `repeat` is then required of the client (the API derives it from the command, so `requires.mechanics` does not repeat it). An empty program is valid.
+A loop's `count` is a whole number from 2 to 11 and its `body` is 1 to 8 primitives. **A loop cannot contain a loop.**
+
+A second loop, `{ "op": "REPEAT_UNTIL", "until": "BLOCKED", "body": [...] }`, has no count: before each round it checks whether a wall or the board edge is straight ahead and runs the body again only while it is not. The condition is checked before the first round too, so the body can run zero times. A level offers it by listing `REPEAT_UNTIL` in `availableCommands` (the mechanic `repeat_until`). Its body rules, its slots (1 plus the body), and its step counting are those of `REPEAT`; a loop inside either loop is `NESTED_REPEAT`; `until` must be `BLOCKED` (`INVALID_VALUE`, `REQUIRED`, or `INVALID_TYPE` at `program[i].until`); a `count` on it, or an `until` on a `REPEAT`, is `UNKNOWN_FIELD`. A body that is never blocked runs until the step limit. A level offers loops by listing `REPEAT` in `availableCommands`; the mechanic name `repeat` is then required of the client (the API derives it from the command, so `requires.mechanics` does not repeat it). An empty program is valid.
+
+A third node, `{ "op": "IF", "when": "CLEAR_RIGHT", "then": [primitives], "else": [primitives] }`, is a decision. `when` is `CLEAR_AHEAD`, `CLEAR_LEFT`, or `CLEAR_RIGHT`: true when the cell on that side of the automaton is on the board and not a wall. `then` holds 1 to 4 primitives, `else` holds 0 to 4 (always present, possibly empty). An `IF` may stand at the top level or as an item of a loop body (a body is 1 to 8 items, each a primitive or an `IF`); an `IF` cannot hold an `IF` (`NESTED_IF`) or a loop (`NESTED_REPEAT`). Reading a sensor costs no step. An `IF` is 1 plus its branches in slots, and a loop is 1 plus the slots of its body items. A level offers it with `IF` in `availableCommands` (the mechanic `if`). Missing, mistyped or unknown `when` is `REQUIRED`, `INVALID_TYPE`, `INVALID_VALUE` at `program[i].when`; a branch outside its length is `LENGTH_OUT_OF_RANGE` at `program[i].then` or `.else`; a missing branch is `REQUIRED`. `REPEAT_UNTIL` also accepts `until: "GOAL"`, which is never true at the start of a round, so that loop runs until the goal, a failure, or the step limit. A round of a `REPEAT_UNTIL` in which no primitive runs would repeat for ever and stops the run with `STEP_LIMIT`. In the trace, a primitive inside an `IF` has `node` `[i, k]` (top level) or `[i, j, k]` (body item `j` of loop `i`), where `k` counts the `then` primitives first and the `else` primitives after them.
+
+Two more nodes define and use procedures: `{ "op": "PROC", "name": "A", "body": [...] }` (top level only) and `{ "op": "CALL", "name": "A" }` (top level, or an item of a loop body of the main program). `name` is `A`, `B`, or `C`. A `PROC` body is 1 to 8 items: primitives, `IF`s, and loops; it cannot hold a `CALL` or a `PROC`. A `PROC` is not run where it stands; a `CALL` runs the first `PROC` of that name. A level offers both by listing `PROC` in `availableCommands` (the mechanic `procedures`). Slots: a `CALL` is 1, a `PROC` is 1 plus the slots of its body. New issue codes: `NESTED_PROC` (a `PROC` that is not at the top level, at its `op`), `CALL_NOT_ALLOWED` (a `CALL` where it may not stand, at its `op`), `DUPLICATE_PROCEDURE` and `UNDEFINED_PROCEDURE` (at `name`), and `name` is `REQUIRED`, `INVALID_TYPE`, or `INVALID_VALUE` like the other fields. Every trace entry carries `call`, the path of the `CALL` that is running it or `null`; a primitive inside a procedure has `node` `[p, ...]` with `p` the index of the `PROC`. The solver ignores `PROC`; par for a level that offers it is the reference solution.
+
+The solver does not search `IF` programs. With `IF` offered it still finds the best program without one (loops included); par for such a level is the author's reference solution, which the publish gate runs.
 
 **Slots.** The command limit counts slots: a primitive is 1, a `REPEAT` is 1 plus the number of instructions in its body. `REPEAT 6 { MOVE_FORWARD, TURN_RIGHT, MOVE_FORWARD, TURN_LEFT }` is 5 slots. `programSlots(program)` computes it.
 
@@ -75,23 +83,23 @@ A loop's `count` is a whole number from 2 to 11 and its `body` is 1 to 8 primiti
 
 All are inclusive. Lengths of strings are counted in Unicode code points (not UTF-16 units or bytes). They live in `src/constants.ts` (`LIMITS`), and a test keeps the JSON Schema in sync.
 
-| Field                         | Limit                                                                                                    |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `schemaVersion`               | must be `1`                                                                                              |
-| `levelId`, `slug`             | 1 to 64 characters, lowercase letters and digits in hyphen-separated groups (`^[a-z0-9]+(-[a-z0-9]+)*$`) |
-| `levelVersion`                | integer, 1 to 1,000,000                                                                                  |
-| `title`                       | 1 to 60 characters                                                                                       |
-| `description`                 | 0 to 280 characters                                                                                      |
-| `difficulty`                  | `easy`, `medium`, or `hard`                                                                              |
-| `requires.mechanics`          | at most 8 entries, unique, each 1 to 32 characters matching `^[a-z][a-z0-9_]*$`                          |
-| `board.width`, `board.height` | integer, 3 to 12                                                                                         |
-| `board.walls`                 | at most 100 unique cells                                                                                 |
-| `availableCommands`           | 1 to 4 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, `REPEAT`                           |
-| `REPEAT` `count`              | integer, 2 to 11                                                                                         |
-| `REPEAT` `body`               | 1 to 8 primitive instructions (no `REPEAT`)                                                              |
-| `constraints.maxCommands`     | integer, 1 to 64                                                                                         |
-| `constraints.maxSteps`        | integer, 1 to 1000                                                                                       |
-| `hints`                       | at most 5 entries, each 1 to 140 characters                                                              |
+| Field                         | Limit                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `schemaVersion`               | must be `1`                                                                                                  |
+| `levelId`, `slug`             | 1 to 64 characters, lowercase letters and digits in hyphen-separated groups (`^[a-z0-9]+(-[a-z0-9]+)*$`)     |
+| `levelVersion`                | integer, 1 to 1,000,000                                                                                      |
+| `title`                       | 1 to 60 characters                                                                                           |
+| `description`                 | 0 to 280 characters                                                                                          |
+| `difficulty`                  | `easy`, `medium`, or `hard`                                                                                  |
+| `requires.mechanics`          | at most 8 entries, unique, each 1 to 32 characters matching `^[a-z][a-z0-9_]*$`                              |
+| `board.width`, `board.height` | integer, 3 to 12                                                                                             |
+| `board.walls`                 | at most 100 unique cells                                                                                     |
+| `availableCommands`           | 1 to 7 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, `REPEAT`, `REPEAT_UNTIL`, `IF`, `PROC` |
+| `REPEAT` `count`              | integer, 2 to 11                                                                                             |
+| `REPEAT` `body`               | 1 to 8 primitive instructions (no `REPEAT`)                                                                  |
+| `constraints.maxCommands`     | integer, 1 to 64                                                                                             |
+| `constraints.maxSteps`        | integer, 1 to 1000                                                                                           |
+| `hints`                       | at most 5 entries, each 1 to 140 characters                                                                  |
 
 `requires.mechanics` names are free-form within the pattern: the validator does not know which mechanics a game build supports; the API and the client compare the list with what they support. The first command set needs no mechanics, so the list is normally empty; `REPEAT` needs the mechanic `repeat`, which the API adds from `availableCommands`.
 
@@ -128,6 +136,7 @@ Each issue is `{ path, code, message }`, matching the error contract in `docs/RE
 | `COMMAND_NOT_AVAILABLE`      | a known `op` that the level's `availableCommands` does not offer                            |
 | `TOO_MANY_COMMANDS`          | a program that uses more slots than `constraints.maxCommands`; reported at the program path |
 | `NESTED_REPEAT`              | a `REPEAT` inside the body of a `REPEAT`; reported at the inner `op`                        |
+| `NESTED_IF`                  | an `IF` inside the branch of an `IF`; reported at the inner `op`                            |
 
 ### Exact validation rules
 
@@ -178,6 +187,7 @@ Run the nodes in order. For the node at index `i` (zero-based), with `steps` ste
 1. If `steps >= constraints.maxSteps`, stop: `FAILED`, reason `STEP_LIMIT`. (So a run never executes more than `maxSteps` steps. This check happens before the node is looked at, so it wins over `INVALID_INSTRUCTION`.)
 2. A primitive node is one object whose string `op` is `MOVE_FORWARD`, `TURN_LEFT`, or `TURN_RIGHT`; run it as in 3 and 4 with trace `node` `[i]` and `round` `null`. A loop node is an object whose `op` is `REPEAT`, whose `count` is an integer from 2 to 11, and whose `body` is an array of 1 to 8 primitive nodes; run it as in 2a. Anything else stops the run: `FAILED`, reason `INVALID_INSTRUCTION`. The node is not executed and is not counted. Nodes are never silently skipped.
    - 2a. For `round` from 1 to `count`, for `j` from 0 to the end of the body: first, if `steps >= constraints.maxSteps`, stop with `STEP_LIMIT`; then run the primitive `body[j]` as in 3 and 4 with trace `node` `[i, j]` and `round`. Anything that stops the run inside the loop stops the whole run; the rest of the body, the remaining rounds, and the remaining nodes are not run.
+   - 2b. A `REPEAT_UNTIL` node is run like 2a but without a count: for `round` = 1, 2, 3 and so on, first look at the cell straight ahead; if it is off the board or a wall, the loop is over and the run goes on with node `i + 1`. Otherwise for `j` from 0 to the end of the body: if `steps >= constraints.maxSteps`, stop with `STEP_LIMIT`; then run the primitive `body[j]` as in 3 and 4 with trace `node` `[i, j]` and `round` set to the round. A well-formed `REPEAT_UNTIL` has `until` equal to `BLOCKED` and a body of 1 to 8 primitive nodes; anything else is `INVALID_INSTRUCTION`.
 3. `TURN_LEFT` / `TURN_RIGHT`: rotate the direction 90 degrees, keep the cell. Append a trace entry with event `TURNED`.
 4. `MOVE_FORWARD`: let `target` be the cell one unit ahead.
    - If `target` is outside the board (`x < 0`, `y < 0`, `x >= width`, `y >= height`): append a trace entry (the position is unchanged, event `BLOCKED_BY_BOUNDARY`) and stop: `FAILED`, reason `BLOCKED_BY_BOUNDARY`, `blockedCell` = `target` (which can contain `-1` or `width` / `height`).
@@ -248,11 +258,11 @@ The game shows these in capitals per `docs/README_VISUAL_DESIGN.md` section 7. T
 
 Because parents are recorded on first discovery and commands are tried in a fixed order, the result is unique. Examples: facing north with the goal directly behind gives `TURN_LEFT, TURN_LEFT, MOVE_FORWARD` (not the equally short `TURN_RIGHT` twin), and a detour that could pass above or below a wall takes the route whose first differing command comes earlier in the order `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`. If the start were the goal (invalid level), the result would be the empty program with 0 commands.
 
-**With `REPEAT` offered** the search is exact over programs whose loop bodies hold at most 8 primitives (which is also the most a body may hold). It runs in a few milliseconds to well under a second on boards up to 12 by 12. The method, so another language reproduces the exact program:
+**With `REPEAT` or `REPEAT_UNTIL` offered** the search is exact over programs whose loop bodies hold at most 8 primitives (which is also the most a body may hold). It runs in a few milliseconds to well under a second on boards up to 12 by 12. The method, so another language reproduces the exact program:
 
 1. A _behaviour_ maps every state `(x, y, facing)` to where a piece of program leaves the automaton and the steps it took, or to "failed", or to "entered the goal" (the run stops there, successfully; steps count up to and including the entering move). Behaviours of a sequence and of a loop follow from the simulator rules above.
 2. **Bodies** are enumerated by length 1 to 8. Length 1 is the available primitives in the order `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`. Length k+1 extends each body of length k, in order, by each available primitive in that order. A body whose behaviour equals that of any earlier body is skipped.
-3. **Edges** are, in order: the available primitives (cost 1 slot); then for each body length 1 to 8, each body in order, each `count` from 2 to 11, the loop `REPEAT count { body }` (cost 1 + body length). An edge with the same behaviour and cost as an earlier edge is skipped.
+3. **Edges** are, in order: the available primitives (cost 1 slot); then for each body length 1 to 8, each body in order, each `count` from 2 to 11, the loop `REPEAT count { body }` (cost 1 + body length), skipped unless `REPEAT` is offered; then, for the same body, the loop `REPEAT_UNTIL BLOCKED { body }` (cost 1 + body length), included only when `REPEAT_UNTIL` is offered. The behaviour of that loop at a state is: while the cell ahead is open, run the body; a state that comes round again without being blocked, or a run that fails, is a failure. An edge with the same behaviour and cost as an earlier edge is skipped.
 4. A shortest-path search from the start state over edges. The cost of a path is compared as (slots, then steps). Take the unfinished state with the lowest cost, the lowest state index on ties, and relax every edge in edge order, updating a state only when the new cost is strictly lower. "The goal" is one more state. The program is the edges on the path to it.
 
 Because ties favour fewer steps, then the earlier edge, the result is unique. Two programs with equal slots and equal steps can exist (for example `REPEAT 2 { MOVE_FORWARD }` and two moves); the one discovered first wins.

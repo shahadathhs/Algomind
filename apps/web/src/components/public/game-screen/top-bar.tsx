@@ -1,10 +1,10 @@
 import { CommandIcon } from "@/components/ui/command-icon";
 import { TileGraphic } from "@/components/ui/tile-graphic";
-import { LEVEL_NUMBER, LEVEL_TITLE } from "@/lib/sample-screens";
 import { TILE_TONE } from "@/lib/tile-variants";
+import type { ScreenData } from "./screen-data";
 import { TEXT } from "./svg-text";
 
-export function TopBar() {
+export function TopBar({ data }: { data: ScreenData }) {
   return (
     <g>
       <TileGraphic x={20} y={22} w={40} h={40} variant="ghost" chamfer={8}>
@@ -19,7 +19,7 @@ export function TopBar() {
         className="fill-mute"
         {...TEXT}
       >
-        {`LEVEL ${LEVEL_NUMBER}`}
+        {`LEVEL ${data.levelNumber}`}
       </text>
       <text
         x={195}
@@ -30,7 +30,7 @@ export function TopBar() {
         className="fill-ink"
         {...TEXT}
       >
-        {LEVEL_TITLE}
+        {data.levelTitle}
       </text>
       <text x={328} y={56} fontSize={20} textAnchor="middle" className="fill-ink" {...TEXT}>
         ?

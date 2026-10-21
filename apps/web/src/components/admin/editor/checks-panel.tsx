@@ -14,9 +14,12 @@ export function ChecksPanel({
   levelId,
   dirty,
   hasDraft,
+  parIsReference = false,
 }: {
   levelId: string;
   dirty: boolean;
+  /** The level offers IF or PROC: the API sets par to the reference solution. */
+  parIsReference?: boolean;
   hasDraft: boolean;
 }) {
   const api = useAdminApi();
@@ -71,7 +74,7 @@ export function ChecksPanel({
               <dd>{result.ok ? "Yes" : "No"}</dd>
               <dt className="text-mute">Reference solved</dt>
               <dd>{result.referenceSolved ? "Yes" : "No"}</dd>
-              <dt className="text-mute">Par</dt>
+              <dt className="text-mute">{parIsReference ? "Par (reference solution)" : "Par"}</dt>
               <dd>
                 {result.par
                   ? `${result.par.commands} commands, ${result.par.steps} steps`

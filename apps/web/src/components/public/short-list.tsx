@@ -12,7 +12,7 @@ const ITEMS = [
 
 export function ShortList() {
   return (
-    <Section>
+    <Section reveal>
       <Caption as="h2">The short list</Caption>
       <ul className="mt-8 grid gap-x-8 md:grid-cols-3">
         {ITEMS.map((item) => (

@@ -1,7 +1,7 @@
 {
   "name": "@algomind/web",
   "private": true,
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "description": "Algomind web app: the public site (download first) and the admin dashboard.",
   "scripts": {
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@algomind/level-contract": "workspace:*",
+    "motion": "^14.4.0",
     "next": "16.4.2",
     "qrcode": "^1.5.4",
     "react": "19.3.1",

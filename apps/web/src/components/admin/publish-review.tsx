@@ -7,7 +7,7 @@ import { BoardView } from "@/components/ui/board-view";
 import { Caption } from "@/components/ui/caption";
 import { ApiError, SessionEndedError } from "@/lib/api/errors";
 import type { CheckIssue, LevelView, ValidateResult } from "@/lib/admin/admin-api";
-import { boardData } from "@/lib/admin/level-model";
+import { boardData, parName } from "@/lib/admin/level-model";
 import { diff } from "@/lib/admin/publish-diff";
 import { Notice, OutlineAction, PageHeading, PrimaryAction } from "./ui";
 import { useAdminApi } from "./use-admin-api";
@@ -134,7 +134,7 @@ export function PublishReview({ levelId }: { levelId: string }) {
             <dl className="mb-4 grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-[15px] font-semibold">
               <dt className="text-mute">Reference solution</dt>
               <dd>{result.referenceSolved ? "Solves the level" : "Does not solve the level"}</dd>
-              <dt className="text-mute">Par</dt>
+              <dt className="text-mute">{parName(draft.content)}</dt>
               <dd>
                 {result.par
                   ? `${result.par.commands} commands, limit ${draft.content.constraints.maxCommands}`

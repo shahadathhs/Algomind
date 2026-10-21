@@ -19,6 +19,31 @@ const COMMANDS: Array[Dictionary] = [
 		"name": "REPEAT",
 		"text": "Starts a loop. Add commands to it, then tap END LOOP."
 	},
+	{
+		"icon": "until",
+		"name": "UNTIL",
+		"text": "Starts a loop that repeats until a wall or the edge is straight ahead."
+	},
+	{
+		"icon": "if",
+		"name": "IF",
+		"text": "Starts a decision. Add commands, tap ELSE for the others, then tap END IF."
+	},
+	{
+		"icon": "proc",
+		"name": "PROC",
+		"text": "Starts a procedure: a named group of commands. Add commands, then tap END PROC."
+	},
+	{
+		"icon": "call",
+		"name": "CALL",
+		"text": "Carries out a procedure that is already defined, such as CALL A."
+	},
+]
+const SENSORS: Array[Dictionary] = [
+	{"icon": "ahead", "name": "AHEAD", "text": "True when the cell straight ahead is open."},
+	{"icon": "sense_left", "name": "LEFT", "text": "True when the cell to the left is open."},
+	{"icon": "sense_right", "name": "RIGHT", "text": "True when the cell to the right is open."},
 ]
 const CONTROLS: Array[Dictionary] = [
 	{"icon": "play", "name": "RUN", "text": "Carries out the whole program, one step at a time."},
@@ -69,10 +94,25 @@ func _build() -> void:
 			(
 				"A loop carries out the commands inside it again and again. Select its count "
 				+ "tile and use minus and plus to change how many rounds it runs. A loop uses "
-				+ "one slot for its count and one for each command inside it."
+				+ "one slot for its count and one for each command inside it. A loop cannot hold "
+				+ "another loop."
 			)
 		)
 	)
+	_list.add_child(
+		_paragraph(
+			(
+				"An UNTIL loop has no count. Before every round it looks at the cell straight "
+				+ "ahead. If that cell is a wall or off the board, the loop ends and the program "
+				+ "goes on after it. Otherwise it carries out the commands inside once more. "
+				+ "If the way ahead is already blocked, it carries out nothing. A loop that "
+				+ "never meets a wall is stopped when the program has run too long. It uses one "
+				+ "slot for its header and one for each command inside it."
+			)
+		)
+	)
+	_add_decisions()
+	_add_procedures()
 	_list.add_child(UiKit.label("CONTROLS", 14, Palette.MUTE, 3))
 	for item in CONTROLS:
 		_list.add_child(_Row.make(item["icon"], item["name"], item["text"]))
@@ -83,6 +123,74 @@ func _build() -> void:
 				"The game says what went wrong in plain words. It marks the wall that was hit and "
 				+ "the instruction that caused it. Edit the program and run it again. There is no "
 				+ "timer and no limit on tries."
+			)
+		)
+	)
+
+
+## The IF section: how a decision works and what each sensor looks at, then the GOAL condition.
+func _add_decisions() -> void:
+	_list.add_child(UiKit.label("IF AND SENSORS", 14, Palette.MUTE, 3))
+	(
+		_list
+		. add_child(
+			_paragraph(
+				(
+					"An IF looks at one cell and chooses. Select its sensor tile, then tap it again to "
+					+ "switch between AHEAD, LEFT and RIGHT. A sensor is true when that cell is on the board and "
+					+ "is not a wall. Looking costs no step. If the sensor is true, the commands "
+					+ "under IF run. If not, the commands after ELSE run, and ELSE may stay empty."
+				)
+			)
+		)
+	)
+	for item in SENSORS:
+		_list.add_child(_Row.make(item["icon"], item["name"], item["text"]))
+	_list.add_child(
+		_paragraph(
+			(
+				"An IF uses one slot, plus one for each command in it. It can stand on its own "
+				+ "or inside a loop. An IF cannot hold another IF or a loop. An IF needs at "
+				+ "least one command before ELSE."
+			)
+		)
+	)
+	(
+		_list
+		. add_child(
+			_paragraph(
+				(
+					"An UNTIL loop can also wait for the goal. Select its header tile, then tap it again to "
+					+ "switch between BLOCKED and GOAL. It carries out its commands again and again until the "
+					+ "automaton reaches the goal, so it keeps a program with decisions going."
+				)
+			)
+		)
+	)
+
+
+## The procedure section: defining a group once and running it from several places.
+func _add_procedures() -> void:
+	_list.add_child(UiKit.label("PROCEDURES", 14, Palette.MUTE, 3))
+	_list.add_child(
+		_paragraph(
+			(
+				"A procedure is a group of commands with a name: A, B or C. Tap PROC and add its "
+				+ "commands. It is drawn at the start of the tape and does not run where it "
+				+ "stands. Tap END PROC, then tap CALL with its name wherever the program should "
+				+ "carry it out. Each CALL runs the whole group, then the program goes on."
+			)
+		)
+	)
+	_list.add_child(
+		_paragraph(
+			(
+				"A procedure uses one slot, plus one for each command in it. A CALL uses one slot, "
+				+ "so a group used several times costs less than the same commands written out "
+				+ "each time. A procedure may hold loops and IFs. It cannot hold a CALL or "
+				+ "another procedure. A CALL stands in the program or inside a loop. If a "
+				+ "procedure is removed, its CALL tiles stay and the program cannot run until "
+				+ "the procedure is made again or the calls are removed."
 			)
 		)
 	)

@@ -36,7 +36,11 @@ func _build() -> void:
 
 	var solved := _solved_count()
 	var total := _level_count()
+	var target := _level_to_play()
+	var locked := target >= 0 and not app.progress.is_unlocked(app.campaign, target)
 	var line := "%02d OF %02d SOLVED." % [solved, total]
+	if locked:
+		line = "LOCKED. SOLVE THE WORLD BEFORE IT TO PLAY."
 	if not str(_world["summary"]).is_empty():
 		line += " " + str(_world["summary"]).to_upper()
 	_summary = UiKit.label(line, 14, Palette.MUTE, 1)
@@ -51,12 +55,13 @@ func _build() -> void:
 	_content.add_theme_constant_override("separation", 10)
 	_scroll.add_child(_content)
 
-	var target := _level_to_play()
 	var label := (
 		"PLAY LEVEL %02d" % app.campaign.entries[target]["number"] if target >= 0 else "NO LEVELS"
 	)
+	if locked:
+		label = "LOCKED"
 	_play = TileButton.make(TileButton.Kind.PRIMARY, label, "", 24)
-	_play.set_disabled(target < 0 or not app.progress.is_unlocked(app.campaign, target))
+	_play.set_disabled(target < 0 or locked)
 	_play.pressed.connect(_open.bind(target))
 	add_child(_play)
 

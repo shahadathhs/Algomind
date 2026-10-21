@@ -45,8 +45,23 @@ export type LevelSummary = {
   updatedAt: string;
 };
 
-/** One program node: a primitive, or a REPEAT with a count and a body of primitives. */
-export type Instruction = { op: string; count?: number; body?: { op: string }[] };
+/** A move or a turn. */
+export type Primitive = { op: string };
+/** An IF: a sensor, a `then` branch of primitives and an `else` branch (possibly empty). */
+export type IfNode = { op: "IF"; when: string; then: Primitive[]; else: Primitive[] };
+/** An item of a loop body: a primitive or an IF. */
+export type BodyNode = Primitive | IfNode;
+/** One program node (primitive, IF, loop, PROC or CALL); fields are optional so one type covers all. */
+export type Instruction = {
+  op: string;
+  count?: number;
+  until?: string;
+  body?: Instruction[];
+  name?: string;
+  when?: string;
+  then?: Primitive[];
+  else?: Primitive[];
+};
 
 export type LevelContent = {
   schemaVersion: number;

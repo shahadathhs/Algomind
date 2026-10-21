@@ -35,6 +35,10 @@ export type LevelDef = {
   maxCommands: number;
   rows: readonly string[];
   hints?: readonly string[];
+  /** The reference solution, for a level whose par the exact solver cannot search (IF). */
+  solution?: readonly unknown[];
+  /** Defaults to 100. */
+  maxSteps?: number;
 };
 
 /** The seed content failed the validator or solver: a bug in the data, never a runtime problem. */
@@ -54,7 +58,7 @@ export function buildLevel(def: LevelDef, id: string): Level {
     board: { width: board.width, height: board.height, walls: board.walls },
     initialState: board.start,
     availableCommands: [...def.commands],
-    constraints: { maxCommands: def.maxCommands, maxSteps: 100 },
+    constraints: { maxCommands: def.maxCommands, maxSteps: def.maxSteps ?? 100 },
     goal: { type: "reach_tile", position: board.goal },
     hints: [...(def.hints ?? [])],
   };
@@ -66,15 +70,15 @@ export type PreparedLevel = ReturnType<typeof prepareLevel>;
 export function prepareLevel(def: LevelDef) {
   const id = randomUUID();
   const level = buildLevel(def, id);
-  const best = solve(level);
-  if (!best) throw new SeedContentError(`Seed level ${def.slug} has no solution`);
-  const analysis = analyzeLevel(level, best.program);
+  const program: readonly unknown[] | undefined = def.solution ?? solve(level)?.program;
+  if (!program) throw new SeedContentError(`Seed level ${def.slug} has no solution`);
+  const analysis = analyzeLevel(level, program);
   if (analysis.errors.length > 0 || !analysis.referenceSolved || !analysis.par) {
     throw new SeedContentError(
       `Seed level ${def.slug} is invalid: ${JSON.stringify(analysis.errors)}`,
     );
   }
-  return { def, id, level, program: best.program, analysis, par: analysis.par };
+  return { def, id, level, program, analysis, par: analysis.par };
 }
 
 /**

@@ -1,31 +1,38 @@
 class_name TapeView
 extends Control
-## The tape: a strip of instruction tiles, with a loop drawn as a count tile and its body inside
-## one bracket.
+## The tape: a strip of instruction tiles. Procedure definitions come first, each drawn as a
+## header tile (PROC and its name) with its body inside one bracket, then the main program. A loop
+## is a header tile (a count, or "until blocked") and its body inside a bracket; an IF is a header
+## tile (IF and its sensor), its then tiles, an ELSE divider and its else tiles inside a bracket
+## of their own. Brackets nest: an IF or a loop sits inside the bracket of the loop or procedure
+## that holds it (TapeLayout).
 ##
-## Editing: left-aligned, a dashed plus slot at the end, drag to scroll when it overflows.
-## Running: a fixed read-head at the center; `scroll` is animated by the play screen so the
-## current tile sits under it. States per tile: executed (solid), current (yellow), upcoming
-## (outlined), failed (yellow with an X). The view only displays; it never runs anything.
+## Editing: left-aligned, a dashed plus slot where the next tile goes, drag to scroll when it
+## overflows. Running: a fixed read-head at the center; `scroll` is animated by the play screen so
+## the current tile sits under it. States per tile: executed (solid), current (yellow), upcoming
+## (outlined), failed (yellow with an X); the CALL that is running is yellow too. The view only
+## displays; it never runs anything.
 
 signal tile_tapped(index: int)
 
-const PAD := 12.0
+const PAD := TapeLayout.PAD
 const DRAG_SLOP := 10.0
-## Room between a loop's bracket and its tiles, and between a bracket and its neighbours.
-const GROUP_PAD := 5.0
 
 ## The cells to show (TapeModel.cells()): one per slot.
 var cells: Array[Dictionary] = []
 var limit := 0
 var used := 0
 var selected := -1
-## Program index of the loop that is open (takes the next command), or -1.
-var open_loop := -1
+## The keys (TapeCells.key_of) of the procedure, loop and IF that are open, outermost first.
+var open_keys: Array[String] = []
+## The trace paths (joined with "_") of the commands already shown by the run.
+var executed := {}
 ## False while editing; true when the read-head is shown.
 var running := false
 ## Index of the cell under the read-head, or -1 before the first step.
 var current := -1
+## Index of the CALL cell that is running the current command, or -1 in the main program.
+var call_index := -1
 ## The 1-based round of the loop the read-head is in, or 0.
 var current_round := 0
 var failed_index := -1
@@ -37,8 +44,9 @@ var scroll := 0.0:
 
 var _rects: Array[Rect2] = []
 var _groups: Array[Rect2] = []
-var _group_loops: Array[int] = []
+var _group_dashed: Array[bool] = []
 var _slot := Rect2()
+var _divider := -1.0
 var _content_end := 0.0
 var _press_at := Vector2.ZERO
 var _press_scroll := 0.0
@@ -64,13 +72,13 @@ func set_content(
 	used_slots: int,
 	max_commands: int,
 	selected_index: int,
-	open: int
+	open: Array[String] = []
 ) -> void:
 	cells = tape_cells
 	used = used_slots
 	limit = max_commands
 	selected = selected_index
-	open_loop = open
+	open_keys = open
 	_layout_cells()
 	queue_redraw()
 
@@ -79,53 +87,34 @@ func _top() -> float:
 	return 22.0 if running else 12.0
 
 
-## Places every cell, loop bracket, and the dashed slot in strip coordinates (before scroll).
 func _layout_cells() -> void:
-	_rects.clear()
-	_groups.clear()
-	_group_loops.clear()
-	_slot = Rect2()
-	var tile := tile_size()
-	var gap := pitch() - tile
-	var top := _top()
-	var x := PAD
-	var group_start := -1.0
-	var group_loop := -1
-	for i in cells.size():
-		var cell := cells[i]
-		var path: Array = cell["path"]
-		var in_group: bool = cell["kind"] == "count" or path.size() == 2
-		if cell["kind"] == "count":
-			x += GROUP_PAD
-			group_start = x
-			group_loop = int(path[0])
-			x += GROUP_PAD
-		_rects.append(Rect2(Vector2(x, top), Vector2(tile, tile)))
-		x += pitch()
-		var ends_group := in_group
-		if i + 1 < cells.size():
-			var next_path: Array = cells[i + 1]["path"]
-			ends_group = in_group and (cells[i + 1]["kind"] == "count" or next_path.size() == 1)
-		if in_group and ends_group:
-			var end_x := x - gap + GROUP_PAD
-			if group_loop == open_loop and used < limit:
-				_slot = Rect2(Vector2(x, top), Vector2(tile, tile))
-				end_x = x + tile + GROUP_PAD
-				x += pitch()
-			_groups.append(
-				Rect2(group_start, top - GROUP_PAD, end_x - group_start, tile + 2.0 * GROUP_PAD)
-			)
-			_group_loops.append(group_loop)
-			x = end_x + gap
-	if _slot.size == Vector2.ZERO and not running and used < limit:
-		_slot = Rect2(Vector2(x, top), Vector2(tile, tile))
-		x += pitch()
-	_content_end = x + PAD
+	var metrics := {
+		"tile": tile_size(),
+		"pitch": pitch(),
+		"top": _top(),
+		"editing": not running,
+		"room": used < limit,
+	}
+	var laid := TapeLayout.compute(cells, metrics, open_keys)
+	_rects = laid["rects"]
+	_groups = laid["groups"]
+	_group_dashed = laid["dashed"]
+	_slot = laid["slot"]
+	_divider = laid["divider"]
+	_content_end = laid["end"]
 
 
-## The scroll that shows the end of the program (the slot where the next tile goes).
+## The scroll that shows the end of the program.
 func edit_scroll() -> float:
 	return maxf(0.0, _content_end - size.x)
+
+
+## The scroll that shows the slot where the next tile goes (the end of the tape when there is no
+## slot, or the open definition is further left).
+func append_scroll() -> float:
+	if _slot.size == Vector2.ZERO:
+		return edit_scroll()
+	return clampf(_slot.end.x + PAD - size.x, 0.0, edit_scroll())
 
 
 ## Scrolls just enough to show cell `index` in full, and not at all when it is already visible.
@@ -183,16 +172,22 @@ func _draw() -> void:
 		group.position.x -= scroll
 		if group.end.x < 0.0 or group.position.x > size.x:
 			continue
-		UiKit.outline_chamfer(
-			self, group, Palette.INK, 2.0, _group_loops[g] == open_loop and not running
-		)
+		UiKit.outline_chamfer(self, group, Palette.INK, 2.0, _group_dashed[g])
+	if _divider >= 0.0:
+		var x := _divider - scroll
+		draw_line(Vector2(x, _top()), Vector2(x, _top() + tile_size()), Palette.MUTE, 2.0)
+	var slot_number := 0
 	for i in cells.size():
 		var rect := _rects[i]
 		rect.position.x -= scroll
+		if cells[i]["kind"] != "else":
+			slot_number += 1
 		if rect.end.x < 0.0 or rect.position.x > size.x:
 			continue
-		_draw_tile(i, rect)
-		var number := "%02d" % (i + 1)
+		TapeTiles.draw(self, i, rect)
+		if cells[i]["kind"] == "else":
+			continue
+		var number := "%02d" % slot_number
 		var number_rect := Rect2(rect.position.x, rect.end.y + 2.0, rect.size.x, 22.0)
 		var number_color := Palette.INK if i == current and running else Palette.MUTE
 		UiKit.text(self, number, number_rect, 14, number_color, 1)
@@ -205,57 +200,6 @@ func _draw() -> void:
 		_draw_head()
 
 
-func _draw_tile(index: int, rect: Rect2) -> void:
-	var cell := cells[index]
-	if cell["kind"] == "count":
-		_draw_count(index, rect)
-		return
-	var kind := _icon_for(cell["op"])
-	var center := rect.get_center()
-	var icon_size := rect.size.x * 0.5
-	if index == failed_index and running:
-		UiKit.fill_chamfer(self, rect, Palette.SIGNAL)
-		UiKit.icon(self, "x", center, icon_size, Palette.ON_SIGNAL)
-	elif running and index == current:
-		UiKit.fill_chamfer(self, rect, Palette.SIGNAL)
-		UiKit.icon(self, kind, center, icon_size, Palette.ON_SIGNAL)
-	elif running and index < current:
-		UiKit.fill_chamfer(self, rect, Palette.INK)
-		UiKit.icon(self, kind, center, icon_size, Palette.ON_INK)
-	elif not running and index == selected:
-		UiKit.fill_chamfer(self, rect, Palette.INK)
-		UiKit.icon(self, kind, center, icon_size, Palette.ON_INK)
-	else:
-		UiKit.fill_chamfer(self, rect, Palette.FLOOR)
-		UiKit.outline_chamfer(self, rect, Palette.INK)
-		UiKit.icon(self, kind, center, icon_size, Palette.INK)
-
-
-## The count tile of a loop. Editing: "x3", solid when selected. Running: "round/count" once the
-## loop has started, "x3" before it.
-func _draw_count(index: int, rect: Rect2) -> void:
-	var cell := cells[index]
-	var loop := int((cell["path"] as Array)[0])
-	var count := int(cell["count"])
-	var text := "\u00d7%d" % count
-	var solid := not running and index == selected
-	if running and current >= 0:
-		var here := int((cells[current]["path"] as Array)[0])
-		if loop < here:
-			text = "%d/%d" % [count, count]
-			solid = true
-		elif loop == here:
-			text = "%d/%d" % [maxi(current_round, 1), count]
-			solid = true
-	if solid:
-		UiKit.fill_chamfer(self, rect, Palette.INK)
-	else:
-		UiKit.fill_chamfer(self, rect, Palette.FLOOR)
-		UiKit.outline_chamfer(self, rect, Palette.INK)
-	var color := Palette.ON_INK if solid else Palette.INK
-	UiKit.text(self, text, rect, int(rect.size.x * 0.42), color, 0)
-
-
 func _draw_head() -> void:
 	var x := size.x / 2.0
 	var tip := Vector2(x, 18.0)
@@ -265,11 +209,50 @@ func _draw_head() -> void:
 	draw_polyline(points, Palette.INK, 2.0)
 
 
-static func _icon_for(op: String) -> String:
-	match op:
-		"TURN_LEFT":
-			return "left"
-		"TURN_RIGHT":
-			return "right"
-		_:
-			return "move"
+# ----- what the run has reached --------------------------------------------------------------
+
+
+## The cell of the main program the read-head stands at: the CALL that is running a procedure,
+## else the current cell.
+func main_position() -> int:
+	return call_index if call_index >= 0 else current
+
+
+## True for a command in an IF branch that the run has not taken.
+func skipped(cell: Dictionary) -> bool:
+	return cell.has("branch") and not executed.has(TapeCells.key_of(cell["path"]))
+
+
+## True when the run has already passed cell `index` (header cells: see header_passed).
+func is_passed(index: int) -> bool:
+	if not running or current < 0:
+		return false
+	var cell := cells[index]
+	var proc := int(cell["proc"])
+	if proc < 0:
+		return index < main_position() and not skipped(cell)
+	if int(cells[current]["proc"]) == proc:
+		return index < current and not skipped(cell)
+	return executed.has(TapeCells.key_of(cell["path"])) and not skipped(cell)
+
+
+## True when the read-head is inside the group of the header at `index`, or the CALL that is
+## running stands in it.
+func group_holds(index: int, cell_index: int) -> bool:
+	if cell_index < 0 or cell_index >= cells.size():
+		return false
+	return (cells[cell_index]["groups"] as Array).has(TapeCells.key_of(cells[index]["path"]))
+
+
+## True when the run has reached the header at `index` (solid): the read-head is past it or in it.
+func header_passed(index: int) -> bool:
+	if not running or current < 0:
+		return false
+	if int(cells[index]["proc"]) < 0:
+		return index < main_position()
+	for j in range(index + 1, cells.size()):
+		if not group_holds(index, j):
+			break
+		if j == current or is_passed(j):
+			return true
+	return false

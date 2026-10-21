@@ -1,16 +1,25 @@
 import type { Instruction, LevelContent } from "./admin-api";
 import { slotsOf } from "./level-model";
+import { countKinds } from "./program-model";
 
 export type Change = { field: string; from: string; to: string };
 
 type Version = { content: LevelContent; referenceSolution: Instruction[] };
 
-/** The reference solution in a few words: its slots, and how many loops it uses. */
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** The reference solution in a few words: its slots, and how many loops, ifs, procedures and calls. */
 function solutionText(program: Instruction[]): string {
-  const loops = program.filter((node) => node.op === "REPEAT").length;
-  const slots = `${slotsOf(program)} slot${slotsOf(program) === 1 ? "" : "s"}`;
-  if (loops === 0) return `${slots}, no loops`;
-  return `${slots}, ${loops} loop${loops === 1 ? "" : "s"}`;
+  const { counted, until, ifs, procs, calls } = countKinds(program);
+  const slots = plural(slotsOf(program), "slot");
+  const parts = [
+    counted > 0 ? plural(counted, "loop") : "",
+    until > 0 ? plural(until, "until-loop") : "",
+    ifs > 0 ? plural(ifs, "if") : "",
+    procs > 0 ? plural(procs, "procedure") : "",
+    calls > 0 ? plural(calls, "call") : "",
+  ].filter(Boolean);
+  return parts.length === 0 ? `${slots}, no loops` : `${slots}, ${parts.join(", ")}`;
 }
 
 function describe(version: Version | null): Record<string, string> {

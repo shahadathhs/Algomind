@@ -151,12 +151,12 @@ func test_malformed_placement_gives_an_empty_campaign() -> void:
 func test_bundled_campaign_loads_cleanly() -> void:
 	var campaign := Campaign.load_bundled()
 	assert_eq(campaign.errors, [] as Array[String])
-	assert_eq(campaign.entries.size(), 28, "the bundled campaign is the published starter set")
-	assert_eq(campaign.worlds.size(), 3)
+	assert_eq(campaign.entries.size(), 52, "the bundled campaign is the published starter set")
+	assert_eq(campaign.worlds.size(), 6)
 	var chapters := 0
 	for world in campaign.worlds:
 		chapters += world["chapters"].size()
-	assert_eq(chapters, 6)
+	assert_eq(chapters, 12)
 
 
 func test_every_bundled_level_is_solvable_within_its_limit() -> void:
@@ -166,7 +166,10 @@ func test_every_bundled_level_is_solvable_within_its_limit() -> void:
 		var shortest := _shortest_program(level)
 		assert_gt(shortest, 0, "%s is solvable" % entry["id"])
 		var limit := int(level["constraints"]["maxCommands"])
-		if level["availableCommands"].has("REPEAT"):
+		if (
+			level["availableCommands"].has("REPEAT")
+			or level["availableCommands"].has("REPEAT_UNTIL")
+		):
 			# This search has no loops, so it measures the plain program. The server's solver checks
 			# the loop par (apps/api/test/starter-campaign.test.ts); here a loop level must be one
 			# where the plain program does not fit the limit, so that a loop is needed.
@@ -193,7 +196,7 @@ func _shortest_program(level: Dictionary) -> int:
 	var seen := {first: true}
 	var frontier: Array = [first]
 	var depth := 0
-	while not frontier.is_empty() and depth < 40:
+	while not frontier.is_empty() and depth < 150:
 		depth += 1
 		var next: Array = []
 		for node: Array in frontier:

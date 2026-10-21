@@ -52,6 +52,32 @@ Required behavior:
 - Prevent the player from accidentally editing the sequence while a run is executing, or define and test a clear edit-during-run behavior.
 - Preserve the current sequence when a run fails so the player can inspect it.
 
+Loops and decisions (rules in [README_GAME_RULES.md](README_GAME_RULES.md) sections 3.1 to 3.3):
+
+- The commands row shows a **Repeat** tile when a level offers `REPEAT` and a **Repeat until** tile (label UNTIL) when it offers `REPEAT_UNTIL`, side by side when both are offered. With five tiles the icon sits above the label.
+- Tapping a loop tile starts a loop and opens it; commands tapped next go into its body (at most 8). The same tile now reads END LOOP and closes it; an empty loop cannot be closed and is not a program (Run and Step stay off and the message asks for a command). Only one loop is open at a time, and a loop cannot hold a loop, so the other loop tile waits while one is open.
+- A Repeat loop starts at two rounds; selecting its count tile shows minus and plus (2 to 11). A Repeat until loop has no count: its header reads UNTIL BLOCKED, selecting it shows only the move and remove tools, and the loop is ended by the wall or board edge, not by the player.
+- A loop costs 1 slot plus one per body command, in the editor, the command counter, the result and the score.
+- While a run is shown, a Repeat header reads round/count and a Repeat until header reads ROUND and the round number; a failure inside a body shows the X on that body tile. A Repeat until loop that never meets a wall is stopped by the step limit and the message says the loop never reached a wall.
+- A Repeat until loop on a level that also offers `IF` can wait for the goal: the header is selected when the loop opens, and tapping it again (or the extra tile that appears with the move and remove tools) switches UNTIL BLOCKED to UNTIL GOAL and back. A loop that never reaches the goal is stopped by the step limit and the message says the loop never reached the goal; a round in which nothing ran stops the run with the message that a round of the loop did nothing.
+- The how-to-play screen explains both loops.
+
+If (rules in section 3.3):
+
+- The commands row shows an **If** tile when a level offers `IF`. Tapping it opens an If group with the sensor AHEAD and selects its header; the extra tile with the move and remove tools (or a second tap on the selected header) switches AHEAD, LEFT and RIGHT. Commands tapped next go to the then branch.
+- While an If is open, an **Else** tile appears beside the If tile and switches to the else branch; the If tile reads END IF and closes the group. An If needs one command before Else or End if: a group with an empty then is not a program (Run and Step stay off and the message asks for a command).
+- Branches take commands only: up to 4 per branch, no loop and no other If inside, and no loop can open while an If is open. Inside an open loop an If is one of the loop's items, and the loop can only be ended once the If is closed. When the palette has six tiles, the loop tiles that cannot be used give way to Else while an If is open, so the row never has more than six tiles.
+- An If costs 1 slot plus one per command in then and else; the Else divider on the tape is not a slot and has no number. Selecting the header and removing deletes the whole If; moving it moves the group. Commands move only within their own branch.
+- While a run is shown, a command in a branch that was not taken stays outlined; the X of a failure sits on the command that was blocked, inside whichever branch ran.
+
+Procedures (rules in section 3.4 of the game rules):
+
+- The commands row shows a **Proc** tile when a level offers `PROC`. Tapping it opens the next free definition (A, then B, then C) at the start of the tape and selects its header. Commands tapped next, including Repeat, Repeat until and If groups with their usual open rules, go into the definition. The Proc tile reads END PROC with a check while a definition is open and closes it once it holds a command; when A, B and C all exist it is disabled. A definition with no command is not a program (Run and Step stay off and the message asks for a command).
+- While no definition is open, each defined name has a **Call** tile (CALL A, CALL B, CALL C) that appends a CALL to the main program, or into an open main-program loop. No Call tile shows while a definition is open, and a Call is disabled while an If is open. A definition has at most 8 items; a CALL is 1 slot and a definition is 1 plus its items.
+- Definitions always come first on the tape, then the main program. Selecting a header and removing deletes the whole definition; its CALL tiles stay, Run and Step turn off, and the message reads "Procedure A is not defined" until the definition is made again or the calls are removed. A definition moves only among the definitions, and a main-program command never moves into them.
+- While a run is shown, the tile of the definition that is running is current, and so is the CALL tile that started it. A loop in the main program that holds the running CALL shows its count. When a run fails inside a definition the X sits on that command in the definition.
+- The how-to-play screen explains Proc and Call.
+
 ### 3.3 Deterministic simulation
 
 - Commands execute in a defined order.

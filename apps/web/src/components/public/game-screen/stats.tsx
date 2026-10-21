@@ -1,12 +1,13 @@
 import { TileGraphic } from "@/components/ui/tile-graphic";
-import { SOLVED_STATS } from "@/lib/sample-screens";
+import type { ScreenData } from "./screen-data";
 import { SvgCaption, TEXT } from "./svg-text";
 
-export function Stats() {
+export function Stats({ data }: { data: ScreenData }) {
+  const solved = data.stats;
   const stats = [
-    { value: `${SOLVED_STATS.used} / ${SOLVED_STATS.limit}`, label: "COMMANDS" },
-    { value: String(SOLVED_STATS.steps), label: "STEPS" },
-    { value: String(SOLVED_STATS.best), label: "BEST" },
+    { value: `${solved.used} / ${solved.limit}`, label: "COMMANDS" },
+    { value: String(solved.steps), label: "STEPS" },
+    { value: String(solved.best), label: "BEST" },
   ];
   return (
     <g>

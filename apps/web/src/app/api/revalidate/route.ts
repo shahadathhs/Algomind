@@ -19,5 +19,6 @@ export async function POST(request: Request): Promise<Response> {
     return new Response(null, { status: 401 });
   }
   revalidatePath("/levels");
+  revalidatePath("/contact");
   return Response.json({ revalidated: true });
 }

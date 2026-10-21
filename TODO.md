@@ -2,6 +2,20 @@
 
 The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md). Tick items as they are done. Detail grows as each step is reached.
 
+## Pending: visual review (not done)
+
+**Not done: no screen has been looked at for the work below. It needs a window, so the owner will run it in another session at home.** Everything here passes the headless checks only (lint, typecheck, tests, fixtures). Nothing was tested on a device or in a browser.
+
+- [ ] Run `make game-shots` (3 sizes x 2 themes: 390x844, 360x640, 412x915) and look at every image before calling a screen done (AGENTS.md, "Verify before you claim")
+- [ ] Social screens: home link row, world (stars on tiles), account link row, solved play screen (Share, Ranking), profile, badges, leaderboard, daily (list in [docs/README_SOCIAL_PLAN.md](docs/README_SOCIAL_PLAN.md), section 6)
+- [ ] Repeat until (world 4): the palette tile, the UNTIL header and the round count while running
+- [ ] If and sensors (world 5): the six-tile palette at 360 px (labels such as END LOOP may clip), nested IF brackets inside a loop bracket, the dashed ELSE divider, select-then-cycle on the IF header, `play_debug.gd` has no IF syntax for screenshots yet
+- [ ] Tap flows in the running game: report confirm, MORE paging, COPIED, clipboard; the browser build hides Daily, Leaderboard, Profile and Badges
+- [ ] Dashboard in a real browser: the Repeat until and If editors, the par wording for If levels, Daily, Badges, Reports, Statistics (`make web-smoke` does not cover them)
+- [ ] An Android device: install the build against the production API
+- [ ] Procedures (world 6): the palette with up to ten tiles in two rows at 360 px, definition groups at the start of the tape, the CALL highlight while running, scrolling a long program
+- [ ] Playtest the 24 levels of worlds 4 to 6 with real people
+
 ## Now: step 1, worlds 1 and 2 (18 levels)
 
 **Level lab** (`scripts/level-lab/`, see its README)
@@ -74,9 +88,11 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 ## Later
 
 - [x] Step 4: verified submissions, points ledger, stars, result screen, player management (see [docs/README_SOCIAL_PLAN.md](docs/README_SOCIAL_PLAN.md), section 6 for what is built and what is not)
-- [ ] Step 5: world 4 (`REPEAT UNTIL`), world 5 (`IF` sensors)
+- [x] Step 5a: world 4, Until (`REPEAT_UNTIL`): contract, both simulators, solver, fixtures, dashboard and game editors, 8 levels in 2 chapters (see [docs/README_GAME_RULES.md](docs/README_GAME_RULES.md), section 3.2). Open: look at the new tile and header on screen at all three sizes in both themes, and playtest the 8 levels with real people
+- [x] Step 5b: world 5, Decisions (`IF` sensors, `REPEAT_UNTIL GOAL`): contract, both simulators, editors, 8 levels in 2 chapters (see [docs/README_GAME_RULES.md](docs/README_GAME_RULES.md), section 3.3). Open: look at the new tape (nested IF brackets, six-tile palette) at all three sizes in both themes, and playtest the 16 levels of worlds 4 and 5 with real people
 - [x] Step 6: leaderboards, daily challenge, sharing, badges, level statistics, profile, stars on tiles (see [docs/README_SOCIAL_PLAN.md](docs/README_SOCIAL_PLAN.md), section 6). Open: look at the new game screens at all three sizes in both themes (a screenshot run needs a window; only 360x640 was reviewed), try the tap flows in the running game (report confirm, MORE paging, COPIED, clipboard), and test the browser build hides the four screens
-- [ ] Step 7: worlds 6 to 10
+- [x] Step 7a: world 6, Procedures (`PROC` and `CALL`): contract, both simulators, editors, 8 levels in 2 chapters (see [docs/README_GAME_RULES.md](docs/README_GAME_RULES.md), section 3.4)
+- [ ] Step 7b: worlds 7 to 10 (generalize, counters, memory, sweep)
 
 ## Open items
 

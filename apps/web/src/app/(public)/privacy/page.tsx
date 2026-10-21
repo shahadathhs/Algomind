@@ -19,6 +19,7 @@ export default function PrivacyPage() {
     <ProsePage
       title="Privacy"
       lead="Algomind collects as little as it can. This page says what is and is not collected."
+      wide
     >
       <ProseSection title="This website">
         <p>
@@ -48,9 +49,9 @@ export default function PrivacyPage() {
         <p>There are no ads and no purchases in the app.</p>
       </ProseSection>
 
-      <ProseSection title="An optional account">
-        <p>Accounts are optional. An account stores:</p>
-        <ul>
+      <ProseSection title="An optional account" spread>
+        <p className="max-w-[680px]">Accounts are optional. An account stores:</p>
+        <ul className="grid max-w-[1000px] gap-x-12 gap-y-2 md:grid-cols-2">
           <li>your email address;</li>
           <li>a hash of your password, never the password itself;</li>
           <li>your progress and the settings you sync, so they follow you between devices;</li>
@@ -60,13 +61,13 @@ export default function PrivacyPage() {
           </li>
           <li>when you last used the app, and a record of your signed-in devices.</li>
         </ul>
-        <p>
+        <p className="max-w-[680px]">
           Progress is saved on your device first. It, and the programs of levels you solved, are
           uploaded only while you are signed in. A failed sync never changes what is saved on your
           device. The server never trusts a score from the app: it scores the program itself.
           Nothing is sold or shared for advertising.
         </p>
-        <p>
+        <p className="max-w-[680px]">
           The person who runs Algomind can see these records in the dashboard, to help with support
           and to keep the game fair. They can sign you out, reset your server-side progress, suspend
           an account, set or clear a display name, export your data, or delete the account. Each of
@@ -75,14 +76,14 @@ export default function PrivacyPage() {
         </p>
       </ProseSection>
 
-      <ProseSection title="Leaderboards, daily challenge, and badges">
-        <p>
+      <ProseSection title="Leaderboards, daily challenge, and badges" spread>
+        <p className="max-w-[680px]">
           Nothing about you is public until you turn it on. An account alone shows nothing to other
           players. Under your profile in the app you can opt in to the leaderboards, and you can opt
           out again at any time.
         </p>
-        <p>An opted-in profile stores:</p>
-        <ul>
+        <p className="max-w-[680px]">An opted-in profile stores:</p>
+        <ul className="grid max-w-[1000px] gap-x-12 gap-y-2 md:grid-cols-2">
           <li>
             a display name, or your choice to be shown as Anonymous, plus a random public id that is
             not your account id;
@@ -91,13 +92,13 @@ export default function PrivacyPage() {
           <li>your daily challenge results and your daily streak;</li>
           <li>the badges you have earned.</li>
         </ul>
-        <p>
+        <p className="max-w-[680px]">
           Other players see only your name (or Anonymous), your rank, and your points or result on a
           level or a day. They never see your email address, your account id, or your programs.
           Players who have not opted in do not appear on the boards at all. Badges and your daily
           streak are for you; the boards show points and results.
         </p>
-        <p>
+        <p className="max-w-[680px]">
           Any player can report a name on a board, and the person who runs Algomind can then clear
           the name, take the player off the boards, or dismiss the report. A report stores the
           reason written, the name reported, and the account that reported it, so one player cannot

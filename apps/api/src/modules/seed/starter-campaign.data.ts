@@ -1,13 +1,17 @@
-// The starter campaign: three worlds, six chapters, twenty-eight levels, in play order.
+// The starter campaign: six worlds, twelve chapters, fifty-two levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
 //
 // Every limit is at least the shortest program (the seed checks this with the solver and fails
-// loudly otherwise). Every level offers all the movement commands (Move, Left, Right), and world 3
-// adds Repeat. World 1 and chapter "Budgets" allow exactly the shortest program; chapter "Detours"
-// leaves a little slack. In world 3 every limit equals the loop par: the plain program is longer
-// than the limit, so each level needs a loop (a test checks this).
+// loudly otherwise). Every level offers all the movement commands (Move, Left, Right). World 3
+// adds Repeat, and world 4 offers Repeat until in its place. World 1 and chapter "Budgets" allow
+// exactly the shortest program; chapter "Detours" leaves a little slack. In worlds 3 and 4 every
+// limit equals the loop par: the plain program is longer than the limit, so each level needs its
+// loop (a test checks this). World 5 offers Repeat until and If; its levels carry the reference
+// `solution` (the exact solver does not search If), the limit is that solution's slots, and the
+// best program without If is at least 1.5 times the limit. World 6 offers Repeat and Proc, carries the
+// reference `solution` the same way, and the best program without Proc is at least 1.3 times the limit.
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -718,6 +722,1440 @@ export const CAMPAIGN = {
               ],
               "hints": [
                 "Find the pattern, the rounds, and what comes after."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Until",
+      "description": "Run until something stops you.",
+      "chapters": [
+        {
+          "title": "Run to the wall",
+          "levels": [
+            {
+              "slug": "to-the-wall",
+              "title": "To the wall",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL"
+              ],
+              "maxCommands": 2,
+              "rows": [
+                ".........",
+                ">.......G",
+                "........."
+              ],
+              "hints": [
+                "Repeat until runs its tiles again and again, and stops when a wall is straight ahead.",
+                "Put Move inside it. You do not need to count the cells."
+              ]
+            },
+            {
+              "slug": "any-distance",
+              "title": "Any distance",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL"
+              ],
+              "maxCommands": 5,
+              "rows": [
+                ".....G",
+                "......",
+                "......",
+                "......",
+                "......",
+                "......",
+                "......",
+                "^....."
+              ],
+              "hints": [
+                "A loop ends when the way ahead is blocked. Then the program goes on to the next tile.",
+                "Run to the wall, turn, then run to the next wall."
+              ]
+            },
+            {
+              "slug": "stop-short",
+              "title": "Stop short",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL"
+              ],
+              "maxCommands": 4,
+              "rows": [
+                "........",
+                "........",
+                "........",
+                ".....G..",
+                ">.....#.",
+                "........"
+              ],
+              "hints": [
+                "A wall inside the board stops the loop too.",
+                "Where does the runner stop? Look at the tile beside it."
+              ]
+            },
+            {
+              "slug": "the-hall",
+              "title": "The hall",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL"
+              ],
+              "maxCommands": 7,
+              "rows": [
+                "###########",
+                "########..G",
+                "########.##",
+                ">........##",
+                "###########"
+              ],
+              "hints": [
+                "Each loop ends at a wall. Turn there and start the next loop.",
+                "A loop can hold more than a move. Look at the last stretch."
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Corridors",
+          "levels": [
+            {
+              "slug": "steps-to-the-wall",
+              "title": "Steps to the wall",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL"
+              ],
+              "maxCommands": 5,
+              "rows": [
+                "########",
+                "######.G",
+                "#####..#",
+                "####..##",
+                "###..###",
+                "##..####",
+                "#..#####",
+                ">.######"
+              ],
+              "hints": [
+                "The same four tiles climb every step. Put them inside one loop.",
+                "The loop ends by itself at the top of the stairs."
+              ]
+            },
+            {
+              "slug": "zigzag",
+              "title": "Zigzag",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL"
+              ],
+              "maxCommands": 11,
+              "rows": [
+                "############",
+                "###########G",
+                "###########.",
+                "######......",
+                "######.#####",
+                "######.#####",
+                ">......#####",
+                "############"
+              ],
+              "hints": [
+                "Three bends, so three loops, with a turn between each.",
+                "The last loop runs to the end of the hall."
+              ]
+            },
+            {
+              "slug": "long-way-round",
+              "title": "Long way round",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL"
+              ],
+              "maxCommands": 13,
+              "rows": [
+                "############",
+                "..........##",
+                ".########.##",
+                ".########.##",
+                ".###G####.##",
+                ".###.####.##",
+                ".###......##",
+                ".###########",
+                "^###########"
+              ],
+              "hints": [
+                "Count the bends: that many turns, and one loop before each.",
+                "The last run stops inside the hall, at the goal."
+              ]
+            },
+            {
+              "slug": "round-and-in",
+              "title": "Round and in",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL"
+              ],
+              "maxCommands": 14,
+              "rows": [
+                ".........",
+                ".#######.",
+                ".#G#####.",
+                ".#.#####.",
+                ".#.#####.",
+                ".#.#####.",
+                ".#.#####.",
+                ".#.#####.",
+                "^#......."
+              ],
+              "hints": [
+                "Every side of the spiral is a run to a wall.",
+                "Five runs, with a turn at each corner."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Decisions",
+      "description": "Choose by what you sense.",
+      "chapters": [
+        {
+          "title": "Look",
+          "levels": [
+            {
+              "slug": "look-ahead",
+              "title": "Look ahead",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 4,
+              "maxSteps": 100,
+              "rows": [
+                ".......",
+                ".#####.",
+                ".#..G#.",
+                ".#.###.",
+                ".#.###.",
+                ".#.###.",
+                "^#....."
+              ],
+              "hints": [
+                "If asks a question about the cell ahead. Move when it is clear, turn when it is not.",
+                "Put the whole decision inside Repeat until goal."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "the-other-way",
+              "title": "The other way",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 4,
+              "maxSteps": 100,
+              "rows": [
+                ".......",
+                ".#####.",
+                ".#G..#.",
+                ".###.#.",
+                ".###.#.",
+                ".###.#.",
+                ".....#^"
+              ],
+              "hints": [
+                "Same question, other answer: this hall bends left.",
+                "Else holds what to do when the way ahead is blocked."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "both-ways",
+              "title": "Both ways",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 100,
+              "rows": [
+                "##......G##",
+                "##.########",
+                "##.....####",
+                "######.####",
+                "#......####",
+                "#.#########",
+                "#....######",
+                "####.######",
+                ".....######",
+                ".##########",
+                "^##########"
+              ],
+              "hints": [
+                "The bends go both ways. Ask about the right side first, then about the way ahead.",
+                "Turn right when the right side is clear. Otherwise move, or turn left."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Follow the wall",
+          "levels": [
+            {
+              "slug": "small-maze",
+              "title": "Small maze",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 110,
+              "rows": [
+                "G..#...",
+                "##.#.#.",
+                "...#.#.",
+                ".#####.",
+                ".#.....",
+                ".#.###.",
+                "...#>.."
+              ],
+              "hints": [
+                "Keep a hand on the right wall and walk. It finds the way out of any maze like this.",
+                "The two decisions from the last level are all you need."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "wide-maze",
+              "title": "Wide maze",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 100,
+              "rows": [
+                ">..#.....",
+                "##.###.#.",
+                "...#...#.",
+                ".###.###.",
+                ".#...#G#.",
+                ".###.#.#.",
+                ".....#..."
+              ],
+              "hints": [
+                "Keep a hand on the right wall and walk. It finds the way out of any maze like this.",
+                "The two decisions from the last level are all you need."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "square-maze",
+              "title": "Square maze",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 120,
+              "rows": [
+                ">....#...",
+                "####.###.",
+                "..G#...#.",
+                ".#####.#.",
+                ".#...#...",
+                ".#.#.###.",
+                "...#...#.",
+                ".###.###.",
+                "...#....."
+              ],
+              "hints": [
+                "Keep a hand on the right wall and walk. It finds the way out of any maze like this.",
+                "The two decisions from the last level are all you need."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "long-maze",
+              "title": "Long maze",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 200,
+              "rows": [
+                "G....#...#.",
+                "####.#.#.#.",
+                "...#.#.#.#.",
+                ".#.#.#.#.#.",
+                ".#.#...#...",
+                ".#.#######.",
+                ".#..<#.....",
+                ".#.###.####",
+                ".#........."
+              ],
+              "hints": [
+                "Keep a hand on the right wall and walk. It finds the way out of any maze like this.",
+                "The two decisions from the last level are all you need."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "big-maze",
+              "title": "Big maze",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT_UNTIL",
+                "IF"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 200,
+              "rows": [
+                "G#>........",
+                ".#####.###.",
+                ".....#...#.",
+                "####.###.#.",
+                "...#.#...#.",
+                ".###.#.###.",
+                "...#.#.#...",
+                ".#.#.#.#.#.",
+                ".#...#.#.#.",
+                ".#######.#.",
+                ".........#."
+              ],
+              "hints": [
+                "Keep a hand on the right wall and walk. It finds the way out of any maze like this.",
+                "The two decisions from the last level are all you need."
+              ],
+              "solution": [
+                {
+                  "op": "REPEAT_UNTIL",
+                  "until": "GOAL",
+                  "body": [
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_RIGHT",
+                      "then": [
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ],
+                      "else": []
+                    },
+                    {
+                      "op": "IF",
+                      "when": "CLEAR_AHEAD",
+                      "then": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        }
+                      ],
+                      "else": [
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Procedures",
+      "description": "Name a part and use it again.",
+      "chapters": [
+        {
+          "title": "Name it",
+          "levels": [
+            {
+              "slug": "first-part",
+              "title": "First part",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 14,
+              "maxSteps": 100,
+              "rows": [
+                "G#########",
+                ".#####...#",
+                "..#....#.#",
+                "#...####..",
+                "#########^"
+              ],
+              "hints": [
+                "Find the part that comes back. Name it once, then call it where it belongs.",
+                "Proc defines a part and Call runs it. A call costs one slot."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_LEFT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "used-again",
+              "title": "Used again",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 16,
+              "maxSteps": 100,
+              "rows": [
+                "#######...#",
+                "###.....#.#",
+                "....#####.#",
+                ".########..",
+                "..########.",
+                "#.########G",
+                "#^#########"
+              ],
+              "hints": [
+                "Find the part that comes back. Name it once, then call it where it belongs.",
+                "Proc defines a part and Call runs it. A call costs one slot."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "third-time",
+              "title": "Third time",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 19,
+              "maxSteps": 100,
+              "rows": [
+                "#.....######",
+                "#.###...####",
+                "..#####.####",
+                ".######.####",
+                "^#####..####",
+                "######.#####",
+                "######....##",
+                "#########..G"
+              ],
+              "hints": [
+                "Find the part that comes back. Name it once, then call it where it belongs.",
+                "Proc defines a part and Call runs it. A call costs one slot."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_LEFT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "part-with-a-loop",
+              "title": "Part with a loop",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 12,
+              "maxSteps": 100,
+              "rows": [
+                "##.....##",
+                "#..###..#",
+                "..#####..",
+                ".#######.",
+                "^#######.",
+                "########.",
+                "#######..",
+                "######..#",
+                "####G..##"
+              ],
+              "hints": [
+                "Look for a part you can say with a loop, then name the whole part.",
+                "A loop can stand inside a procedure."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "REPEAT",
+                      "count": 3,
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_RIGHT"
+                        },
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Parts",
+          "levels": [
+            {
+              "slug": "loop-inside",
+              "title": "Loop inside",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 14,
+              "maxSteps": 100,
+              "rows": [
+                "G#########",
+                "...#######",
+                "##..######",
+                "###.######",
+                "###...####",
+                "#####..###",
+                "######.###",
+                "######.###",
+                "######...#",
+                "########..",
+                "#########^"
+              ],
+              "hints": [
+                "Look for a part you can say with a loop, then name the whole part.",
+                "A loop can stand inside a procedure."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "REPEAT",
+                      "count": 2,
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_LEFT"
+                        },
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "longer-part",
+              "title": "Longer part",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 20,
+              "maxSteps": 110,
+              "rows": [
+                "######...###",
+                "######.#..##",
+                "####...##.##",
+                "###..####...",
+                "###.#######.",
+                "#...######..",
+                "..######^..#",
+                ".###########",
+                "G###########"
+              ],
+              "hints": [
+                "Look for a part you can say with a loop, then name the whole part.",
+                "A loop can stand inside a procedure."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "REPEAT",
+                      "count": 2,
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_LEFT"
+                        },
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_LEFT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_LEFT"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "MOVE_FORWARD"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "two-parts",
+              "title": "Two parts",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 19,
+              "maxSteps": 110,
+              "rows": [
+                "###.....####",
+                "###.###..###",
+                "##..####..##",
+                "#..######...",
+                "..#########.",
+                "^#########..",
+                "#########..#",
+                "########..##",
+                "########.###",
+                "#######G.###"
+              ],
+              "hints": [
+                "Two different parts come back. Give each its own name.",
+                "The procedures are A and B. Define a part before you call it."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "REPEAT",
+                      "count": 3,
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_RIGHT"
+                        },
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_LEFT"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "PROC",
+                  "name": "B",
+                  "body": [
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "B"
+                },
+                {
+                  "op": "CALL",
+                  "name": "B"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "two-parts-longer",
+              "title": "Two parts, longer",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "REPEAT",
+                "PROC"
+              ],
+              "maxCommands": 20,
+              "maxSteps": 100,
+              "rows": [
+                "###.....##",
+                "##..###.##",
+                "...####..#",
+                ".#######..",
+                "^########.",
+                "#######...",
+                "######..##",
+                "####G..###"
+              ],
+              "hints": [
+                "Two different parts come back. Give each its own name.",
+                "The procedures are A and B. Define a part before you call it."
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "REPEAT",
+                      "count": 2,
+                      "body": [
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_LEFT"
+                        },
+                        {
+                          "op": "MOVE_FORWARD"
+                        },
+                        {
+                          "op": "TURN_RIGHT"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "PROC",
+                  "name": "B",
+                  "body": [
+                    {
+                      "op": "TURN_RIGHT"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "B"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "CALL",
+                  "name": "B"
+                }
               ]
             }
           ]

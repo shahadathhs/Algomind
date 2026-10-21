@@ -14,6 +14,7 @@
       }
     ],
     "typescript/no-explicit-any": "off",
+    "unicorn/no-thenable": "off",
     "react/react-in-jsx-scope": "off",
     "nextjs/no-html-link-for-pages": "off",
     "typescript/no-floating-promises": "error",
@@ -33,7 +34,9 @@
     "pnpm-lock.yaml",
     "apps/api/src/generated",
     "apps/api/dist",
-    ".claude"
+    ".claude",
+    "apps/api/.agents",
+    "apps/api/.windsurf"
   ],
   "overrides": [
     {

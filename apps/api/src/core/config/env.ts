@@ -25,6 +25,13 @@ const schema = z
     // Tell the web app to refresh its public pages after a publish or unpublish. Both are needed.
     WEB_REVALIDATE_URL: z.url().optional(),
     REVALIDATE_SECRET: z.string().min(16, "must be at least 16 characters").optional(),
+    // The contact details the contact page starts with, used once while the stored row does not exist.
+    // After that the dashboard's Contact page is the place to change them. All optional.
+    CONTACT_NAME: z.string().trim().max(80).optional(),
+    CONTACT_EMAIL: z.string().trim().max(120).optional(),
+    CONTACT_GITHUB: z.string().trim().max(200).optional(),
+    CONTACT_WEBSITE: z.string().trim().max(200).optional(),
+    CONTACT_ISSUES: z.string().trim().max(200).optional(),
   })
   .refine((e) => e.NODE_ENV !== "production" || e.JWT_ACCESS_SECRET !== undefined, {
     path: ["JWT_ACCESS_SECRET"],
@@ -45,6 +52,8 @@ export type Env = {
   seedStarterCampaign: "always" | "when-empty" | "never";
   webRevalidateUrl?: string;
   revalidateSecret?: string;
+  /** The contact details to seed the first time; fields that are not set stay empty. */
+  contact: { name?: string; email?: string; github?: string; website?: string; issues?: string };
 };
 
 /** Parses and validates the environment. Throws a readable error on bad configuration. */
@@ -72,6 +81,13 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     trustProxy: d.TRUST_PROXY,
     webRevalidateUrl: d.WEB_REVALIDATE_URL,
     revalidateSecret: d.REVALIDATE_SECRET,
+    contact: {
+      name: d.CONTACT_NAME,
+      email: d.CONTACT_EMAIL,
+      github: d.CONTACT_GITHUB,
+      website: d.CONTACT_WEBSITE,
+      issues: d.CONTACT_ISSUES,
+    },
     seedStarterCampaign:
       d.SEED_STARTER_CAMPAIGN === undefined
         ? d.NODE_ENV === "production"
