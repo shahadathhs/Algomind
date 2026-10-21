@@ -3,8 +3,10 @@
 import { useMemo } from "react";
 import { Caption } from "@/components/ui/caption";
 import type { Instruction, LevelContent } from "@/lib/admin/admin-api";
+import { boardCount } from "@/lib/admin/board-model";
 import { localCheck, parIsReferenceFor, slotsOf } from "@/lib/admin/level-model";
 import { Notice } from "../ui";
+import { BoardResults } from "./board-results";
 import { ProgramEditor } from "./program-editor";
 
 export function SolutionPanel({
@@ -18,6 +20,7 @@ export function SolutionPanel({
 }) {
   const check = useMemo(() => localCheck(content, solution), [content, solution]);
   const par = check.par;
+  const boards = boardCount(content);
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div>
@@ -39,9 +42,25 @@ export function SolutionPanel({
             The level is not valid yet, so the solution cannot be run. See the Checks tab.
           </Notice>
         ) : check.solved ? (
-          <Notice kind="info">This solution reaches the goal.</Notice>
+          <Notice kind="info">
+            {boards > 1
+              ? "This solution reaches the goal on every board."
+              : "This solution reaches the goal."}
+          </Notice>
         ) : (
-          <Notice>This solution does not reach the goal.</Notice>
+          <Notice>
+            {boards > 1
+              ? "This solution does not reach the goal on every board."
+              : "This solution does not reach the goal."}
+          </Notice>
+        )}
+        {check.run && boards > 1 && (
+          <>
+            <BoardResults run={check.run} />
+            <p className="text-base font-semibold">
+              Total steps: {check.run.steps} over {boards} boards
+            </p>
+          </>
         )}
         {par && !parIsReferenceFor(content) && slotsOf(solution) > par.commands && check.solved && (
           <Notice kind="info">A shorter solution exists: {par.commands} commands.</Notice>

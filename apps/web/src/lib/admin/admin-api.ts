@@ -78,6 +78,8 @@ export type LevelContent = {
   constraints: { maxCommands: number; maxSteps: number };
   goal: { type: string; position: [number, number] };
   hints: string[];
+  /** Test boards the same program must also solve (1 to 5). */
+  extraBoards?: Pick<LevelContent, "board" | "initialState" | "goal">[];
 };
 
 export type VersionView = {

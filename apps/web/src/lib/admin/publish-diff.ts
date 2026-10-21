@@ -1,4 +1,5 @@
 import type { Instruction, LevelContent } from "./admin-api";
+import { boardCaseOf, boardCount } from "./board-model";
 import { slotsOf } from "./level-model";
 import { countKinds } from "./program-model";
 
@@ -22,6 +23,12 @@ function solutionText(program: Instruction[]): string {
   return parts.length === 0 ? `${slots}, no loops` : `${slots}, ${parts.join(", ")}`;
 }
 
+/** One board in a few words: size, walls, start and goal. */
+function boardText(content: LevelContent, index: number): string {
+  const { board, initialState, goal } = boardCaseOf(content, index);
+  return `${board.width} by ${board.height}, ${plural(board.walls.length, "wall")}, start ${initialState.position.join(", ")} facing ${initialState.direction}, goal ${goal.position.join(", ")}`;
+}
+
 function describe(version: Version | null): Record<string, string> {
   if (!version) return {};
   const { content, referenceSolution } = version;
@@ -33,6 +40,13 @@ function describe(version: Version | null): Record<string, string> {
     Walls: String(content.board.walls.length),
     Start: `${content.initialState.position.join(", ")} facing ${content.initialState.direction}`,
     Goal: content.goal.position.join(", "),
+    Boards: plural(boardCount(content), "board"),
+    ...Object.fromEntries(
+      Array.from({ length: boardCount(content) - 1 }, (_, i) => [
+        `Board ${i + 2}`,
+        boardText(content, i + 1),
+      ]),
+    ),
     Commands: content.availableCommands.join(", "),
     "Max commands": String(content.constraints.maxCommands),
     "Max steps": String(content.constraints.maxSteps),

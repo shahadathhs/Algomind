@@ -4,9 +4,12 @@ import { useMemo, useState } from "react";
 import { BoardView } from "@/components/ui/board-view";
 import { Caption } from "@/components/ui/caption";
 import type { Instruction, LevelContent } from "@/lib/admin/admin-api";
-import { boardData, simulate } from "@/lib/admin/level-model";
-import { explainResult, type Level, type Program } from "@algomind/level-contract";
+import { boardCaseOf, boardCount, onBoard } from "@/lib/admin/board-model";
+import { boardData, explainResult, simulateAll } from "@/lib/admin/level-model";
+import type { Level, Program } from "@algomind/level-contract";
 import { OutlineAction } from "../ui";
+import { BoardResults, ResultMark } from "./board-results";
+import { BoardTabs } from "./board-tabs";
 import { ProgramEditor } from "./program-editor";
 
 export function PreviewPanel({
@@ -18,25 +21,30 @@ export function PreviewPanel({
 }) {
   const [program, setProgram] = useState<Instruction[]>(solution);
   const [step, setStep] = useState(0);
-  const result = useMemo(() => {
+  const [picked, setPicked] = useState(0);
+  const count = boardCount(content);
+  const index = Math.min(picked, count - 1);
+  const run = useMemo(() => {
     try {
-      return simulate(content as unknown as Level, program as unknown as Program);
+      return simulateAll(content as unknown as Level, program as unknown as Program);
     } catch {
       return null;
     }
   }, [content, program]);
+  const result = run?.results[index] ?? null;
+  const view = onBoard(content, index);
 
   const total = result?.trace.length ?? 0;
   const shown = Math.min(step, total);
   const entry = shown > 0 ? result?.trace[shown - 1] : undefined;
   const trace = result?.trace.slice(0, shown) ?? [];
-  const [sx, sy] = content.initialState.position;
+  const [sx, sy] = boardCaseOf(content, index).initialState.position;
   const position = entry ? entry.position : ([sx, sy] as [number, number]);
-  const direction = entry ? entry.direction : content.initialState.direction;
+  const direction = entry ? entry.direction : view.initialState.direction;
   const finished = result !== null && shown >= total;
   const blocked = finished && result?.blockedCell ? result.blockedCell : undefined;
 
-  const board = boardData(content, {
+  const board = boardData(view, {
     automaton: { x: position[0], y: position[1], dir: direction },
     trail: trace.map((t) => t.position),
     hit: blocked && blocked[0] >= 0 && blocked[1] >= 0 ? blocked : undefined,
@@ -85,14 +93,42 @@ export function PreviewPanel({
         </div>
       </div>
       <div>
-        <BoardView board={board} label={`Board after ${shown} of ${total} steps.`} />
+        <BoardTabs
+          count={count}
+          selected={index}
+          onSelect={(i) => {
+            setPicked(i);
+            setStep(0);
+          }}
+          mark={(i) =>
+            run && count > 1 ? (
+              <span className="inline-flex items-center gap-1">
+                <ResultMark ok={run.results[i]?.status === "SUCCEEDED"} />
+                <span className="sr-only">
+                  {run.results[i]?.status === "SUCCEEDED" ? "solved" : "failed"}
+                </span>
+              </span>
+            ) : null
+          }
+        />
+        <BoardView board={board} label={`Board ${index + 1} after ${shown} of ${total} steps.`} />
         <p role="status" className="mt-3 text-base font-semibold">
           {result === null
             ? "This level cannot be simulated yet. Check the Checks tab."
             : finished
-              ? `${explainResult(result)} ${total} ${total === 1 ? "step" : "steps"}.`
+              ? `${count > 1 ? `Board ${index + 1}: ` : ""}${explainResult(result)} ${total} ${total === 1 ? "step" : "steps"}.`
               : `Step ${shown} of ${total}.`}
         </p>
+        {run && count > 1 && (
+          <div className="mt-4 grid gap-2">
+            <BoardResults run={run} />
+            <p className="text-base font-semibold">
+              {run.status === "SUCCEEDED"
+                ? `Solved on every board, ${run.steps} steps in total.`
+                : `Not solved: board ${(run.firstFailure ?? 0) + 1} failed.`}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

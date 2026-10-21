@@ -1,12 +1,14 @@
 import {
   programSlots,
   simulate,
+  simulateAll,
   validateAuthoringLevel,
   solve,
   type AuthoringLevel,
   type CommandName,
   type Level,
   type Program,
+  type MultiRunResult,
   type RunResult,
 } from "@algomind/level-contract";
 import type { BoardData, Command, Dir } from "@/lib/board";
@@ -163,9 +165,12 @@ export function offersProcedures(content: { availableCommands: string[] }): bool
   return content.availableCommands.includes("PROC");
 }
 
-/** True when the exact solver cannot give par, so the reference solution is par (IF or PROC offered). */
-export function parIsReferenceFor(content: { availableCommands: string[] }): boolean {
-  return offersIf(content) || offersProcedures(content);
+/** True when the exact solver cannot give par, so the reference solution is par (IF or PROC offered, or test boards). */
+export function parIsReferenceFor(content: {
+  availableCommands: string[];
+  extraBoards?: unknown[];
+}): boolean {
+  return offersIf(content) || offersProcedures(content) || (content.extraBoards?.length ?? 0) > 0;
 }
 
 /** What the browser can tell an author before the server is asked (the server stays the authority). */
@@ -176,13 +181,14 @@ export function localCheck(content: LevelContent, referenceSolution: Instruction
     return {
       validation,
       solved: null,
+      run: null as MultiRunResult | null,
       par: null as null | { commands: number; steps: number },
       parIsReference: false,
     };
   const level = content as unknown as Level;
-  const run = simulate(level, referenceSolution as Program);
+  const run = simulateAll(level, referenceSolution as Program);
   const solved = run.status === "SUCCEEDED";
-  // The exact solver ignores IF and PROC, so a level that offers either has its reference solution as par.
+  // The exact solver ignores IF, PROC and test boards, so such a level has its reference solution as par (total steps).
   const referencePar = parIsReferenceFor(content)
     ? { commands: slotsOf(referenceSolution), steps: run.steps }
     : null;
@@ -190,13 +196,15 @@ export function localCheck(content: LevelContent, referenceSolution: Instruction
   return {
     validation,
     solved,
+    run: run as MultiRunResult | null,
     par: referencePar ?? (best ? { commands: best.commands, steps: best.steps } : null),
     parIsReference: referencePar !== null,
   };
 }
 
-export type { RunResult };
-export { programSlots, simulate };
+export { explainResult } from "@algomind/level-contract";
+export type { MultiRunResult, RunResult };
+export { programSlots, simulate, simulateAll };
 
 /** The slots a program uses (a loop is 1 plus its body), the number the command limit counts. */
 export function slotsOf(program: Instruction[]): number {
@@ -238,7 +246,7 @@ export function clearBackup(levelId: string): void {
   }
 }
 
-/** What "par" means for this level: the fewest slots, or the reference solution's when IF or PROC is offered. */
-export function parName(content: { availableCommands: string[] }): string {
+/** What "par" means for this level: the fewest slots, or the reference solution's when IF, PROC or test boards are used. */
+export function parName(content: { availableCommands: string[]; extraBoards?: unknown[] }): string {
   return parIsReferenceFor(content) ? "Reference solution" : "Par";
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Caption } from "@/components/ui/caption";
+import { boardIssuePath } from "@/lib/admin/board-model";
 import type { CheckIssue } from "@/lib/admin/admin-api";
 
 export function IssueList({ title, issues }: { title: string; issues: CheckIssue[] }) {
@@ -17,7 +18,7 @@ export function IssueList({ title, issues }: { title: string; issues: CheckIssue
             className="flex flex-wrap gap-x-3 border-t border-faint pt-2 text-[15px] font-semibold"
           >
             <span className="text-xs tracking-[2px] uppercase">{issue.gate.replace("_", " ")}</span>
-            <span className="text-mute">{issue.path || "level"}</span>
+            <span className="text-mute">{boardIssuePath(issue.path) || "level"}</span>
             <span>{issue.message}</span>
           </li>
         ))}

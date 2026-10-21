@@ -152,6 +152,15 @@ export default function HowToPlayPage() {
         </p>
       </ProseSection>
 
+      <ProseSection title="Several boards">
+        <p>
+          Some levels have more than one board. One program must solve every board, so a program
+          that counts the steps of the first board fails on the next. The board area shows one board
+          at a time with a tab for each. Run tries the program on the selected board, and a board it
+          has solved is marked with a check and the word. Editing the program clears the checks.
+        </p>
+      </ProseSection>
+
       <ProseSection
         title="The tape"
         figure={
