@@ -1,5 +1,5 @@
 {
-  "description": "A loop inside a REPEAT_UNTIL body is reported once and stops the run.",
+  "description": "Three levels of loops in REPEAT_UNTIL: reported once, and the simulator stops with INVALID_INSTRUCTION.",
   "level": {
     "schemaVersion": 1,
     "levelId": "until-level",
@@ -41,7 +41,13 @@
           "until": "BLOCKED",
           "body": [
             {
-              "op": "MOVE_FORWARD"
+              "op": "REPEAT_UNTIL",
+              "until": "BLOCKED",
+              "body": [
+                {
+                  "op": "MOVE_FORWARD"
+                }
+              ]
             }
           ]
         }

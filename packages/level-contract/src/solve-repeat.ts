@@ -31,6 +31,7 @@ import type { Level, PrimitiveName, Program, SolveResult } from "./types.js";
  * `fitsConstraints` reports whether that program obeys `maxCommands` and `maxSteps`; the search ignores both.
  */
 export function solveWithRepeat(level: Level): SolveResult | null {
+  if (level.goal.type !== "reach_tile") return null;
   const { width, height } = level.board;
   const size = width * height * 4;
   const FAIL = -1;

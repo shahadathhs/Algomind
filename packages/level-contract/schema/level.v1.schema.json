@@ -116,7 +116,7 @@
         "availableCommands": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 7,
+          "maxItems": 9,
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/commandName"
@@ -140,17 +140,31 @@
           }
         },
         "goal": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["type", "position"],
-          "properties": {
-            "type": {
-              "const": "reach_tile"
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "position"],
+              "properties": {
+                "type": {
+                  "const": "reach_tile"
+                },
+                "position": {
+                  "$ref": "#/$defs/position"
+                }
+              }
             },
-            "position": {
-              "$ref": "#/$defs/position"
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type"],
+              "properties": {
+                "type": {
+                  "const": "visit_all"
+                }
+              }
             }
-          }
+          ]
         },
         "hints": {
           "type": "array",
@@ -209,17 +223,31 @@
                 }
               },
               "goal": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["type", "position"],
-                "properties": {
-                  "type": {
-                    "const": "reach_tile"
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["type", "position"],
+                    "properties": {
+                      "type": {
+                        "const": "reach_tile"
+                      },
+                      "position": {
+                        "$ref": "#/$defs/position"
+                      }
+                    }
                   },
-                  "position": {
-                    "$ref": "#/$defs/position"
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["type"],
+                    "properties": {
+                      "type": {
+                        "const": "visit_all"
+                      }
+                    }
                   }
-                }
+                ]
               }
             }
           }
@@ -244,7 +272,17 @@
       "enum": ["north", "east", "south", "west"]
     },
     "commandName": {
-      "enum": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT", "REPEAT_UNTIL", "IF", "PROC"]
+      "enum": [
+        "MOVE_FORWARD",
+        "TURN_LEFT",
+        "TURN_RIGHT",
+        "INC",
+        "MARK",
+        "REPEAT",
+        "REPEAT_UNTIL",
+        "IF",
+        "PROC"
+      ]
     },
     "instruction": {
       "oneOf": [
@@ -275,7 +313,7 @@
       }
     },
     "primitiveName": {
-      "enum": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+      "enum": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "INC", "MARK"]
     },
     "primitiveInstruction": {
       "type": "object",
@@ -296,9 +334,16 @@
           "const": "REPEAT"
         },
         "count": {
-          "type": "integer",
-          "minimum": 2,
-          "maximum": 11
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 11
+            },
+            {
+              "const": "N"
+            }
+          ]
         },
         "body": {
           "type": "array",
@@ -341,6 +386,12 @@
         },
         {
           "$ref": "#/$defs/callInstruction"
+        },
+        {
+          "$ref": "#/$defs/repeatInstruction"
+        },
+        {
+          "$ref": "#/$defs/repeatUntilInstruction"
         }
       ]
     },
@@ -353,7 +404,17 @@
           "const": "IF"
         },
         "when": {
-          "enum": ["CLEAR_AHEAD", "CLEAR_LEFT", "CLEAR_RIGHT"]
+          "enum": [
+            "CLEAR_AHEAD",
+            "CLEAR_LEFT",
+            "CLEAR_RIGHT",
+            "FRESH_AHEAD",
+            "FRESH_LEFT",
+            "FRESH_RIGHT",
+            "BACK_AHEAD",
+            "BACK_LEFT",
+            "BACK_RIGHT"
+          ]
         },
         "then": {
           "type": "array",
@@ -364,12 +425,24 @@
           }
         },
         "else": {
-          "type": "array",
-          "minItems": 0,
-          "maxItems": 4,
-          "items": {
-            "$ref": "#/$defs/primitiveInstruction"
-          }
+          "oneOf": [
+            {
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/$defs/primitiveInstruction"
+              }
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1,
+              "items": {
+                "$ref": "#/$defs/ifInstruction"
+              }
+            }
+          ]
         }
       }
     },

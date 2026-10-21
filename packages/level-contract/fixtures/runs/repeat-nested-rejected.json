@@ -1,5 +1,5 @@
 {
-  "description": "A loop cannot contain a loop: the validator reports NESTED_REPEAT and the simulator stops with INVALID_INSTRUCTION at the loop.",
+  "description": "Three levels of loops: the validator reports NESTED_REPEAT once (the level does not list nested_loops) and the simulator, which allows two levels, stops with INVALID_INSTRUCTION at the loop.",
   "level": {
     "schemaVersion": 1,
     "levelId": "run-level",
@@ -41,7 +41,13 @@
           "count": 2,
           "body": [
             {
-              "op": "MOVE_FORWARD"
+              "op": "REPEAT",
+              "count": 2,
+              "body": [
+                {
+                  "op": "MOVE_FORWARD"
+                }
+              ]
             }
           ]
         }

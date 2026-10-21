@@ -97,7 +97,7 @@ test("a malformed loop stops the run instead of being skipped", () => {
   for (const bad of [
     { op: "REPEAT", count: 1, body: [M] },
     { op: "REPEAT", count: 2, body: [] },
-    { op: "REPEAT", count: 2, body: [rep(2, [M])] },
+    { op: "REPEAT", count: 2, body: [rep(2, [rep(2, [M])])] },
     { op: "REPEAT", count: "2", body: [M] },
     { op: "REPEAT", count: 2 },
   ]) {
