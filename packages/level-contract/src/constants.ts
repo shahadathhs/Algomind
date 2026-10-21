@@ -68,6 +68,8 @@ export const LIMITS = {
   /** Items in a loop body (primitives and IFs), and the number of repetitions. A loop cannot contain a loop. */
   repeatBody: { min: 1, max: 8 },
   repeatCount: { min: 2, max: 11 },
+  /** Extra test boards a level may carry besides its own board (one program must solve every board). */
+  extraBoards: { min: 1, max: 5 },
   /** Items in a procedure body (primitives, IFs and loops, not CALLs). */
   procBody: { min: 1, max: 8 },
   /** Primitives in the two branches of an IF. An IF cannot contain an IF or a loop. */

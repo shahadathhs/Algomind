@@ -72,6 +72,13 @@ export type Instruction =
   | RepeatUntilInstruction;
 export type Program = Instruction[];
 
+/** One test board: the grid, where the automaton starts, and the target. */
+export interface BoardCase {
+  board: { width: number; height: number; walls: Position[] };
+  initialState: { position: Position; direction: Direction };
+  goal: { type: "reach_tile"; position: Position };
+}
+
 /** The public level definition served to the game. Never contains the reference solution. */
 export interface Level {
   schemaVersion: 1;
@@ -87,6 +94,11 @@ export interface Level {
   availableCommands: CommandName[];
   constraints: { maxCommands: number; maxSteps: number };
   goal: { type: "reach_tile"; position: Position };
+  /**
+   * More test boards. When present, one program must solve this level's own board and every one of
+   * these. Slots and the step limit are the same for each board; the limit applies to each run.
+   */
+  extraBoards?: BoardCase[];
   hints: string[];
 }
 
@@ -185,6 +197,17 @@ export interface RunResult {
   /** The cell the automaton tried to enter, for the two BLOCKED reasons; otherwise null. */
   blockedCell: Position | null;
   trace: TraceEntry[];
+}
+
+/** The result of one program on every board of a level: the level's own board first. */
+export interface MultiRunResult {
+  /** SUCCEEDED only when every board succeeded. */
+  status: RunStatus;
+  /** Index of the first board that failed (0 is the level's own board), or null. */
+  firstFailure: number | null;
+  /** The sum of the steps of all runs. */
+  steps: number;
+  results: RunResult[];
 }
 
 export interface SolveResult {

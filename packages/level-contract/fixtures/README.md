@@ -62,6 +62,34 @@ Coordinates are `[x, y]`, x grows right, y grows down. Programs are lists of `{ 
 - `expected`: the exact result of `simulate(level, program)`. **`simulate` runs the program even when `programIssues` is not empty** (it checks neither `availableCommands` nor `maxCommands`); the fixtures `disallowed-command` and `max-commands-exceeded` pin this down. An unknown `op` is the exception: it stops the run with `INVALID_INSTRUCTION`.
 - Compare every field. `blockedCell` is `null` unless the reason is `BLOCKED_BY_WALL` or `BLOCKED_BY_BOUNDARY`. `trace` has one entry per executed step in order, `steps` equals its length, and each entry has exactly `index`, `op`, `node`, `call`, `round`, `position`, `direction`, `event` (`node` is the path of the instruction, see the README; `call` is the path of the running `CALL` or `null`; `round` is `null` outside a loop). `position` and `direction` in a trace entry and in `finalState` are the state **after** the step; a blocked move leaves the position unchanged. For field values and semantics (what counts as a step, when the limit is checked, what ends a run) see "The simulator" in `../README.md`.
 
+## `boards/*.json`
+
+```json
+{
+  "description": "...",
+  "level": {},
+  "program": [{ "op": "REPEAT_UNTIL", "until": "BLOCKED", "body": [{ "op": "MOVE_FORWARD" }] }],
+  "programIssues": [],
+  "expected": {
+    "status": "SUCCEEDED",
+    "firstFailure": null,
+    "steps": 22,
+    "results": [
+      {
+        "status": "SUCCEEDED",
+        "reason": "GOAL_REACHED",
+        "steps": 4,
+        "finalState": { "position": [4, 1], "direction": "east" },
+        "blockedCell": null
+      }
+    ]
+  }
+}
+```
+
+- `level` carries `extraBoards` (or not) and passes `validateLevel`. `programIssues` is as for runs.
+- `expected` is the result of `simulateAll(level, program)` without the traces: `status`, `firstFailure`, the summed `steps`, and for every board its `status`, `reason`, `steps`, `finalState` and `blockedCell`. All boards are always run.
+
 ## `solver/*.json`
 
 ```json
@@ -108,6 +136,7 @@ Coordinates are `[x, y]`, x grows right, y grows down. Programs are lists of `{ 
 2. Every `levels/invalid` file fails with exactly its `expectedIssues`.
 3. Every `runs` file gives exactly its `programIssues` and `expected`.
 4. Every `solver` file gives exactly its `expected`.
+   (A `boards` file gives exactly its `expected` through `simulateAll`; the GDScript implementation runs these too.)
 5. Every `scoring` file gives exactly its `expected`.
 
 The GDScript implementation (`apps/game/scripts/contract/`) satisfies criteria 1 to 3 and 5 and deliberately skips 4: the game gets par from the server and has no solver. It reads these files through `make game-fixtures`, which copies this directory into `apps/game/tests/contract_fixtures/` (git-ignored) before the game's checks and tests run.

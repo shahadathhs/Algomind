@@ -38,6 +38,7 @@ const PUBLIC_KEYS = [
   "availableCommands",
   "constraints",
   "goal",
+  "extraBoards",
   "hints",
 ];
 
@@ -228,53 +229,65 @@ function samePair(a: [number, number], b: [number, number]): boolean {
   return a[0] === b[0] && a[1] === b[1];
 }
 
-function validateBoardAndCells(c: Collector, root: Obj): void {
-  const board = objectField(c, root, "", "board");
+/** The path of `key` under `prefix` ("" is the level itself, "extraBoards[0]" a test board). */
+function under(prefix: string, key: string): string {
+  return prefix === "" ? key : `${prefix}.${key}`;
+}
+
+function validateBoardAndCells(c: Collector, root: Obj, prefix = ""): void {
+  const boardPath = under(prefix, "board");
+  const initialPath = under(prefix, "initialState");
+  const goalBase = under(prefix, "goal");
+  const board = objectField(c, root, prefix, "board");
   let size: { width: number; height: number } | null = null;
   let walls: ([number, number] | null)[] = [];
   if (board) {
-    rejectUnknown(c, board, "board", ["width", "height", "walls"]);
+    rejectUnknown(c, board, boardPath, ["width", "height", "walls"]);
     const side = LIMITS.boardSide;
-    const width = intField(c, board, "board", "width", side.min, side.max);
-    const height = intField(c, board, "board", "height", side.min, side.max);
+    const width = intField(c, board, boardPath, "width", side.min, side.max);
+    const height = intField(c, board, boardPath, "height", side.min, side.max);
     if (width !== null && height !== null) size = { width, height };
-    walls = validateWalls(c, board, size);
+    walls = validateWalls(c, board, size, boardPath);
   }
 
   const wellFormedWalls = walls.filter((w): w is [number, number] => w !== null);
 
-  const initial = objectField(c, root, "", "initialState");
+  const initial = objectField(c, root, prefix, "initialState");
   let start: [number, number] | null = null;
   if (initial) {
-    rejectUnknown(c, initial, "initialState", ["position", "direction"]);
+    rejectUnknown(c, initial, initialPath, ["position", "direction"]);
     if (has(initial, "position")) {
-      start = checkPair(c, initial["position"], "initialState.position", size);
+      start = checkPair(c, initial["position"], `${initialPath}.position`, size);
     } else {
-      c.add("initialState.position", "REQUIRED", "initialState.position is required.");
+      c.add(`${initialPath}.position`, "REQUIRED", `${initialPath}.position is required.`);
     }
-    enumField(c, initial, "initialState", "direction", DIRECTIONS);
+    enumField(c, initial, initialPath, "direction", DIRECTIONS);
   }
 
-  const goal = objectField(c, root, "", "goal");
+  const goal = objectField(c, root, prefix, "goal");
   let goalPos: [number, number] | null = null;
   if (goal) {
-    rejectUnknown(c, goal, "goal", ["type", "position"]);
-    enumField(c, goal, "goal", "type", GOAL_TYPES);
+    rejectUnknown(c, goal, goalBase, ["type", "position"]);
+    enumField(c, goal, goalBase, "type", GOAL_TYPES);
     if (has(goal, "position")) {
-      goalPos = checkPair(c, goal["position"], "goal.position", size);
+      goalPos = checkPair(c, goal["position"], `${goalBase}.position`, size);
     } else {
-      c.add("goal.position", "REQUIRED", "goal.position is required.");
+      c.add(`${goalBase}.position`, "REQUIRED", `${goalBase}.position is required.`);
     }
   }
 
   if (start && wellFormedWalls.some((w) => samePair(w, start))) {
-    c.add("initialState.position", "START_ON_WALL", "The start cell must not be a wall.");
+    c.add(`${initialPath}.position`, "START_ON_WALL", "The start cell must not be a wall.");
   }
   if (goalPos && wellFormedWalls.some((w) => samePair(w, goalPos))) {
-    c.add("goal.position", "GOAL_ON_WALL", "The goal cell must not be a wall.");
+    c.add(`${goalBase}.position`, "GOAL_ON_WALL", "The goal cell must not be a wall.");
   }
   if (start && goalPos && samePair(start, goalPos)) {
-    c.add("goal.position", "GOAL_EQUALS_START", "The goal cell must differ from the start cell.");
+    c.add(
+      `${goalBase}.position`,
+      "GOAL_EQUALS_START",
+      "The goal cell must differ from the start cell.",
+    );
   }
 }
 
@@ -283,27 +296,29 @@ function validateWalls(
   c: Collector,
   board: Obj,
   size: { width: number; height: number } | null,
+  boardPath = "board",
 ): ([number, number] | null)[] {
+  const wallsPath = `${boardPath}.walls`;
   if (!has(board, "walls")) {
-    c.add("board.walls", "REQUIRED", "board.walls is required.");
+    c.add(wallsPath, "REQUIRED", `${wallsPath} is required.`);
     return [];
   }
   const raw = board["walls"];
   if (!Array.isArray(raw)) {
-    c.add("board.walls", "INVALID_TYPE", "board.walls must be an array.");
+    c.add(wallsPath, "INVALID_TYPE", `${wallsPath} must be an array.`);
     return [];
   }
   if (raw.length > LIMITS.maxWalls) {
     c.add(
-      "board.walls",
+      wallsPath,
       "LENGTH_OUT_OF_RANGE",
-      `board.walls must have at most ${LIMITS.maxWalls} entries.`,
+      `${wallsPath} must have at most ${LIMITS.maxWalls} entries.`,
     );
   }
   const out: ([number, number] | null)[] = [];
   const seen: [number, number][] = [];
   raw.forEach((entry, i) => {
-    const path = `board.walls[${i}]`;
+    const path = `${wallsPath}[${i}]`;
     const pair = checkPair(c, entry, path, size);
     out.push(pair);
     if (pair) {
@@ -315,6 +330,32 @@ function validateWalls(
     }
   });
   return out;
+}
+
+function validateExtraBoards(c: Collector, root: Obj): void {
+  if (!has(root, "extraBoards")) return;
+  const raw = root["extraBoards"];
+  if (!Array.isArray(raw)) {
+    c.add("extraBoards", "INVALID_TYPE", "extraBoards must be an array.");
+    return;
+  }
+  const lim = LIMITS.extraBoards;
+  if (raw.length < lim.min || raw.length > lim.max) {
+    c.add(
+      "extraBoards",
+      "LENGTH_OUT_OF_RANGE",
+      `extraBoards must have ${lim.min} to ${lim.max} boards, or be left out.`,
+    );
+  }
+  raw.forEach((entry, i) => {
+    const path = `extraBoards[${i}]`;
+    if (!isObject(entry)) {
+      c.add(path, "INVALID_TYPE", `${path} must be an object.`);
+      return;
+    }
+    rejectUnknown(c, entry, path, ["board", "initialState", "goal"]);
+    validateBoardAndCells(c, entry, path);
+  });
 }
 
 function validateCommands(c: Collector, root: Obj): void {
@@ -457,6 +498,7 @@ function run(c: Collector, input: unknown, authoring: boolean): void {
   enumField(c, input, "", "difficulty", DIFFICULTIES);
   validateRequires(c, input);
   validateBoardAndCells(c, input);
+  validateExtraBoards(c, input);
   validateCommands(c, input);
   validateConstraints(c, input);
   validateHints(c, input);
