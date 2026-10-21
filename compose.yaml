@@ -45,6 +45,11 @@ services:
       # Empty counts as unset: on outside production, off in production.
       SEED_STARTER_CAMPAIGN: ${SEED_STARTER_CAMPAIGN:-}
       WEB_REVALIDATE_URL: ${WEB_REVALIDATE_URL:-}
+      CONTACT_NAME: ${CONTACT_NAME:-}
+      CONTACT_EMAIL: ${CONTACT_EMAIL:-}
+      CONTACT_GITHUB: ${CONTACT_GITHUB:-}
+      CONTACT_WEBSITE: ${CONTACT_WEBSITE:-}
+      CONTACT_ISSUES: ${CONTACT_ISSUES:-}
       REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
 
   web:

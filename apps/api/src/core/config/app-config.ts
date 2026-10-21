@@ -15,6 +15,7 @@ export class AppConfig {
   readonly seedStarterCampaign: "always" | "when-empty" | "never";
   readonly webRevalidateUrl?: string;
   readonly revalidateSecret?: string;
+  readonly contact: Env["contact"];
 
   constructor(env: Env) {
     this.nodeEnv = env.nodeEnv;
@@ -29,6 +30,7 @@ export class AppConfig {
     this.trustProxy = env.trustProxy;
     this.seedStarterCampaign = env.seedStarterCampaign;
     this.webRevalidateUrl = env.webRevalidateUrl;
+    this.contact = env.contact;
     this.revalidateSecret = env.revalidateSecret;
   }
 

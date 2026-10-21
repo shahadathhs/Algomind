@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "./core/config/config.module.js";
 import { PrismaModule } from "./core/prisma/prisma.module.js";
 import { AchievementsModule } from "./modules/achievements/achievements.module.js";
+import { ContactModule } from "./modules/contact/contact.module.js";
 import { AuditModule } from "./modules/audit/audit.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { CampaignModule } from "./modules/campaign/campaign.module.js";
@@ -36,6 +37,7 @@ import { StatsModule } from "./modules/stats/stats.module.js";
     LeaderboardsModule,
     DailyModule,
     AchievementsModule,
+    ContactModule,
     ShareModule,
     StatsModule,
     PlayersModule,

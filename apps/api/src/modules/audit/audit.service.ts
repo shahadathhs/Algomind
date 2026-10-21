@@ -27,6 +27,7 @@ export const AUDIT_ACTIONS = [
   "DAILY_POOL_CHANGED",
   "ACHIEVEMENT_CREATED",
   "ACHIEVEMENT_UPDATED",
+  "CONTACT_UPDATED",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
