@@ -328,6 +328,20 @@ A level may carry `startProgram`, a program the tape starts with. It exists for 
 - **Limit and par.** The limit fits the start program and the fix, so it need not equal par; par is the best program there is (the better of the solver and the reference solution), as for other levels.
 - **Level design rules for the Debug world:** one bug in a program of the shapes the player already knows (a count, a missing turn, a condition, a branch, a call); the failure message says what happened and never the fix; hints are progressive.
 
+### 3.11 Keys and doors (world 14)
+
+A level may carry `locks`, one to three pairs `{ key, door }`. Built: the contract (types, both validators, both schemas, both simulators, the solver), the API (`keys` mechanic), the game (keys and doors on the flat and depth boards), and six levels.
+
+- **Picking up.** Entering a key's cell picks the key up. There is no command for it, and it costs nothing beyond the move. The trace event of that move is `KEY_TAKEN` instead of `MOVED`. A key is kept for the rest of the run, and it opens only its own door.
+- **Doors.** A shut door blocks like a wall: moving into it ends the run with `BLOCKED_BY_DOOR` and `blockedCell` is the door. Once its key is held the door is an ordinary cell. For the sensors (`CLEAR_AHEAD` and the others) a shut door is not floor, so a loop that runs until blocked stops in front of it.
+- **With guards.** Keys and patrols can share a level. The guard check comes first: a guard that meets the automaton on a key cell ends the run before the key is taken.
+- **Validation.** Keys and doors lie on floor cells inside the board, never on the start or the target, and no two share a cell. Issue codes `LOCK_ON_WALL`, `LOCK_ON_START`, `LOCK_ON_GOAL`, `LOCK_CELLS_REPEAT`, `LOCKS_WITH_BOARDS` (not with `extraBoards`) and `LOCKS_WITH_SWEEP` (not with the visit-every-cell goal).
+- **Display.** A key is a ring with a shaft and a tooth; a shut door is a block with a keyhole; an open door is an outline. With more than one lock, a key and its door carry the same number of pips, so the pairing is never only a color. The key disappears when taken and its door opens. The failing instruction is marked on the tape and the message reads THE AUTOMATON TRIED TO GO THROUGH A LOCKED DOOR. Not built: marking the shut door itself on failure.
+- **Solver.** The exact search adds the keys held to the state (x, y, facing, keys, and the step when there are guards). Where a level offers loops, the reference solution sets par.
+- **Compatibility.** The mechanic is `keys`.
+
+**Level design rules for the Keys world:** the shortest program that ignores the keys and doors must fail (a test checks this), and the limit equals the exact par. Chapter one has one door and a key off the straight way; chapter two has two doors, where a key may lie between them; the last chapter adds a guard.
+
 ## 4. Execution model and feedback
 
 ### Controls
@@ -371,7 +385,7 @@ The simulation engine is separate from visual animation. Animations display simu
 
 ## 5. Difficulty progression and campaign structure
 
-> **Planned:** the campaign grows to 20 worlds (Patrol and the item, tile, and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 13 worlds, 27 chapters, 71 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
+> **Planned:** the campaign grows to 20 worlds (Patrol and the item, tile, and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 14 worlds, 30 chapters, 77 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
 
 The campaign is a tree: **worlds** (one concept each), **chapters** (small groups within a world), and **levels**. Levels unlock sequentially along the flattened order (world, then chapter, then level). The stages below map onto worlds. Placement is campaign data managed in the dashboard, not part of a level's definition.
 
@@ -392,6 +406,7 @@ Teach concepts progressively rather than making early levels arbitrarily difficu
 | 11  | Memory        | Marking where you have been          | Depth-first search with backtracking (the Tremaux idea): explore, mark, return, never repeat a path  | markers: `MARK`, the fresh and back sensors (built; 3.7)                   | 6      |
 | 12  | Sweep         | Covering everything efficiently      | Systematic coverage (the lawnmower sweep) and efficiency: the same job in far fewer steps            | goal type "visit every floor cell"; step budgets that scale with the board | 5      |
 | 13  | Patrol        | Timing and prediction                | Obstacles that move by a fixed pattern: read the pattern, go around, or wait for the right step      | patrols: guards on a route that depends on the step number (built; 3.9)    | 6      |
+| 14  | Keys          | Order of dependencies                | Fetch what you need before you need it: a door stays shut until its key has been taken               | keys and doors: `locks`, picked up by entering a cell (built; 3.11)        | 6      |
 
 World 2 ends on its longest flat program (19 tiles), so loops are wanted when the Loops world starts. The budget ideas ("the limit equals par") live in the last chapter of the Routes world.
 

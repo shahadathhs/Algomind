@@ -99,6 +99,8 @@ Sizes are relative. There are no dates; a phase is done when its exit criteria a
 
 ### Phase 4 — Items: worlds 14 and 15 (M, then S)
 
+**World 14 built 2026-10-31:** keys and doors as `locks` (automatic pickup on entering a cell, a shut door blocks like a wall, `BLOCKED_BY_DOOR`), contract and both simulators with fixtures, the solver with keys held, the `keys` mechanic, drawing on both boards, six levels (`first-key`, `side-room`, `two-doors`, `maze-gate`, `guarded-key`, `keys-and-a-guard`). The item mechanic for world 15 (delivery) is not built: it should reuse the pickup rule here and add dropping, which needs a decision (a command, or automatic on a target cell).
+
 - Build the item and door mechanic once (key, door, pick up, drop) and use it for both worlds. New commands or automatic pickup is a decision for the design step; prefer the smallest change that teaches ordering.
 - Each world ends with its "with patrols" chapter.
 - **Exit:** checklist in section 6; world 14 playable, then world 15 as a data-and-small-rule extension.

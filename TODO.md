@@ -16,6 +16,12 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [ ] Procedures (world 6): the palette with up to ten tiles in two rows at 360 px, definition groups at the start of the tape, the CALL highlight while running, scrolling a long program
 - [ ] Playtest the 24 levels of worlds 4 to 6 with real people
 
+## Done 2026-10-31: the Keys world (restructure phase 4, world 14)
+
+- [x] `locks` in the contract (types, both validators, both schemas, both simulators, the solver with keys held, 23 fixtures), the API mechanic `keys`, keys and doors on the flat and depth boards, six levels (77 levels, 14 worlds)
+- [ ] Mark the shut door itself on failure; authoring locks in the dashboard
+- [ ] A solved playtest of the six Keys levels; look at keys and doors on a device
+
 ## Done 2026-10-31: the Patrol world (restructure phase 3)
 
 - [x] `patrols` in the contract (types, both validators, both schemas, both simulators, the solver over time, 30 fixtures), the API mechanic `patrol` and analysis, guards on the flat and depth boards, six levels (71 levels, 13 worlds)
