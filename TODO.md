@@ -16,6 +16,14 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [ ] Procedures (world 6): the palette with up to ten tiles in two rows at 360 px, definition groups at the start of the tape, the CALL highlight while running, scrolling a long program
 - [ ] Playtest the 24 levels of worlds 4 to 6 with real people
 
+## Done 2026-10-31: the dashboard and the site learn the new worlds
+
+- [x] Dashboard: the Board tab places ice, belts, keys and doors, crates and docks, switches and gates, teleporters and guards (two clicks for a pair, a route for a guard, an erase tool, a side list with "gate starts open" and the guard's pattern); Commands and limits has a Recursion switch; calls in procedure bodies carry a sensor; the Solution tab has a start program for debug levels; par is the reference solution where the exact search cannot give it (tiles with loops). Checked in a browser against a real API; `make web-smoke` still passes
+- [x] The board renderer (flat and depth) draws every tile, so the dashboard preview, the levels page and the share image show them
+- [x] Site: worlds grouped into five acts on the home page and the levels index, a legend of the tiles and a section on recursion on the how-to-play page, new failure messages
+- [ ] The dashboard has no automated tests (checked by hand and by the publish smoke test); the tile tools are pure functions in `lib/admin/tile-tools.ts` and want unit tests
+- [ ] Shut doors and gates are drawn flat on the depth board of the site and the dashboard; the game raises them
+
 ## Done 2026-10-31: the Capstone world (restructure phase 7, world 20)
 
 - [x] Eight levels that mix two to four board tools, five with a guard (113 levels, 20 worlds); tests check that every tool is needed and the plain par is beaten
@@ -48,25 +56,25 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 
 - [x] `deliveries` in the contract (types, both validators, both schemas, both simulators, the solver with carried and delivered in the state, 25 fixtures), the API mechanic `delivery`, crates and docks on the flat and depth boards, six levels (83 levels, 15 worlds)
 - [ ] A solved playtest of the six Delivery levels; look at crates and docks on a device
-- [ ] Authoring deliveries and locks in the dashboard
+- [x] Authoring deliveries and locks in the dashboard (Board tab, Tiles tools)
 
 ## Done 2026-10-31: the Keys world (restructure phase 4, world 14)
 
 - [x] `locks` in the contract (types, both validators, both schemas, both simulators, the solver with keys held, 23 fixtures), the API mechanic `keys`, keys and doors on the flat and depth boards, six levels (77 levels, 14 worlds)
-- [ ] Mark the shut door itself on failure; authoring locks in the dashboard
+- [ ] Mark the shut door itself on failure
 - [ ] A solved playtest of the six Keys levels; look at keys and doors on a device
 
 ## Done 2026-10-31: the Patrol world (restructure phase 3)
 
 - [x] `patrols` in the contract (types, both validators, both schemas, both simulators, the solver over time, 30 fixtures), the API mechanic `patrol` and analysis, guards on the flat and depth boards, six levels (71 levels, 13 worlds)
-- [ ] The stop-by-step strip, numbered stops, and authoring patrols in the dashboard
+- [ ] The stop-by-step strip and numbered stops for patrols (guards can now be authored in the dashboard)
 - [ ] A solved playtest of the six Patrol levels; look at the guard on a device
 - [ ] Reset Render's database when deploying (a new world was added after Sweep)
 
 ## Done 2026-10-31: the Debug world (restructure phase 2)
 
 - [x] `startProgram` in the contract (types, both validators, both schemas, 5 fixtures), the API gate and mechanic, the game's tape and objective, and five levels (65 levels, 12 worlds)
-- [ ] Author a start program in the dashboard (the editor needs a second tape); today it is seed data only
+- [x] Author a start program in the dashboard (Solution tab)
 - [ ] A solved playtest of the five Debug levels; Reset must be checked to restore the start program on a device
 - [ ] Reset Render's database when deploying (the seed only adds, and the Debug world sits between existing worlds)
 
