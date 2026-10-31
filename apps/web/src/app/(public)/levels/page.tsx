@@ -5,6 +5,7 @@ import { WorldSection } from "@/components/public/world-section";
 import { Container } from "@/components/ui/container";
 import { Section } from "@/components/ui/section";
 import { TextLink } from "@/components/ui/text-link";
+import { groupByAct } from "@/lib/acts";
 import { getCampaign, levelCount } from "@/lib/campaign";
 import { pageMetadata } from "@/lib/seo";
 
@@ -49,15 +50,22 @@ export default async function LevelsPage() {
           <p className="text-xs font-bold tracking-[2px] text-mute uppercase">
             {`${worlds.length} worlds · ${total} levels`}
           </p>
-          <ul className="mt-1 flex flex-wrap gap-x-6">
-            {worlds.map((world) => (
-              <li key={world.id}>
-                <TextLink href={`#world-${world.number}`}>
-                  {`${String(world.number).padStart(2, "0")} ${world.title}`}
-                </TextLink>
-              </li>
+          <div className="mt-3 grid gap-x-10 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+            {groupByAct(worlds).map(({ act, worlds: inAct }) => (
+              <div key={act.title}>
+                <p className="text-xs font-bold tracking-[2px] text-ink uppercase">{act.title}</p>
+                <ul className="mt-1 grid gap-y-1">
+                  {inAct.map((world) => (
+                    <li key={world.id}>
+                      <TextLink href={`#world-${world.number}`}>
+                        {`${String(world.number).padStart(2, "0")} ${world.title}`}
+                      </TextLink>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         </nav>
       </Container>
       {worlds.map((world) => (

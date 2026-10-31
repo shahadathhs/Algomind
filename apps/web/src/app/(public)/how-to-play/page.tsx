@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ProsePage } from "@/components/public/prose-page";
 import { ProseSection } from "@/components/public/prose-section";
+import { TileLegend } from "@/components/public/tile-legend";
 import { BoardView } from "@/components/ui/board-view";
 import { CommandTile } from "@/components/ui/command-tile";
 import { TapeView } from "@/components/ui/tape-view";
@@ -57,11 +58,27 @@ const COMMANDS: { command: Command; name: string; text: string }[] = [
   {
     command: "call",
     name: "Call",
-    text: "Run a procedure you defined, then carry on with the next command.",
+    text: "Run a procedure you defined, then carry on with the next command. In some levels a call can look ahead, left or right, and runs only while that is clear.",
   },
 ];
 
 const MESSAGES = [
+  {
+    message: "A guard reached the automaton",
+    text: "A guard stood on the automaton's cell after a step, or they swapped places. The guard is striped yellow. Wait a step, or take another way.",
+  },
+  {
+    message: "The automaton tried to go through a locked door, or a shut gate",
+    text: "A door opens only after its key has been entered, and a gate follows its switch. The instruction that walked into it is marked with a cross.",
+  },
+  {
+    message: "The automaton reached the target before every item was delivered",
+    text: "Crates must be on their docks before the target counts. Deliver them first, then go to the target.",
+  },
+  {
+    message: "The procedures called each other too many times",
+    text: "A procedure that calls itself needs a condition on its call, so that it stops. Give the call a sensor: it then runs only while the sensor is true.",
+  },
   {
     message: "The automaton tried to move into a wall",
     text: "The run stopped. The wall it hit is striped yellow and the instruction that did it is marked with a cross. A move past the edge of the board counts the same way.",
@@ -117,6 +134,14 @@ export default function HowToPlayPage() {
         <p>
           Each level lists the commands you can use and the most instructions a program may hold.
           The counter above the board shows how many you have used.
+        </p>
+      </ProseSection>
+
+      <ProseSection title="On the board" spread>
+        <TileLegend />
+        <p>
+          When a level has more than one pair of a tile, the two cells of a pair carry the same
+          number of small squares, so you can tell which belongs to which without colour.
         </p>
       </ProseSection>
 
@@ -211,8 +236,21 @@ export default function HowToPlayPage() {
         </p>
         <p>
           A call uses one slot. A definition uses one slot plus one for each command in it. A
-          procedure can hold moves, turns, if blocks and loops, but not a call to another procedure.
-          A call can stand on its own or inside a loop.
+          procedure can hold moves, turns, if blocks and loops, but a call to another procedure only
+          in the levels that teach recursion (below). A call can stand on its own or inside a loop.
+        </p>
+      </ProseSection>
+
+      <ProseSection title="A procedure that calls itself">
+        <p>
+          In the last worlds a procedure may call procedures, itself included, and a call may carry
+          a sensor. The call runs only while the sensor is true. That is how a recursion stops: when
+          the sensor is false the call is skipped and the procedure carries on with what follows it.
+          What follows a call runs when the call is over, once for each level, the deepest first.
+        </p>
+        <p>
+          A procedure that calls itself with no sensor never stops. The run ends once it has called
+          itself too many times, and the message says so.
         </p>
       </ProseSection>
 
