@@ -95,7 +95,7 @@
     "A loop inside a loop is allowed here. Repeat can count with N."
   ],
   "title": "Growing diagonal",
-  "levelId": "655e5f44-d2bc-4e69-a0a8-341b7c579999",
+  "levelId": "346d539b-4aac-49a0-9a13-3ca93fc0685b",
   "requires": {
     "mechanics": ["nested_loops"]
   },

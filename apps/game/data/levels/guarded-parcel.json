@@ -1,0 +1,53 @@
+{
+  "goal": {
+    "type": "reach_tile",
+    "position": [5, 1]
+  },
+  "slug": "guarded-parcel",
+  "board": {
+    "walls": [
+      [3, 0],
+      [3, 2],
+      [5, 2]
+    ],
+    "width": 6,
+    "height": 3
+  },
+  "hints": [
+    "The guard walks the column next to the crate.",
+    "Count the guard's steps. A turn in place also takes a step."
+  ],
+  "title": "Guarded parcel",
+  "levelId": "0335f033-36d6-41d2-ac8e-90eb31e81845",
+  "patrols": [
+    {
+      "cells": [
+        [1, 0],
+        [1, 1]
+      ],
+      "pattern": "back_and_forth"
+    }
+  ],
+  "requires": {
+    "mechanics": []
+  },
+  "deliveries": [
+    {
+      "dock": [2, 1],
+      "item": [0, 0]
+    }
+  ],
+  "difficulty": "hard",
+  "constraints": {
+    "maxSteps": 120,
+    "maxCommands": 15
+  },
+  "description": "",
+  "initialState": {
+    "position": [0, 1],
+    "direction": "east"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+}

@@ -1,0 +1,48 @@
+{
+  "goal": {
+    "type": "reach_tile",
+    "position": [4, 1]
+  },
+  "slug": "two-parcels",
+  "board": {
+    "walls": [
+      [0, 0],
+      [3, 0],
+      [0, 2]
+    ],
+    "width": 5,
+    "height": 3
+  },
+  "hints": [
+    "Each crate goes to its own corner marks.",
+    "Hands hold one crate: drop the first before taking the second."
+  ],
+  "title": "Two parcels",
+  "levelId": "3a80caa3-86b5-4377-8d35-6790d9373b38",
+  "requires": {
+    "mechanics": []
+  },
+  "deliveries": [
+    {
+      "dock": [1, 2],
+      "item": [1, 0]
+    },
+    {
+      "dock": [2, 1],
+      "item": [2, 2]
+    }
+  ],
+  "difficulty": "medium",
+  "constraints": {
+    "maxSteps": 120,
+    "maxCommands": 14
+  },
+  "description": "",
+  "initialState": {
+    "position": [0, 1],
+    "direction": "east"
+  },
+  "levelVersion": 1,
+  "schemaVersion": 1,
+  "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+}

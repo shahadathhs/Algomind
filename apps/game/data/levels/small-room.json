@@ -13,7 +13,7 @@
     "Run to the wall, step over, run back. Keep going until every cell is done."
   ],
   "title": "Small room",
-  "levelId": "5d1bd5b6-8f41-4111-a162-59012fa025a5",
+  "levelId": "7b94e53c-e72e-4bb2-a762-a4264a9daf05",
   "requires": {
     "mechanics": ["nested_loops"]
   },

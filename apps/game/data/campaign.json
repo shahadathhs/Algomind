@@ -247,6 +247,28 @@
           "levels": ["guarded-key", "keys-and-a-guard"]
         }
       ]
+    },
+    {
+      "id": "delivery",
+      "title": "Delivery",
+      "summary": "Pick up a crate by walking onto it, then drop it on the corner marks. The target counts only after every delivery.",
+      "chapters": [
+        {
+          "id": "first-parcels",
+          "title": "First parcels",
+          "levels": ["first-parcel", "behind-the-start"]
+        },
+        {
+          "id": "two-parcels",
+          "title": "Two parcels",
+          "levels": ["two-parcels", "full-hands"]
+        },
+        {
+          "id": "in-the-way",
+          "title": "In the way",
+          "levels": ["behind-the-door", "guarded-parcel"]
+        }
+      ]
     }
   ],
   "par": {
@@ -557,6 +579,30 @@
     "keys-and-a-guard": {
       "commands": 16,
       "steps": 16
+    },
+    "first-parcel": {
+      "commands": 9,
+      "steps": 9
+    },
+    "behind-the-start": {
+      "commands": 10,
+      "steps": 10
+    },
+    "two-parcels": {
+      "commands": 14,
+      "steps": 14
+    },
+    "full-hands": {
+      "commands": 16,
+      "steps": 16
+    },
+    "behind-the-door": {
+      "commands": 15,
+      "steps": 15
+    },
+    "guarded-parcel": {
+      "commands": 15,
+      "steps": 15
     }
   }
 }

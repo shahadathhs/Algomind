@@ -75,7 +75,7 @@
     "Turn left when the left side is clear. Otherwise move, or turn right."
   ],
   "title": "Left hand",
-  "levelId": "3fa3f3d8-d30a-4b0d-a22b-ca2fd72fba4e",
+  "levelId": "660e54d4-65ea-4219-b543-79beff51307b",
   "requires": {
     "mechanics": []
   },
