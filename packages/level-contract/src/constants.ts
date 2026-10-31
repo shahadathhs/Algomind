@@ -83,6 +83,12 @@ export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 
 export const GOAL_TYPES = ["reach_tile", "visit_all"] as const;
 
+/**
+ * How a patrol walks its cells: back and forth along the list (1, 2, 3, 2, 1, 2, ...) or round it
+ * as a ring (1, 2, 3, 4, 1, ...). Its cell depends only on the step number.
+ */
+export const PATROL_PATTERNS = ["back_and_forth", "loop"] as const;
+
 /** Unit step for each direction. x grows right, y grows down (0,0 is the top-left cell). */
 export const DIRECTION_DELTAS = {
   north: [0, -1],
@@ -111,6 +117,10 @@ export const LIMITS = {
   ifChain: 6,
   /** The counter N: its value at the start of a run, and the most it reaches. */
   counter: { start: 1, max: 11 },
+  /** Patrols on a level, and the cells of one: a ring (loop) needs at least four. */
+  patrols: { min: 1, max: 3 },
+  patrolCells: { min: 2, max: 12 },
+  patrolLoopCells: { min: 4, max: 12 },
   levelVersion: { min: 1, max: 1_000_000 },
   /** Lengths are counted in Unicode code points. */
   levelId: { min: 1, max: 64 },

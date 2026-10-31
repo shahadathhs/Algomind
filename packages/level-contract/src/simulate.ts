@@ -15,6 +15,7 @@ import {
   SENSORS,
   UNTIL_CONDITIONS,
 } from "./constants.js";
+import { patrolMeeting } from "./patrol.js";
 import type {
   ActionName,
   Direction,
@@ -247,21 +248,33 @@ export function simulate(level: Level, program: Program): RunResult {
       event,
     });
 
+    /** A patrol that reaches the automaton in this step ends the run (checked before the goal). */
+    const caught = (from: Position): RunResult | null => {
+      const meeting = patrolMeeting(level, from, position, index);
+      if (!meeting) return null;
+      trace.push(entry("HIT_BY_PATROL"));
+      return finish("FAILED", "HIT_BY_PATROL", meeting);
+    };
+    /** Ends an action that does not move the automaton: caught by a patrol, or done with `event`. */
+    const stayed = (event: TraceEntry["event"]): RunResult | null => {
+      const hit = caught(position);
+      if (hit) return hit;
+      trace.push(entry(event));
+      return null;
+    };
+
     if (command === "TURN_LEFT" || command === "TURN_RIGHT") {
       direction = turn(direction, command === "TURN_LEFT" ? "left" : "right");
-      trace.push(entry("TURNED"));
-      return null;
+      return stayed("TURNED");
     }
     if (command === INC_OP) {
       counter = Math.min(counter + 1, LIMITS.counter.max);
-      trace.push(entry("COUNTED"));
-      return null;
+      return stayed("COUNTED");
     }
     if (command === MARK_OP) {
       const here = cellKey(position);
       if (!crumbs.has(here)) crumbs.set(here, (DIRECTIONS.indexOf(direction) + 2) % 4);
-      trace.push(entry("MARKED"));
-      return null;
+      return stayed("MARKED");
     }
 
     // MOVE_FORWARD
@@ -274,8 +287,11 @@ export function simulate(level: Level, program: Program): RunResult {
       trace.push(entry("BLOCKED_BY_WALL"));
       return finish("FAILED", "BLOCKED_BY_WALL", ahead);
     }
+    const from: Position = position;
     position = ahead;
     visited.add(cellKey(position));
+    const hit = caught(from);
+    if (hit) return hit;
     const reached = target
       ? position[0] === target[0] && position[1] === target[1]
       : visited.size === floorCells;

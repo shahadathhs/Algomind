@@ -80,8 +80,12 @@ test("the JSON Schema limits match the constants used by the validator", () => {
 test("the schema requires every field of the Level type, and the authoring schema adds only referenceSolution", () => {
   const first = loadFixtures("levels/valid").find((f) => f.name === "typical-first-steps");
   assert.deepEqual([...body.required].sort(), Object.keys(first?.data.level).sort());
-  // extraBoards is the one optional property: a level without test boards leaves it out.
-  assert.deepEqual(Object.keys(props).sort(), [...body.required, "extraBoards"].sort());
+  // extraBoards, patrols and startProgram are the optional properties: a level without test boards,
+  // patrols or a starting program leaves them out.
+  assert.deepEqual(
+    Object.keys(props).sort(),
+    [...body.required, "extraBoards", "patrols", "startProgram"].sort(),
+  );
   assert.equal(pub.unevaluatedProperties, false);
   assert.equal(authoring.unevaluatedProperties, false);
   assert.deepEqual(authoring.required, ["referenceSolution"]);

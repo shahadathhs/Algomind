@@ -9,6 +9,7 @@ import {
   MARK_OP,
   NESTED_LOOPS_MECHANIC,
   NODE_OPS,
+  PATROL_PATTERNS,
   PROCEDURE_NAMES,
   PROC_OP,
   SENSORS,
@@ -43,6 +44,8 @@ const PUBLIC_KEYS = [
   "constraints",
   "goal",
   "extraBoards",
+  "startProgram",
+  "patrols",
   "hints",
 ];
 
@@ -344,6 +347,119 @@ function validateWalls(
   return out;
 }
 
+/** The board facts the patrol checks need, read the way validateBoardAndCells reads them. */
+function boardFacts(root: Obj): {
+  size: { width: number; height: number } | null;
+  walls: [number, number][];
+  start: [number, number] | null;
+} {
+  const side = LIMITS.boardSide;
+  const board = isObject(root["board"]) ? root["board"] : null;
+  const dim = (v: unknown): number | null =>
+    isInt(v) && v >= side.min && v <= side.max ? v : null;
+  const width = board ? dim(board["width"]) : null;
+  const height = board ? dim(board["height"]) : null;
+  const walls: [number, number][] = [];
+  if (board && Array.isArray(board["walls"])) {
+    for (const w of board["walls"]) {
+      if (Array.isArray(w) && w.length === 2 && isInt(w[0]) && isInt(w[1]))
+        walls.push([w[0], w[1]]);
+    }
+  }
+  const initial = isObject(root["initialState"]) ? root["initialState"] : null;
+  const p = initial ? initial["position"] : undefined;
+  const start: [number, number] | null =
+    Array.isArray(p) && p.length === 2 && isInt(p[0]) && isInt(p[1]) ? [p[0], p[1]] : null;
+  return { size: width !== null && height !== null ? { width, height } : null, walls, start };
+}
+
+const adjacent = (a: [number, number], b: [number, number]): boolean =>
+  Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) === 1;
+
+function validatePatrols(c: Collector, root: Obj): void {
+  if (!has(root, "patrols")) return;
+  const raw = root["patrols"];
+  if (!Array.isArray(raw)) {
+    c.add("patrols", "INVALID_TYPE", "patrols must be an array.");
+    return;
+  }
+  const lim = LIMITS.patrols;
+  if (raw.length < lim.min || raw.length > lim.max) {
+    c.add(
+      "patrols",
+      "LENGTH_OUT_OF_RANGE",
+      `patrols must have ${lim.min} to ${lim.max} entries, or be left out.`,
+    );
+  }
+  if (has(root, "extraBoards")) {
+    c.add("patrols", "PATROLS_WITH_BOARDS", "A level with test boards cannot have patrols.");
+  }
+  const facts = boardFacts(root);
+  raw.forEach((entry, i) => {
+    const path = `patrols[${i}]`;
+    if (!isObject(entry)) {
+      c.add(path, "INVALID_TYPE", `${path} must be an object.`);
+      return;
+    }
+    rejectUnknown(c, entry, path, ["pattern", "cells"]);
+    const pattern = enumField(c, entry, path, "pattern", PATROL_PATTERNS);
+    const cellsPath = `${path}.cells`;
+    if (!has(entry, "cells")) {
+      c.add(cellsPath, "REQUIRED", `${cellsPath} is required.`);
+      return;
+    }
+    const cells = entry["cells"];
+    if (!Array.isArray(cells)) {
+      c.add(cellsPath, "INVALID_TYPE", `${cellsPath} must be an array.`);
+      return;
+    }
+    const range = pattern === "loop" ? LIMITS.patrolLoopCells : LIMITS.patrolCells;
+    if (cells.length < range.min || cells.length > range.max) {
+      c.add(
+        cellsPath,
+        "LENGTH_OUT_OF_RANGE",
+        `${cellsPath} must have ${range.min} to ${range.max} cells.`,
+      );
+    }
+    const pairs: ([number, number] | null)[] = [];
+    const seen: [number, number][] = [];
+    cells.forEach((cell, j) => {
+      const cellPath = `${cellsPath}[${j}]`;
+      const pair = checkPair(c, cell, cellPath, facts.size);
+      pairs.push(pair);
+      if (!pair) return;
+      if (facts.walls.some((w) => samePair(w, pair))) {
+        c.add(cellPath, "PATROL_ON_WALL", `${cellPath} must not be a wall.`);
+      }
+      if (seen.some((s) => samePair(s, pair))) {
+        c.add(cellPath, "PATROL_CELLS_REPEAT", `${cellPath} repeats an earlier cell.`);
+      } else {
+        seen.push(pair);
+      }
+      const before = pairs[j - 1];
+      if (j > 0 && before && !adjacent(before, pair)) {
+        c.add(cellPath, "PATROL_NOT_CONNECTED", `${cellPath} must be next to the cell before it.`);
+      }
+    });
+    const first = pairs[0];
+    if (first && facts.start && samePair(first, facts.start)) {
+      c.add(
+        `${cellsPath}[0]`,
+        "PATROL_ON_START",
+        "A patrol must not start on the automaton's cell.",
+      );
+    }
+    const last = pairs[pairs.length - 1];
+    if (pattern === "loop" && first && last && pairs.length > 1 && !adjacent(last, first)) {
+      c.add(
+        cellsPath,
+        "PATROL_NOT_CONNECTED",
+        "A ring must close: the last cell is next to the first.",
+      );
+    }
+  });
+}
+
 function validateExtraBoards(c: Collector, root: Obj): void {
   if (!has(root, "extraBoards")) return;
   const raw = root["extraBoards"];
@@ -511,9 +627,13 @@ function run(c: Collector, input: unknown, authoring: boolean): void {
   validateRequires(c, input);
   validateBoardAndCells(c, input);
   validateExtraBoards(c, input);
+  validatePatrols(c, input);
   validateCommands(c, input);
   validateConstraints(c, input);
   validateHints(c, input);
+  if (has(input, "startProgram")) {
+    checkProgram(c, input["startProgram"], "startProgram", programLimits(input));
+  }
 
   if (authoring) {
     if (!has(input, "referenceSolution")) {

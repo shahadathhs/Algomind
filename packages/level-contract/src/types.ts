@@ -1,5 +1,6 @@
 import type {
   ACTION_COMMANDS,
+  PATROL_PATTERNS,
   COMMAND_NAMES,
   DIFFICULTIES,
   DIRECTIONS,
@@ -18,6 +19,7 @@ export type Sensor = (typeof SENSORS)[number];
 export type ProcedureName = (typeof PROCEDURE_NAMES)[number];
 export type UntilCondition = (typeof UNTIL_CONDITIONS)[number];
 export type Direction = (typeof DIRECTIONS)[number];
+export type PatrolPattern = (typeof PATROL_PATTERNS)[number];
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
 /** [x, y]. x grows right, y grows down. */
@@ -97,6 +99,16 @@ export interface BoardCase {
 }
 
 /** The public level definition served to the game. Never contains the reference solution. */
+/**
+ * An obstacle that moves by a fixed pattern while the program runs. Its cell depends only on the
+ * step number (see `patrolCell`), so a run is as deterministic as without it.
+ */
+export interface Patrol {
+  pattern: PatrolPattern;
+  /** The cells it visits, each next to the one before (a ring also closes from the last to the first). */
+  cells: Position[];
+}
+
 export interface Level {
   schemaVersion: 1;
   levelId: string;
@@ -116,6 +128,17 @@ export interface Level {
    * these. Slots and the step limit are the same for each board; the limit applies to each run.
    */
   extraBoards?: BoardCase[];
+  /**
+   * A program the tape starts with, for a level about fixing a program (a debug level). It is
+   * checked like any program of the level (known and available commands, within maxCommands), but
+   * it need not solve the level; the publish gate in the API requires that it does not.
+   */
+  startProgram?: Program;
+  /**
+   * Patrols on the level's own board (not allowed together with `extraBoards`). A run fails when
+   * the automaton and a patrol share a cell after a step, or swap cells in one step.
+   */
+  patrols?: Patrol[];
   hints: string[];
 }
 
@@ -148,7 +171,12 @@ export type IssueCode =
   | "NESTED_PROC"
   | "CALL_NOT_ALLOWED"
   | "DUPLICATE_PROCEDURE"
-  | "UNDEFINED_PROCEDURE";
+  | "UNDEFINED_PROCEDURE"
+  | "PATROL_ON_WALL"
+  | "PATROL_ON_START"
+  | "PATROL_CELLS_REPEAT"
+  | "PATROL_NOT_CONNECTED"
+  | "PATROLS_WITH_BOARDS";
 
 export interface Issue {
   /** JSON-pointer-like location, e.g. "board.width" or "board.walls[2]". "" is the document root. */
@@ -176,6 +204,7 @@ export type RunReason =
   | "BLOCKED_BY_BOUNDARY"
   | "PROGRAM_ENDED"
   | "STEP_LIMIT"
+  | "HIT_BY_PATROL"
   | "INVALID_INSTRUCTION";
 
 export type TraceEvent =
@@ -185,7 +214,8 @@ export type TraceEvent =
   | "MARKED"
   | "GOAL_REACHED"
   | "BLOCKED_BY_WALL"
-  | "BLOCKED_BY_BOUNDARY";
+  | "BLOCKED_BY_BOUNDARY"
+  | "HIT_BY_PATROL";
 
 export interface TraceEntry {
   /** 0-based index of the executed step. */

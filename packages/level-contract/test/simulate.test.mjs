@@ -150,6 +150,7 @@ test("explainResult has plain-language text for every reason", () => {
     "BLOCKED_BY_BOUNDARY",
     "PROGRAM_ENDED",
     "STEP_LIMIT",
+    "HIT_BY_PATROL",
     "INVALID_INSTRUCTION",
   ];
   assert.deepEqual(Object.keys(REASON_MESSAGES).sort(), [...reasons].sort());

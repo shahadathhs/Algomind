@@ -1,4 +1,5 @@
 import { DIRECTIONS, PRIMITIVE_COMMANDS, REPEAT_OP, REPEAT_UNTIL_OP } from "./constants.js";
+import { patrolMeeting } from "./patrol.js";
 import { cellAhead, isInsideBoard, isWall, turn } from "./simulate.js";
 import type { Direction, Level, Position, PrimitiveName, Program, SolveResult } from "./types.js";
 import { solveWithRepeat } from "./solve-repeat.js";
@@ -29,6 +30,8 @@ interface Node {
 export function solve(level: Level): SolveResult | null {
   // Only a target can be searched for; the sweep goal (visit_all) has no exact par.
   if (level.goal.type !== "reach_tile") return null;
+  // Patrols make the state depend on the step number, so the search is over (x, y, facing, step).
+  if (level.patrols !== undefined && level.patrols.length > 0) return solveWithPatrols(level);
   if (
     level.availableCommands.includes(REPEAT_OP) ||
     level.availableCommands.includes(REPEAT_UNTIL_OP)
@@ -96,4 +99,75 @@ export function solve(level: Level): SolveResult | null {
 
 function key(x: number, y: number, dir: number, width: number, height: number): number {
   return (dir * height + y) * width + x;
+}
+
+/**
+ * The shortest flat program for a level with patrols: breadth first over states (x, y, facing) layer by
+ * layer, one layer per step, because where a patrol stands depends on the step. A command that would end
+ * in a collision with a patrol (see `patrolMeeting`) is not tried; the goal is tested after that, as in
+ * the simulator. Loops are not searched: with REPEAT on offer the API takes the better of this and the
+ * reference solution. The same tie-breaking as `solve`: commands in the order MOVE_FORWARD, TURN_LEFT,
+ * TURN_RIGHT, a state kept the first time it is found in a layer.
+ */
+function solveWithPatrols(level: Level): SolveResult | null {
+  if (level.goal.type !== "reach_tile") return null;
+  const available = PRIMITIVE_COMMANDS.filter((c) => level.availableCommands.includes(c));
+  const goal = level.goal.position;
+  const { width, height } = level.board;
+  const nodes: Node[] = [
+    {
+      x: level.initialState.position[0],
+      y: level.initialState.position[1],
+      dir: DIRECTIONS.indexOf(level.initialState.direction),
+      parent: -1,
+      op: null,
+    },
+  ];
+  const finish = (last: number): SolveResult => {
+    const ops: PrimitiveName[] = [];
+    for (let i = last; i > 0; i = nodes[i]!.parent) ops.push(nodes[i]!.op as PrimitiveName);
+    ops.reverse();
+    const program: Program = ops.map((op) => ({ op }));
+    return {
+      commands: program.length,
+      steps: program.length,
+      program,
+      fitsConstraints:
+        program.length <= level.constraints.maxCommands &&
+        program.length <= level.constraints.maxSteps,
+    };
+  };
+
+  let layer = [0];
+  for (let depth = 0; depth < level.constraints.maxSteps && layer.length > 0; depth += 1) {
+    const next: number[] = [];
+    const seen = new Set<number>();
+    for (const head of layer) {
+      const cur = nodes[head]!;
+      for (const op of available) {
+        let x = cur.x;
+        let y = cur.y;
+        let dir = cur.dir;
+        if (op === "MOVE_FORWARD") {
+          const target: Position = cellAhead([x, y], DIRECTIONS[dir] as Direction);
+          if (!isInsideBoard(level, target) || isWall(level, target)) continue;
+          x = target[0];
+          y = target[1];
+        } else {
+          dir = DIRECTIONS.indexOf(
+            turn(DIRECTIONS[dir] as Direction, op === "TURN_LEFT" ? "left" : "right"),
+          );
+        }
+        if (patrolMeeting(level, [cur.x, cur.y], [x, y], depth)) continue;
+        const k = key(x, y, dir, width, height);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        nodes.push({ x, y, dir, parent: head, op });
+        if (x === goal[0] && y === goal[1]) return finish(nodes.length - 1);
+        next.push(nodes.length - 1);
+      }
+    }
+    layer = next;
+  }
+  return null;
 }

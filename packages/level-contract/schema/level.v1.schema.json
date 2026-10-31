@@ -251,6 +251,17 @@
               }
             }
           }
+        },
+        "startProgram": {
+          "$ref": "#/$defs/program"
+        },
+        "patrols": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/patrol"
+          }
         }
       }
     },
@@ -489,6 +500,24 @@
                 "$ref": "#/$defs/repeatUntilInstruction"
               }
             ]
+          }
+        }
+      }
+    },
+    "patrol": {
+      "type": "object",
+      "required": ["pattern", "cells"],
+      "additionalProperties": false,
+      "properties": {
+        "pattern": {
+          "enum": ["back_and_forth", "loop"]
+        },
+        "cells": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/position"
           }
         }
       }
