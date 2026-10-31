@@ -357,6 +357,20 @@ A level may carry `deliveries`, one to three pairs `{ item, dock }`. Built: the 
 
 **Level design rules for the Delivery world:** the shortest program that ignores the crates, doors and guards must fail (a test checks this), and the limit equals the exact par. Chapter one has one crate; chapter two has two (the second needs the first delivered, because hands hold one); the last chapter adds a key and door, then a guard.
 
+### 3.13 Switches and gates (world 16)
+
+A level may carry `switches`, one to three entries `{ switch, gate, open? }`. Built: the contract (types, both validators, both schemas, both simulators, the solver), the API (`switch` mechanic), the game (switches and gates on the flat and depth boards), and six levels. It is a state machine the player has to count: the state of a gate depends only on how often its switch has been entered.
+
+- **Flipping.** Entering a switch's cell flips its gate, every time (shut to open, open to shut). There is no command for it. The trace event of that move is `SWITCHED`. A gate starts shut unless `open` is true.
+- **Gates.** A shut gate blocks like a wall: moving into it ends the run with `BLOCKED_BY_GATE` and `blockedCell` is the gate. An open gate is an ordinary cell. For the sensors a shut gate is not floor, so a loop that runs until blocked stops in front of it.
+- **With the rest.** Switches can share a level with keys, deliveries and guards. The guard check comes first: a guard that meets the automaton on a switch cell ends the run before the switch flips.
+- **Validation.** Switches and gates lie on floor cells inside the board, never on the start or the target, and no two (keys, doors, items and docks included) share a cell. `open` must be a boolean. Issue codes `SWITCH_ON_WALL`, `SWITCH_ON_START`, `SWITCH_ON_GOAL`, `SWITCH_CELLS_REPEAT`, `SWITCHES_WITH_BOARDS` (not with `extraBoards`) and `SWITCHES_WITH_SWEEP` (not with the visit-every-cell goal).
+- **Display.** A switch is a plate with a lever; the knob sits left until the switch has been flipped, right after. A shut gate is a block with bars (raised on the depth board); an open gate is two posts. With more than one pair, a switch and its gate carry the same number of pips. The failing instruction is marked on the tape and the message reads THE AUTOMATON TRIED TO GO THROUGH A SHUT GATE.
+- **Solver.** The exact search adds the switches flipped (an odd number of times) to the state. Where a level offers loops, the reference solution sets par.
+- **Compatibility.** The mechanic is `switch`.
+
+**Level design rules for the Switches world:** the shortest program that ignores the switches (and crates and guards) must fail (a test checks this), and the limit equals the exact par. Chapter one has one gate, the second level with a gate that starts open and a switch on the only way in; chapter two has two pairs; the last chapter adds a crate, then a guard.
+
 ## 4. Execution model and feedback
 
 ### Controls
@@ -400,7 +414,7 @@ The simulation engine is separate from visual animation. Animations display simu
 
 ## 5. Difficulty progression and campaign structure
 
-> **Planned:** the campaign grows to 20 worlds (Patrol and the item, tile, and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 15 worlds, 33 chapters, 83 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
+> **Planned:** the campaign grows to 20 worlds (Patrol and the item, tile, and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 16 worlds, 36 chapters, 89 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
 
 The campaign is a tree: **worlds** (one concept each), **chapters** (small groups within a world), and **levels**. Levels unlock sequentially along the flattened order (world, then chapter, then level). The stages below map onto worlds. Placement is campaign data managed in the dashboard, not part of a level's definition.
 
@@ -422,6 +436,7 @@ Teach concepts progressively rather than making early levels arbitrarily difficu
 | 12  | Sweep         | Covering everything efficiently      | Systematic coverage (the lawnmower sweep) and efficiency: the same job in far fewer steps               | goal type "visit every floor cell"; step budgets that scale with the board | 5      |
 | 13  | Patrol        | Timing and prediction                | Obstacles that move by a fixed pattern: read the pattern, go around, or wait for the right step         | patrols: guards on a route that depends on the step number (built; 3.9)    | 6      |
 | 14  | Keys          | Order of dependencies                | Fetch what you need before you need it: a door stays shut until its key has been taken                  | keys and doors: `locks`, picked up by entering a cell (built; 3.11)        | 6      |
+| 16  | Switches      | State machines, toggled gates        | Count the state: a switch flips its gate every time it is entered, so passing twice undoes it           | switches and gates: `switches`, flipped by entering a cell (built; 3.13)   | 6      |
 | 15  | Delivery      | Carry and drop, sub-goals            | Finish a sub-goal before the main goal: carry a crate to its dock, one at a time, then reach the target | crates and docks: `deliveries`, one carried at a time (built; 3.12)        | 6      |
 
 World 2 ends on its longest flat program (19 tiles), so loops are wanted when the Loops world starts. The budget ideas ("the limit equals par") live in the last chapter of the Routes world.

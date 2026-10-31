@@ -101,6 +101,8 @@ Sizes are relative. There are no dates; a phase is done when its exit criteria a
 
 **World 14 built 2026-10-31:** keys and doors as `locks` (automatic pickup on entering a cell, a shut door blocks like a wall, `BLOCKED_BY_DOOR`), contract and both simulators with fixtures, the solver with keys held, the `keys` mechanic, drawing on both boards, six levels (`first-key`, `side-room`, `two-doors`, `maze-gate`, `guarded-key`, `keys-and-a-guard`). **World 15 built 2026-10-31:** `deliveries` (crates and docks). Decision: dropping is automatic on entering the dock of the carried item, so no new tile; hands hold one crate; the target counts only when every crate is delivered (`UNDELIVERED`). Contract and both simulators with 25 fixtures, the solver with carried and delivered in the state, the `delivery` mechanic, crates and docks on both boards, six levels (`first-parcel`, `behind-the-start`, `two-parcels`, `full-hands`, `behind-the-door`, `guarded-parcel`).
 
+**World 16 built 2026-10-31:** `switches` (a switch flips its gate every time it is entered; a gate may start open; `BLOCKED_BY_GATE`, event `SWITCHED`), contract and both simulators with fixtures, the solver with the switches flipped in the state, the `switch` mechanic, drawing on both boards, six levels (`first-switch`, `twice-over`, `two-gates`, `flip-flop`, `gate-and-crate`, `gate-and-guard`).
+
 - Build the item and door mechanic once (key, door, pick up, drop) and use it for both worlds. New commands or automatic pickup is a decision for the design step; prefer the smallest change that teaches ordering.
 - Each world ends with its "with patrols" chapter.
 - **Exit:** checklist in section 6; world 14 playable, then world 15 as a data-and-small-rule extension.
