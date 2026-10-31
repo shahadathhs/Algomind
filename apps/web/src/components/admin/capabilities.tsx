@@ -19,6 +19,8 @@ const MECHANICS = [
   "nested_loops",
   "markers",
   "visit_all",
+  "start_program",
+  "patrol",
 ];
 
 /** Which mechanics each released app version supports. Publishing checks the minimum version. */

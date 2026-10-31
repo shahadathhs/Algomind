@@ -25,18 +25,21 @@ const analysisOf = (entry: (typeof built)[number]) => {
 };
 
 describe("the starter campaign", () => {
-  it("has ten worlds, twenty chapters, and eighty-two levels in a fixed order", () => {
+  it("has thirteen worlds, twenty-seven chapters, and seventy-one levels in a fixed order", () => {
     expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual([
       "Basics",
       "Routes",
       "Loops",
       "Until",
       "Decisions",
+      "Wall follower",
       "Procedures",
+      "Debug",
       "Generalize",
       "Counters",
       "Memory",
       "Sweep",
+      "Patrol",
     ]);
     expect(CAMPAIGN.worlds.flatMap((w) => w.chapters.map((c) => c.title))).toEqual([
       "Moves",
@@ -48,9 +51,13 @@ describe("the starter campaign", () => {
       "Run to the wall",
       "Corridors",
       "Look",
-      "Follow the wall",
+      "Both sides",
+      "Right hand",
+      "Other ways",
       "Name it",
       "Parts",
+      "Counts and ends",
+      "Branches and parts",
       "Sizes",
       "Shapes",
       "Growing",
@@ -59,8 +66,25 @@ describe("the starter campaign", () => {
       "Dead ends",
       "Rooms",
       "Halls",
+      "Dodge",
+      "Rings",
+      "Two guards",
     ]);
-    expect(LEVELS).toHaveLength(82);
+    expect(LEVELS).toHaveLength(71);
+  });
+
+  it("gives every Patrol level guards, and no other level any", () => {
+    for (const entry of built) {
+      const patrol = entry.world.title === "Patrol";
+      expect(entry.def.patrols !== undefined, entry.def.slug).toBe(patrol);
+      if (!patrol) continue;
+      // The guards matter: the shortest program without them fails, and the limit is the exact par.
+      const bare = solve({ ...entry.level, patrols: undefined })!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+      expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
+    }
   });
 
   it("uses each slug, title, and board once", () => {
@@ -99,16 +123,17 @@ describe("the starter campaign", () => {
       // Each loop and decision belongs to its world: Repeat to world 3, Repeat until to worlds 4 and 5,
       // If to world 5, none of them earlier.
       const world = entry.world.title;
-      const all = world === "Generalize";
+      const all = world === "Generalize" || world === "Debug";
+      const decide = world === "Decisions" || world === "Wall follower";
       const later = ["Counters", "Memory", "Sweep"].includes(world);
       expect(entry.def.commands.includes("REPEAT")).toBe(
         world === "Loops" || world === "Procedures" || world === "Counters" || all,
       );
       expect(entry.def.commands.includes("REPEAT_UNTIL")).toBe(
-        world === "Until" || world === "Decisions" || later || all,
+        world === "Until" || decide || later || all,
       );
       expect(entry.def.commands.includes("IF")).toBe(
-        world === "Decisions" || world === "Memory" || world === "Sweep" || all,
+        decide || world === "Memory" || world === "Sweep" || all,
       );
       expect(entry.def.commands.includes("INC")).toBe(world === "Counters");
       expect(entry.def.commands.includes("MARK")).toBe(world === "Memory");
@@ -125,7 +150,9 @@ describe("the starter campaign", () => {
       Loops: ["REPEAT"],
       Until: ["REPEAT_UNTIL"],
       Decisions: ["REPEAT_UNTIL", "IF"],
+      "Wall follower": ["REPEAT_UNTIL", "IF"],
       Procedures: ["REPEAT", "PROC"],
+      Debug: ["REPEAT", "REPEAT_UNTIL", "IF", "PROC"],
       Generalize: ["REPEAT", "REPEAT_UNTIL", "IF", "PROC"],
       Counters: ["REPEAT", "REPEAT_UNTIL", "INC"],
       Memory: ["REPEAT_UNTIL", "IF", "MARK"],
@@ -142,7 +169,10 @@ describe("the starter campaign", () => {
       const par = analysisOf(entry).par!.commands;
       const world = entry.world.title;
       const chapter = entry.chapterTitle;
-      if (chapter === "Budgets" || !["Routes"].includes(world)) {
+      if (world === "Debug") {
+        // The limit fits the broken program and its fix; par is the best program there is.
+        expect(entry.def.maxCommands, entry.def.slug).toBeGreaterThanOrEqual(par);
+      } else if (chapter === "Budgets" || !["Routes"].includes(world)) {
         expect(entry.def.maxCommands, entry.def.slug).toBe(par);
       } else {
         expect(entry.def.maxCommands, entry.def.slug).toBeGreaterThan(par);
@@ -164,6 +194,7 @@ describe("the starter campaign", () => {
     { world: "Loops", ratio: 2, strip: ["REPEAT", "REPEAT_UNTIL"], uses: "REPEAT" },
     { world: "Until", ratio: 1.5, strip: ["REPEAT", "REPEAT_UNTIL"], uses: "REPEAT_UNTIL" },
     { world: "Decisions", ratio: 1.5, strip: ["IF"], uses: "IF" },
+    { world: "Wall follower", ratio: 1.5, strip: ["IF"], uses: "IF" },
     { world: "Procedures", ratio: 1.3, strip: ["PROC"], uses: "PROC" },
     { world: "Counters", ratio: 2, strip: ["INC"], uses: "INC" },
   ];

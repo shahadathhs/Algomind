@@ -103,7 +103,7 @@ check(
 
 // ---- submissions and points
 const first = await levelProgram("first-step"),
-  count = await levelProgram("count-the-cells");
+  count = await levelProgram("beside-the-wall");
 const sub = async (who, slug, p, extra = {}) =>
   call(
     "POST",
@@ -118,7 +118,7 @@ check(
   (r.json.achievements ?? []).some((b) => b.slug === "first-clear"),
   JSON.stringify(r.json.achievements),
 );
-await sub(A, "count-the-cells", count);
+await sub(A, "beside-the-wall", count);
 await sub(B, "first-step", first);
 await sub(C, "first-step", first);
 

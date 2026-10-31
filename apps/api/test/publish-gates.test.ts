@@ -45,6 +45,74 @@ describe("publish gates", () => {
     expect(codes(failed)).toContain("REFERENCE_SOLUTION_FAILS");
   });
 
+  it("start program: a debug level's start program must not already solve it", () => {
+    const solves = gates(level({ startProgram: SOLUTION }), SOLUTION);
+    expect(codes(solves)).toContain("START_PROGRAM_SOLVES");
+    expect(solves.find((i) => i.code === "START_PROGRAM_SOLVES")?.gate).toBe("start_program");
+  });
+
+  it("start program: a broken program passes, and the level then needs the mechanic", () => {
+    const broken = [{ op: "MOVE_FORWARD" }, { op: "MOVE_FORWARD" }, { op: "TURN_LEFT" }];
+    // An app that cannot start a tape with a program refuses the level, which is the point.
+    const needs = codes(gates(level({ startProgram: broken }), SOLUTION));
+    expect(needs).toEqual(["UNSUPPORTED_MECHANIC"]);
+    const supported = {
+      minimum: { version: "0.0.2", supportedMechanics: ["move", "turn", "start_program"] },
+      registry: [{ version: "0.0.2", supportedMechanics: ["move", "turn", "start_program"] }],
+    };
+    expect(gates(level({ startProgram: broken }), SOLUTION, supported)).toEqual([]);
+    const analysis = analyzeLevel(level({ startProgram: broken }), SOLUTION);
+    expect(analysis.requiredMechanics).toContain("start_program");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("start_program");
+  });
+
+  it("start program: one longer than the limit is refused by the validator", () => {
+    const tooLong = Array.from({ length: 7 }, () => ({ op: "MOVE_FORWARD" }));
+    const failed = gates(level({ startProgram: tooLong }), SOLUTION);
+    expect(failed.some((i) => i.gate === "validation" && i.path === "startProgram")).toBe(true);
+  });
+
+  it("patrol: a level with guards needs the mechanic, and its par is searched over time", () => {
+    // A guard on the far side of the board never meets the straight solution.
+    const guarded = level({
+      patrols: [
+        {
+          pattern: "back_and_forth",
+          cells: [
+            [4, 4],
+            [3, 4],
+          ],
+        },
+      ],
+    });
+    const analysis = analyzeLevel(guarded, SOLUTION);
+    expect(analysis.errors).toEqual([]);
+    expect(analysis.requiredMechanics).toContain("patrol");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("patrol");
+    expect(codes(gates(guarded, SOLUTION))).toEqual(["UNSUPPORTED_MECHANIC"]);
+  });
+
+  it("patrol: a reference solution that meets a guard does not solve the level", () => {
+    const blocked = level({
+      patrols: [
+        {
+          pattern: "loop",
+          cells: [
+            [1, 3],
+            [0, 3],
+            [0, 2],
+            [1, 2],
+          ],
+        },
+      ],
+    });
+    const failed = gates(blocked, SOLUTION, {
+      minimum: { version: "0.0.2", supportedMechanics: ["move", "turn", "patrol"] },
+      registry: [{ version: "0.0.2", supportedMechanics: ["move", "turn", "patrol"] }],
+    });
+    expect(codes(failed)).toContain("REFERENCE_SOLUTION_FAILS");
+  });
+
   it("par: refuses a goal that cannot be reached", () => {
     const walled = level({
       board: {

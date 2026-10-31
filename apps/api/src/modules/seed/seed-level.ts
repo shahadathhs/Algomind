@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { solve, type CommandName, type Direction, type Level } from "@algomind/level-contract";
+import {
+  solve,
+  type CommandName,
+  type Direction,
+  type Level,
+  type Program,
+} from "@algomind/level-contract";
 import type { Prisma } from "../../generated/prisma/client.js";
 import { analyzeLevel, contentHash } from "../levels/level-analysis.js";
 import type { ValidationSummary } from "../levels/levels.schemas.js";
@@ -49,6 +55,13 @@ export type LevelDef = {
   requires?: readonly string[];
   /** More test boards as text rows (the same alphabet as `rows`): one program must solve them all. */
   extraBoards?: readonly (readonly string[])[];
+  /** A debug level: the program the tape starts with. It must fail; `solution` is its fix. */
+  startProgram?: readonly unknown[];
+  /** Guards that walk a fixed route: their cell depends only on the step number. */
+  patrols?: readonly {
+    pattern: "back_and_forth" | "loop";
+    cells: readonly (readonly [number, number])[];
+  }[];
 };
 
 /** The seed content failed the validator or solver: a bug in the data, never a runtime problem. */
@@ -80,6 +93,15 @@ export function buildLevel(def: LevelDef, id: string): Level {
               goal: goalOf(extra.goal),
             };
           }),
+        }
+      : {}),
+    ...(def.startProgram ? { startProgram: structuredClone(def.startProgram) as Program } : {}),
+    ...(def.patrols
+      ? {
+          patrols: def.patrols.map((p) => ({
+            pattern: p.pattern,
+            cells: p.cells.map((c) => [...c]),
+          })) as Level["patrols"],
         }
       : {}),
     hints: [...(def.hints ?? [])],

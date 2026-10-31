@@ -196,6 +196,8 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
           "nested_loops",
           "visit_all",
           "multi_board",
+          "start_program",
+          "patrol",
         ],
         isMinimum: !hasMinimum,
       },
