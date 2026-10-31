@@ -18,6 +18,8 @@ var facing := "north":
 		facing = value
 		_on_moved()
 var trail: Array[Vector2i] = []
+## Every cell entered, with repeats: what keys, crates and switches are replayed from.
+var route: Array[Vector2i] = []
 var crumbs := {}
 var hit_wall: Variant = null
 ## How many steps of the run are shown: the guards stand where they do after that many steps. It is
@@ -56,11 +58,13 @@ func show_state(
 	direction: String,
 	passed: Array[Vector2i],
 	blocked: Variant,
-	marks: Dictionary = {}
+	marks: Dictionary = {},
+	walked: Array[Vector2i] = []
 ) -> void:
 	automaton = Vector2(int(position[0]), int(position[1]))
 	facing = direction
 	trail = passed
+	route = walked if not walked.is_empty() else passed
 	crumbs = marks
 	hit_wall = blocked
 	nudge = Vector2.ZERO
@@ -110,11 +114,13 @@ func _draw() -> void:
 				_draw_trail(rect, crumbs.get(point, ""))
 			else:
 				draw_rect(rect, Palette.FLOOR)
+	if level.has("ice") or level.has("belts"):
+		FloorDraw.draw(self, level, _unit_to_canvas(geometry), Palette.WALL_HATCH, Palette.INK)
 	if level.has("locks"):
 		_draw_locks(geometry)
 	if level.has("deliveries"):
 		ItemDraw.draw_floor(
-			self, level, trail, _unit_to_canvas(geometry), Palette.FLOOR, Palette.INK
+			self, level, route, _unit_to_canvas(geometry), Palette.FLOOR, Palette.INK
 		)
 	if level.has("switches"):
 		_draw_switches(geometry)
@@ -122,7 +128,7 @@ func _draw() -> void:
 	if level.has("deliveries"):
 		var colors := {"edge": Palette.ON_INK, "fill": Palette.SIGNAL}
 		ItemDraw.draw_carried(
-			self, level, trail, _unit_to_canvas(geometry), automaton + nudge, colors
+			self, level, route, _unit_to_canvas(geometry), automaton + nudge, colors
 		)
 	if level.has("patrols"):
 		var origin := cell_rect(Vector2.ZERO, geometry).position
@@ -146,8 +152,8 @@ func _unit_to_canvas(geometry: Dictionary) -> Callable:
 ## Keys, and each door shut or open by whether its key has been taken.
 func _draw_locks(geometry: Dictionary) -> void:
 	var place := _unit_to_canvas(geometry)
-	var taken := LockDraw.held(level, trail)
-	LockDraw.draw_keys(self, level, trail, place, Palette.FLOOR)
+	var taken := LockDraw.held(level, route)
+	LockDraw.draw_keys(self, level, route, place, Palette.FLOOR)
 	for i in (level["locks"] as Array).size():
 		LockDraw.draw_door(self, level, i, taken.has(i), place, true)
 
@@ -155,8 +161,8 @@ func _draw_locks(geometry: Dictionary) -> void:
 ## Switch plates, and each gate shut or open by how often its switch has been entered.
 func _draw_switches(geometry: Dictionary) -> void:
 	var place := _unit_to_canvas(geometry)
-	SwitchDraw.draw_switches(self, level, trail, place, Palette.INK)
-	var open: Dictionary = SwitchDraw.state(level, trail)["open"]
+	SwitchDraw.draw_switches(self, level, route, place, Palette.INK)
+	var open: Dictionary = SwitchDraw.state(level, route)["open"]
 	var colors := {"block": Palette.INK, "bar": Palette.ON_INK}
 	for i in (level["switches"] as Array).size():
 		SwitchDraw.draw_gate(self, level, i, open.has(i), place, true, colors)

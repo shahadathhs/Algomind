@@ -151,12 +151,12 @@ func test_malformed_placement_gives_an_empty_campaign() -> void:
 func test_bundled_campaign_loads_cleanly() -> void:
 	var campaign := Campaign.load_bundled()
 	assert_eq(campaign.errors, [] as Array[String])
-	assert_eq(campaign.entries.size(), 89, "the bundled campaign is the published starter set")
-	assert_eq(campaign.worlds.size(), 16)
+	assert_eq(campaign.entries.size(), 95, "the bundled campaign is the published starter set")
+	assert_eq(campaign.worlds.size(), 17)
 	var chapters := 0
 	for world in campaign.worlds:
 		chapters += world["chapters"].size()
-	assert_eq(chapters, 36)
+	assert_eq(chapters, 39)
 
 
 func test_every_bundled_level_is_solvable_within_its_limit() -> void:
@@ -173,6 +173,10 @@ func test_every_bundled_level_is_solvable_within_its_limit() -> void:
 			# One program solves every board, so the plain program for the first board says nothing
 			# about the limit; the server checks the reference solution on all of them. A debug
 			# level's limit fits its broken program and the fix, not the need for a loop.
+			continue
+		if level.has("ice"):
+			# A move onto ice slides, so walking cell by cell can be longer than the limit; the
+			# server's solver moves through the same rules as the simulator and checks the par.
 			continue
 		if (
 			level["availableCommands"].has("REPEAT")

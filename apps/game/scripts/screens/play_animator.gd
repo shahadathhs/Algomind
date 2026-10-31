@@ -26,12 +26,22 @@ static func show_step(p: PlayScreen, id: int, entry: Dictionary) -> bool:
 		var tween := p.create_tween().set_parallel(true)
 		if UiLook.depth:
 			tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		tween.tween_property(p._board, "automaton", target, slide)
 		tween.tween_property(p._board, "guard_time", float(entry["index"]) + 1.0, slide)
 		tween.tween_property(
 			p._tape_view, "scroll", p._tape_view.head_scroll(p._tape_view.current), slide
 		)
-		await tween.finished
+		# A slide or a carry goes through every cell of the step's path in turn.
+		var cells: Array = entry.get("path", [])
+		var chain := p.create_tween()
+		if UiLook.depth:
+			chain.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		if cells.size() > 1:
+			for cell_on_path: Array in cells:
+				var at := Vector2(int(cell_on_path[0]), int(cell_on_path[1]))
+				chain.tween_property(p._board, "automaton", at, slide / float(cells.size()))
+		else:
+			chain.tween_property(p._board, "automaton", target, slide)
+		await chain.finished
 	else:
 		p._board.automaton = target
 		p._board.guard_time = float(entry["index"]) + 1.0

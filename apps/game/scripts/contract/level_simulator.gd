@@ -163,6 +163,9 @@ static func simulate(level: Dictionary, program: Array) -> Dictionary:
 		"held": {},
 		"items": RunItems.tables(level)["items"],
 		"docks": RunItems.tables(level)["docks"],
+		"ice": _ice_cells(level),
+		"belts": _belt_cells(level),
+		"routed": level.has("ice") or level.has("belts"),
 		"switches": RunGates.tables(level)["switches"],
 		"gates": RunGates.tables(level)["gates"],
 		"starts_open": RunGates.tables(level)["starts_open"],
@@ -208,3 +211,19 @@ static func simulate_all(level: Dictionary, program: Array) -> Dictionary:
 		"steps": steps,
 		"results": results,
 	}
+
+
+## The ice cells of a level as a set of cells.
+static func _ice_cells(level: Dictionary) -> Dictionary:
+	var out := {}
+	for cell: Array in level.get("ice", []):
+		out[Vector2i(int(cell[0]), int(cell[1]))] = true
+	return out
+
+
+## The belts of a level: cell to the name of the direction it carries.
+static func _belt_cells(level: Dictionary) -> Dictionary:
+	var out := {}
+	for belt: Dictionary in level.get("belts", []):
+		out[Vector2i(int(belt["cell"][0]), int(belt["cell"][1]))] = String(belt["direction"])
+	return out

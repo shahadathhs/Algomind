@@ -72,6 +72,10 @@ for size in 390x844 360x640 412x915; do
 		shot play-switch-failed play "$theme" "$size" --level=first-switch --program=MMMM --steps=-1
 		shot play-switch-depth play "$theme" "$size" --level=flip-flop --program=MMMLLMMMMM --steps=4 --look=depth
 		shot play-switch-failed-depth play "$theme" "$size" --level=first-switch --program=MMMM --steps=-1 --look=depth
+		shot play-ice play "$theme" "$size" --level=three-ice-cells --program=MMRMRMMM --steps=2
+		shot play-belts play "$theme" "$size" --level=belt-line --program=RMLMLMLM --steps=3
+		shot play-ice-depth play "$theme" "$size" --level=three-ice-cells --program=MMRMRMMM --steps=2 --look=depth
+		shot play-belts-depth play "$theme" "$size" --level=belt-line --program=RMLMLMLM --steps=3 --look=depth
 		shot play-delivery-failed play "$theme" "$size" --level=first-parcel --program=MMMM --steps=-1
 		shot play-delivery-depth play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=8 --look=depth
 		shot play-delivery-failed-depth play "$theme" "$size" --level=first-parcel --program=MMMM --steps=-1 --look=depth

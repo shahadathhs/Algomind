@@ -100,14 +100,30 @@ func automaton_state() -> Dictionary:
 	return {"position": entry["position"], "direction": entry["direction"]}
 
 
-## Cells the automaton has stood on so far, start included, as Vector2i.
-func trail() -> Array[Vector2i]:
+## Every cell the automaton has entered so far, in order and with repeats, the start first. A step
+## on a level with ice or belts lists all the cells it went through (its `path`); otherwise a move
+## that was not blocked entered the cell it ended on. Effects of the board (keys, crates, switches)
+## are replayed from this list.
+func route() -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	var start_cell: Array = level["initialState"]["position"]
 	cells.append(Vector2i(int(start_cell[0]), int(start_cell[1])))
 	for i in cursor:
-		var cell: Array = trace()[i]["position"]
-		var point := Vector2i(int(cell[0]), int(cell[1]))
+		var entry: Dictionary = trace()[i]
+		var entered: Array = []
+		if entry.has("path"):
+			entered = entry["path"]
+		elif entry["op"] == "MOVE_FORWARD" and not str(entry["event"]).begins_with("BLOCKED"):
+			entered = [entry["position"]]
+		for cell: Array in entered:
+			cells.append(Vector2i(int(cell[0]), int(cell[1])))
+	return cells
+
+
+## Cells the automaton has stood on so far, start included, as Vector2i, each once.
+func trail() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for point in route():
 		if not cells.has(point):
 			cells.append(point)
 	return cells

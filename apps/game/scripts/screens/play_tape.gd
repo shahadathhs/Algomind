@@ -66,7 +66,8 @@ static func show_board(p: PlayScreen) -> void:
 		auto["direction"],
 		p._session.trail(),
 		p._session.blocked_cell(),
-		p._session.crumbs()
+		p._session.crumbs(),
+		p._session.route()
 	)
 	p._board.guard_time = float(p._session.cursor)
 

@@ -108,9 +108,10 @@ func show_state(
 	direction: String,
 	passed: Array[Vector2i],
 	blocked: Variant,
-	marks: Dictionary = {}
+	marks: Dictionary = {},
+	walked: Array[Vector2i] = []
 ) -> void:
-	super.show_state(position, direction, passed, blocked, marks)
+	super.show_state(position, direction, passed, blocked, marks, walked)
 	_floor.queue_redraw()
 
 
@@ -154,6 +155,8 @@ func _draw() -> void:
 func _add_floor_pieces(view: BoardProjection, items: Array[Dictionary]) -> void:
 	var flat := func(unit: Vector2) -> Vector2:
 		return view.project(unit.x, unit.y, BoardProjection.Z_FLOOR)
+	if level.has("ice") or level.has("belts"):
+		FloorDraw.draw(self, level, flat, DepthPalette.WALL_HATCH, DepthPalette.INK)
 	if level.has("locks"):
 		var open_doors := _draw_floor_locks(view)
 		var locks: Array = level["locks"]
@@ -164,10 +167,10 @@ func _add_floor_pieces(view: BoardProjection, items: Array[Dictionary]) -> void:
 					{"depth": view.depth(door.x + 0.5, door.y + 0.5), "wall": null, "door": i}
 				)
 	if level.has("deliveries"):
-		ItemDraw.draw_floor(self, level, trail, flat, DepthPalette.FLOOR, DepthPalette.INK)
+		ItemDraw.draw_floor(self, level, route, flat, DepthPalette.FLOOR, DepthPalette.INK)
 	if level.has("switches"):
-		SwitchDraw.draw_switches(self, level, trail, flat, DepthPalette.INK)
-		var open: Dictionary = SwitchDraw.state(level, trail)["open"]
+		SwitchDraw.draw_switches(self, level, route, flat, DepthPalette.INK)
+		var open: Dictionary = SwitchDraw.state(level, route)["open"]
 		var colors := {"block": DepthPalette.INK, "bar": DepthPalette.ON_INK}
 		var pairs: Array = level["switches"]
 		for i in pairs.size():
@@ -208,8 +211,8 @@ func _draw_wall_block(view: BoardProjection, point: Vector2i, hit: bool) -> void
 func _draw_floor_locks(view: BoardProjection) -> Dictionary:
 	var place := func(unit: Vector2) -> Vector2:
 		return view.project(unit.x, unit.y, BoardProjection.Z_FLOOR)
-	var taken := LockDraw.held(level, trail)
-	LockDraw.draw_keys(self, level, trail, place, DepthPalette.FLOOR)
+	var taken := LockDraw.held(level, route)
+	LockDraw.draw_keys(self, level, route, place, DepthPalette.FLOOR)
 	for i in taken:
 		LockDraw.draw_door(self, level, i, true, place, false)
 	return taken
@@ -295,4 +298,4 @@ func _draw_automaton_block(view: BoardProjection, at: Vector2) -> void:
 		var carried := func(unit: Vector2) -> Vector2:
 			return view.project(unit.x, unit.y, top + 0.003)
 		var crate := {"edge": DepthPalette.ON_INK, "fill": DepthPalette.SIGNAL}
-		ItemDraw.draw_carried(self, level, trail, carried, at, crate)
+		ItemDraw.draw_carried(self, level, route, carried, at, crate)
