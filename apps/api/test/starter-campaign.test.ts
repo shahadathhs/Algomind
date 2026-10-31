@@ -25,7 +25,7 @@ const analysisOf = (entry: (typeof built)[number]) => {
 };
 
 describe("the starter campaign", () => {
-  it("has sixteen worlds, thirty-six chapters, and eighty-nine levels in a fixed order", () => {
+  it("has seventeen worlds, thirty-nine chapters, and ninety-five levels in a fixed order", () => {
     expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual([
       "Basics",
       "Routes",
@@ -43,6 +43,7 @@ describe("the starter campaign", () => {
       "Keys",
       "Delivery",
       "Switches",
+      "Ice and belts",
     ]);
     expect(CAMPAIGN.worlds.flatMap((w) => w.chapters.map((c) => c.title))).toEqual([
       "Moves",
@@ -81,8 +82,11 @@ describe("the starter campaign", () => {
       "First switches",
       "Two gates",
       "In the way",
+      "Ice",
+      "Belts",
+      "Together",
     ]);
-    expect(LEVELS).toHaveLength(89);
+    expect(LEVELS).toHaveLength(95);
   });
 
   it("gives every Patrol level guards, and no other level any", () => {
@@ -91,7 +95,8 @@ describe("the starter campaign", () => {
         entry.world.title === "Patrol" ||
         entry.chapterTitle === "Guarded" ||
         entry.def.slug === "guarded-parcel" ||
-        entry.def.slug === "gate-and-guard";
+        entry.def.slug === "gate-and-guard" ||
+        entry.def.slug === "belts-and-a-guard";
       expect(entry.def.patrols !== undefined, entry.def.slug).toBe(patrol);
       if (!patrol) continue;
       // The guards matter: the shortest program without them fails, and the limit is the exact par.
@@ -150,6 +155,19 @@ describe("the starter campaign", () => {
         deliveries: undefined,
         patrols: undefined,
       })!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+      expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
+    }
+  });
+
+  it("gives every Ice and belts level ice or belts, and the shortest program that ignores them fails", () => {
+    for (const entry of built) {
+      const floor = entry.world.title === "Ice and belts";
+      expect((entry.def.ice ?? entry.def.belts) !== undefined, entry.def.slug).toBe(floor);
+      if (!floor) continue;
+      const bare = solve({ ...entry.level, ice: undefined, belts: undefined, patrols: undefined })!;
       expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
         "FAILED",
       );

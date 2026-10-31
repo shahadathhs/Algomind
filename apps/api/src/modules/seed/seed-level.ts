@@ -67,6 +67,13 @@ export type LevelDef = {
     gate: readonly [number, number];
     open?: boolean;
   }[];
+  /** Ice cells: a move onto ice slides on while the way is free. */
+  ice?: readonly (readonly [number, number])[];
+  /** Belts: after an action that leaves the automaton on one, it is carried a cell. */
+  belts?: readonly {
+    cell: readonly [number, number];
+    direction: "north" | "east" | "south" | "west";
+  }[];
   /** Guards that walk a fixed route: their cell depends only on the step number. */
   patrols?: readonly {
     pattern: "back_and_forth" | "loop";
@@ -126,6 +133,15 @@ export function buildLevel(def: LevelDef, id: string): Level {
             gate: [...s.gate],
             ...(s.open !== undefined ? { open: s.open } : {}),
           })) as Level["switches"],
+        }
+      : {}),
+    ...(def.ice ? { ice: def.ice.map((c) => [...c]) as Level["ice"] } : {}),
+    ...(def.belts
+      ? {
+          belts: def.belts.map((b) => ({
+            cell: [...b.cell],
+            direction: b.direction,
+          })) as Level["belts"],
         }
       : {}),
     ...(def.patrols

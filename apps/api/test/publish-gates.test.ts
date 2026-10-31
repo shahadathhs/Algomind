@@ -140,6 +140,21 @@ describe("publish gates", () => {
     expect(analysis.errors.map((e) => e.code)).toContain("REFERENCE_SOLUTION_FAILS");
   });
 
+  it("ice and belts: a level with them needs the mechanics, and the slide changes where a move ends", () => {
+    const icy = level({
+      ice: [
+        [0, 3],
+        [0, 2],
+      ],
+    });
+    const analysis = analyzeLevel(icy, SOLUTION);
+    expect(analysis.requiredMechanics).toContain("ice");
+    expect(analysis.requiredMechanics).not.toContain("belts");
+    const belted = level({ belts: [{ cell: [0, 3], direction: "east" }] });
+    expect(analyzeLevel(belted, SOLUTION).requiredMechanics).toContain("belts");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("ice");
+  });
+
   it("par: refuses a goal that cannot be reached", () => {
     const walled = level({
       board: {

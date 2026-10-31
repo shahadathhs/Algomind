@@ -1,4 +1,4 @@
-// The starter campaign: sixteen worlds, thirty-six chapters, eighty-nine levels, in play order.
+// The starter campaign: seventeen worlds, thirty-nine chapters, ninety-five levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
@@ -27,6 +27,9 @@
 // World 16 (Switches) puts switches and gates on the board (`switches`): entering a switch flips its gate every
 // time, a gate may start open (`open`), and the search adds the switches flipped to the state. Its last chapter has a
 // crate and a guard.
+// World 17 (Ice and belts) puts ice (`ice`) and belts (`belts`) on the board: a move onto ice slides on while the way is
+// free, a belt carries the automaton one cell after an action; the search moves through the same World code as the
+// simulator. Its last chapter adds a guard.
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -5330,6 +5333,322 @@ export const CAMPAIGN = {
                     ],
                     [
                       4,
+                      2
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Ice and belts",
+      "description": "Ice keeps the automaton sliding and belts carry it on. Work out where each action leaves it.",
+      "chapters": [
+        {
+          "title": "Ice",
+          "levels": [
+            {
+              "slug": "first-slide",
+              "title": "First slide",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 3,
+              "maxSteps": 120,
+              "rows": [
+                "....G..",
+                ">....#.",
+                "......."
+              ],
+              "hints": [
+                "A move onto ice slides on: the automaton stops at a wall or on the first cell that is not ice.",
+                "Let the ice carry you to the wall, then turn."
+              ],
+              "ice": [
+                [
+                  1,
+                  1
+                ],
+                [
+                  2,
+                  1
+                ],
+                [
+                  3,
+                  1
+                ],
+                [
+                  4,
+                  1
+                ]
+              ]
+            },
+            {
+              "slug": "three-ice-cells",
+              "title": "Three ice cells",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 8,
+              "maxSteps": 120,
+              "rows": [
+                "..##...",
+                ">......",
+                ".#G....",
+                "...#..."
+              ],
+              "hints": [
+                "A slide ends past the ice, on the first cell that is not ice.",
+                "Plan the turn from where the slide stops, not from where it starts."
+              ],
+              "ice": [
+                [
+                  2,
+                  1
+                ],
+                [
+                  3,
+                  1
+                ],
+                [
+                  4,
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Belts",
+          "levels": [
+            {
+              "slug": "pushed-aside",
+              "title": "Pushed aside",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 10,
+              "maxSteps": 120,
+              "rows": [
+                "....#..",
+                ".......",
+                "..#..#.",
+                ">.G..#."
+              ],
+              "hints": [
+                "A belt carries the automaton one cell after the action that ends on it.",
+                "A turn in place on a belt is carried too."
+              ],
+              "belts": [
+                {
+                  "cell": [
+                    1,
+                    2
+                  ],
+                  "direction": "north"
+                },
+                {
+                  "cell": [
+                    1,
+                    3
+                  ],
+                  "direction": "north"
+                }
+              ]
+            },
+            {
+              "slug": "belt-line",
+              "title": "Belt line",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 8,
+              "maxSteps": 120,
+              "rows": [
+                "#..##..",
+                "#......",
+                ">.G.#..",
+                "......#"
+              ],
+              "hints": [
+                "Belts act after every action, so a move can end a cell further on.",
+                "Follow one action at a time: where it leaves you, then where the belt takes you."
+              ],
+              "belts": [
+                {
+                  "cell": [
+                    1,
+                    3
+                  ],
+                  "direction": "east"
+                },
+                {
+                  "cell": [
+                    2,
+                    3
+                  ],
+                  "direction": "east"
+                },
+                {
+                  "cell": [
+                    3,
+                    3
+                  ],
+                  "direction": "east"
+                },
+                {
+                  "cell": [
+                    1,
+                    2
+                  ],
+                  "direction": "west"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Together",
+          "levels": [
+            {
+              "slug": "ice-and-belts",
+              "title": "Ice and belts",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 13,
+              "maxSteps": 120,
+              "rows": [
+                ".G.....",
+                "#.....#",
+                ">.#....",
+                "......."
+              ],
+              "hints": [
+                "A belt does not start a slide. Only a move onto ice does.",
+                "The top row is ice, and the belts below carry you toward it."
+              ],
+              "ice": [
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ]
+              ],
+              "belts": [
+                {
+                  "cell": [
+                    1,
+                    1
+                  ],
+                  "direction": "south"
+                },
+                {
+                  "cell": [
+                    4,
+                    1
+                  ],
+                  "direction": "east"
+                },
+                {
+                  "cell": [
+                    5,
+                    1
+                  ],
+                  "direction": "east"
+                }
+              ]
+            },
+            {
+              "slug": "belts-and-a-guard",
+              "title": "Belts and a guard",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 16,
+              "maxSteps": 120,
+              "rows": [
+                "#..##..",
+                "#......",
+                ">.G.#..",
+                "......."
+              ],
+              "hints": [
+                "The guard walks the two cells beside the goal.",
+                "A turn in place also takes a step, and a belt may carry you into the guard."
+              ],
+              "belts": [
+                {
+                  "cell": [
+                    1,
+                    3
+                  ],
+                  "direction": "east"
+                },
+                {
+                  "cell": [
+                    2,
+                    3
+                  ],
+                  "direction": "east"
+                },
+                {
+                  "cell": [
+                    3,
+                    3
+                  ],
+                  "direction": "east"
+                },
+                {
+                  "cell": [
+                    1,
+                    2
+                  ],
+                  "direction": "west"
+                }
+              ],
+              "patrols": [
+                {
+                  "pattern": "back_and_forth",
+                  "cells": [
+                    [
+                      3,
+                      1
+                    ],
+                    [
+                      3,
                       2
                     ]
                   ]

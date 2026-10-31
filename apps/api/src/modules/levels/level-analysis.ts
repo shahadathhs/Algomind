@@ -68,6 +68,8 @@ function offersUnsearched(level: {
   locks?: unknown;
   deliveries?: unknown;
   switches?: unknown;
+  ice?: unknown;
+  belts?: unknown;
   goal: { type: string };
   requires: { mechanics: readonly string[] };
 }): boolean {
@@ -82,7 +84,9 @@ function offersUnsearched(level: {
     level.extraBoards !== undefined ||
     // The exact search over patrols, keys, deliveries and switches covers flat programs only, so with
     // loops on offer the reference counts.
-    ([level.patrols, level.locks, level.deliveries, level.switches].some((x) => x !== undefined) &&
+    ([level.patrols, level.locks, level.deliveries, level.switches, level.ice, level.belts].some(
+      (x) => x !== undefined,
+    ) &&
       (c.includes("REPEAT") || c.includes("REPEAT_UNTIL")))
   );
 }
@@ -280,6 +284,8 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
   if (level.locks !== undefined) required.add("keys");
   if (level.deliveries !== undefined) required.add("delivery");
   if (level.switches !== undefined) required.add("switch");
+  if (level.ice !== undefined) required.add("ice");
+  if (level.belts !== undefined) required.add("belts");
   // A sweep goal on any board needs the client to draw and count it.
   const goals = [level.goal, ...(level.extraBoards ?? []).map((b) => b.goal)];
   if (goals.some((g) => g.type === "visit_all")) required.add("visit_all");

@@ -24,6 +24,8 @@ const MECHANICS = [
   "keys",
   "delivery",
   "switch",
+  "ice",
+  "belts",
 ];
 
 /** Which mechanics each released app version supports. Publishing checks the minimum version. */
