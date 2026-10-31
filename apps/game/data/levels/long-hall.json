@@ -14,7 +14,7 @@
     "Move once, then call the procedure again while the way ahead is clear."
   ],
   "title": "Long hall",
-  "levelId": "b13547b5-91b0-4851-8a38-f6eb1cc73090",
+  "levelId": "2f31b4be-9476-445a-b003-6fa1f9e72b46",
   "requires": {
     "mechanics": ["recursion"]
   },

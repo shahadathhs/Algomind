@@ -357,6 +357,28 @@
           "levels": ["return-trip", "snake"]
         }
       ]
+    },
+    {
+      "id": "capstone",
+      "title": "Capstone",
+      "summary": "Every tool of the earlier worlds, two or more at a time.",
+      "chapters": [
+        {
+          "id": "two-ideas",
+          "title": "Two ideas",
+          "levels": ["frozen-key", "gate-by-belt", "portal-freight"]
+        },
+        {
+          "id": "guarded",
+          "title": "Guarded",
+          "levels": ["key-gate-guard", "slip-and-jump", "belt-freight"]
+        },
+        {
+          "id": "all-together",
+          "title": "All together",
+          "levels": ["four-tools", "everything"]
+        }
+      ]
     }
   ],
   "par": {
@@ -779,6 +801,38 @@
     "snake": {
       "commands": 8,
       "steps": 18
+    },
+    "frozen-key": {
+      "commands": 14,
+      "steps": 14
+    },
+    "gate-by-belt": {
+      "commands": 19,
+      "steps": 19
+    },
+    "portal-freight": {
+      "commands": 19,
+      "steps": 19
+    },
+    "key-gate-guard": {
+      "commands": 19,
+      "steps": 19
+    },
+    "slip-and-jump": {
+      "commands": 18,
+      "steps": 18
+    },
+    "belt-freight": {
+      "commands": 19,
+      "steps": 19
+    },
+    "four-tools": {
+      "commands": 18,
+      "steps": 18
+    },
+    "everything": {
+      "commands": 19,
+      "steps": 19
     }
   }
 }

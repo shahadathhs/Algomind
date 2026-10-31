@@ -14,7 +14,7 @@
     "The call inside it stops at the wall."
   ],
   "title": "Hall and turn",
-  "levelId": "1e87fff8-0ab7-4954-8866-7b5ecbd9c4da",
+  "levelId": "d2fc912b-b1ac-41d5-86fd-308a6c7951db",
   "requires": {
     "mechanics": ["recursion"]
   },

@@ -109,7 +109,7 @@
     "Turn right when the right side is clear. Otherwise move, or turn left."
   ],
   "title": "Follow the bends",
-  "levelId": "b3caa3a4-0514-4d48-a4f5-caadb1fa1e34",
+  "levelId": "7f492d4f-21af-43cc-8741-fa100e24d56f",
   "requires": {
     "mechanics": []
   },

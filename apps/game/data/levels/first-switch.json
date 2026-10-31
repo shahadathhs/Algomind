@@ -21,7 +21,7 @@
     "Step on the switch to open the gate. Stepping on it again shuts it."
   ],
   "title": "First switch",
-  "levelId": "9700ff66-1f78-4dd9-addd-d832cde30f0a",
+  "levelId": "39a45d90-a40a-4f16-92aa-88ab5ad4827d",
   "requires": {
     "mechanics": []
   },

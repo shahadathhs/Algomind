@@ -22,7 +22,7 @@
     "Turn between the runs, in the same direction both times."
   ],
   "title": "Snake",
-  "levelId": "4dcc4458-6399-4b44-b80d-651f8020a873",
+  "levelId": "07a6d663-fb00-48f9-94bf-5e15f8d3991c",
   "requires": {
     "mechanics": ["recursion"]
   },

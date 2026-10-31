@@ -19,7 +19,7 @@
     "Each pass flips the gate. Count the passes."
   ],
   "title": "Gate and crate",
-  "levelId": "db51c02f-591d-4418-90e4-93c22141e98f",
+  "levelId": "d67c224a-5379-40f1-92f6-6eaa6edf7152",
   "requires": {
     "mechanics": []
   },
