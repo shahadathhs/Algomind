@@ -16,7 +16,64 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [ ] Procedures (world 6): the palette with up to ten tiles in two rows at 360 px, definition groups at the start of the tape, the CALL highlight while running, scrolling a long program
 - [ ] Playtest the 24 levels of worlds 4 to 6 with real people
 
-## Now: step 1, worlds 1 and 2 (18 levels)
+## Done 2026-10-31: the Patrol world (restructure phase 3)
+
+- [x] `patrols` in the contract (types, both validators, both schemas, both simulators, the solver over time, 30 fixtures), the API mechanic `patrol` and analysis, guards on the flat and depth boards, six levels (71 levels, 13 worlds)
+- [ ] The stop-by-step strip, numbered stops, and authoring patrols in the dashboard
+- [ ] A solved playtest of the six Patrol levels; look at the guard on a device
+- [ ] Reset Render's database when deploying (a new world was added after Sweep)
+
+## Done 2026-10-31: the Debug world (restructure phase 2)
+
+- [x] `startProgram` in the contract (types, both validators, both schemas, 5 fixtures), the API gate and mechanic, the game's tape and objective, and five levels (65 levels, 12 worlds)
+- [ ] Author a start program in the dashboard (the editor needs a second tape); today it is seed data only
+- [ ] A solved playtest of the five Debug levels; Reset must be checked to restore the start program on a device
+- [ ] Reset Render's database when deploying (the seed only adds, and the Debug world sits between existing worlds)
+
+## Done 2026-10-31: depth look phase 6 (the public site)
+
+- [x] Depth tokens as scoped CSS (`depth-tokens.css`, generated, tested); `Key`; buttons, wordmark, header, frames, number tiles; depth drawings (`look="depth"`: keys, trough, extruded board); the dashboard stays flat
+- [ ] Look at the site on a phone, light and dark; check `/play` with a browser build present (its frame is still flat); the share image is done
+- [ ] Decide whether the web needs a test runner for `board-projection.ts` (the game tests the same geometry)
+
+## Done 2026-10-31: depth look phase 4 (motion)
+
+- [x] Eased slide, lift between cells, turning wedge, rising goal pad, keys that sink and spring back; one shared reduce-motion flag; nothing runs while idle (9 tests)
+- [x] The world list is plates with a picture of each world's first level, and the menu shows the next level as a full-width board (3 tests)
+- [ ] Watch a run on a device at each run speed and with reduce motion on; check each duration is under 250 ms
+
+## Done 2026-10-31: depth look phase 1 (tokens and key kit)
+
+Plan: [docs/README_3D_VIEW_PLAN.md](docs/README_3D_VIEW_PLAN.md).
+
+- [x] Depth tokens in `packages/design-tokens/tokens.json`; the generator derives lips and shades and writes `depth_palette.gd`; contrast and docs-table tests
+- [x] `DepthKit` (gradient, keys, soft shadows, trough) and `DepthKitSample`; `--screen=depth_kit` in `make game-shots`; 7 GUT tests
+- [ ] Run `make game-shots` and look at the depth-kit sample on a real Android device; measure frame time with about 20 keys on screen (8 shadow layers a key)
+- [x] Phase 2: `BoardView25D` (adaptive camera, plate, low walls, goal pad, trail, breadcrumbs, sweep), `BoardViews.make`, the Look setting (default flat, local), `--look=depth` in the shot tool, 13 tests
+- [x] A STYLE row (flat or depth) in Settings, saved with the other settings
+- [ ] Look at the depth board on a real Android device (`make game-apk`, set the look) and measure frame time with the animation running on the 12x10 board
+- [x] Phase 3: the screens in the depth look (palette override, `TileDraw`, `TileButton` keys, trough, gradient, board area), 17 depth shots in `make game-shots`
+- [ ] Look at every depth screen on a real device and at 3 sizes in both themes there; the pause panel frame and the tape's loop brackets are still flat shapes
+- [x] Depth is the default look (`Settings.LOOK_DEFAULT`); flat stays in Settings. Rebuild the debug APK (`make game-apk`) or run `make game-run` to see it; an APK built earlier still shows the old look
+- [ ] After the device test, confirm depth stays the default or set `LOOK_DEFAULT` back to flat
+
+## Done 2026-10-31: restructure phase 1 (worlds 1 to 12, data only)
+
+Plan: [docs/README_WORLD_RESTRUCTURE_PLAN.md](docs/README_WORLD_RESTRUCTURE_PLAN.md). Picks and reasons: [docs/README_LEVEL_AUDIT.md](docs/README_LEVEL_AUDIT.md).
+
+- [x] The seed is 11 worlds, 22 chapters, 60 levels (was 10, 20, 82); the first loop is level 11 and the first `IF` is level 22
+- [x] Worlds 1 and 2 cut to 5 levels each; Decisions split into Decisions and Wall follower; 27 repeated levels cut
+- [x] Six new levels: `left-hall`, `first-door`, `follow-the-bends` (Decisions) and `left-hand`, `facing-away` (Wall follower); the reference solutions pass the seed's checks at startup
+- [x] `starter-campaign.test.ts`, `landing-sync.test.ts` data (`apps/web/src/lib/landing-level.ts`), the smoke script, and the game's `test_campaign.gd` updated
+- [x] Bundled par fixed (`scripts/bundle-levels.mjs` no longer overwrites the server's par with a first-board solver result)
+- [x] Local database reset and reseeded; the game bundle regenerated from the API (`make game-bundle`)
+- [x] API tests (294) and the GDScript tests (394) pass
+- [ ] Reset Render's database when deploying (the seed only adds; the old 82 levels stay otherwise)
+- [ ] Look at the 6 new levels and the changed order on a screen; a solved playtest for every level of worlds 1 to 12
+- [ ] The Debug world (needs a prefilled tape, restructure phase 2) and the new world 12 level the plan asked for (dropped: every Sweep level already has a tight step budget)
+- [ ] Limits in Memory (21 on every level) and the repeated hints in Procedures and Wall follower, from the audit, section 5
+
+## Done earlier: step 1, worlds 1 and 2 (18 levels, since replaced by the restructure)
 
 **Level lab** (`scripts/level-lab/`, see its README)
 
