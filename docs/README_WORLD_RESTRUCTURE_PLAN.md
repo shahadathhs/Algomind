@@ -105,6 +105,10 @@ Sizes are relative. There are no dates; a phase is done when its exit criteria a
 
 **World 17 built 2026-10-31:** `ice` and `belts`. Decisions: a slide is one step and goes through every cell it passes (effects fire in each, a target in the middle ends the run); a belt carries once per action, after any action, and neither chains nor slides; guards are checked where the step ends. Because movement now has several cases, the simulator and the solver share one `World` class and the game one `RunWorld`; trace entries gain `path` on levels with ice or belts. Six levels (`first-slide`, `three-ice-cells`, `pushed-aside`, `belt-line`, `ice-and-belts`, `belts-and-a-guard`).
 
+**World 18 built 2026-10-31:** `teleports` (a pair of cells; entering one end puts the automaton on the other in the same step, facing the same way, with no bounce back; `TELEPORTED`). It is one rule in `World`, so the solver needed no change. Five levels (`first-portal`, `far-corner`, `two-pairs`, `hop-and-walk`, `guarded-portal`).
+
+**World 19 built 2026-10-31:** `recursion`. Decisions: the level lists the mechanic (like `nested_loops`); a CALL may stand directly in a procedure body and may carry a sensor (`when`), which is the base case (no new tile and no CALL inside an IF branch); the depth limit is 24 calls and ends the run with `TOO_DEEP`; the solver stays out of procedures, so the limit is the reference solution's slots and a test checks the plain par against it. Levels offer movement and `PROC` only. Five levels (`long-hall`, `hall-and-turn`, `right-and-ahead`, `return-trip`, `snake`). No guard chapter (see 3.16).
+
 - Build the item and door mechanic once (key, door, pick up, drop) and use it for both worlds. New commands or automatic pickup is a decision for the design step; prefer the smallest change that teaches ordering.
 - Each world ends with its "with patrols" chapter.
 - **Exit:** checklist in section 6; world 14 playable, then world 15 as a data-and-small-rule extension.

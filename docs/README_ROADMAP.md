@@ -30,10 +30,10 @@ The game is called Algomind, so the campaign must teach algorithms, not only pat
 
 Two plans, agreed in direction on 2026-10-31, run in parallel:
 
-| Plan                                                  | Delivers                                                                                                                              | Status                                                                                                           |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| [World restructure](README_WORLD_RESTRUCTURE_PLAN.md) | 20 worlds with a faster ramp (loops at about level 11): worlds 1 to 12 from existing mechanics, then patrols, items, tiles, recursion | Order approved; worlds 1 to 17 built (patrols, keys and doors, delivery, switches, ice and belts), 18 to 20 next |
-| [Depth look](README_3D_VIEW_PLAN.md)                  | A new theme, UI, and 2.5D board, behind a Flat or Depth setting until approved on a device                                            | Direction approved; phase 1 (tokens) next                                                                        |
+| Plan                                                  | Delivers                                                                                                                              | Status                                                                                                                             |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| [World restructure](README_WORLD_RESTRUCTURE_PLAN.md) | 20 worlds with a faster ramp (loops at about level 11): worlds 1 to 12 from existing mechanics, then patrols, items, tiles, recursion | Order approved; worlds 1 to 19 built (patrols, keys and doors, delivery, switches, ice and belts, teleporters, recursion), 20 next |
+| [Depth look](README_3D_VIEW_PLAN.md)                  | A new theme, UI, and 2.5D board, behind a Flat or Depth setting until approved on a device                                            | Direction approved; phase 1 (tokens) next                                                                                          |
 
 They touch different files, except that the depth look's phases 1 and 2 must land before the patrol world, so patrols are built once in the new view. The earlier ordering (levels first, then the feature a later world needs) still applies inside the restructure plan.
 

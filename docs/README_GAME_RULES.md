@@ -201,7 +201,7 @@ Two more nodes. A procedure is a named piece of program, defined once and run fr
 ```
 
 - **Names:** `A`, `B`, or `C`. A name is defined at most once (`DUPLICATE_PROCEDURE` at the later `name`), and a `CALL` to a name no `PROC` defines is `UNDEFINED_PROCEDURE`. A `CALL` may come before the definition in the list.
-- **Where they stand:** a `PROC` only at the top level (`NESTED_PROC` elsewhere). A `CALL` at the top level or as an item of a loop body of the main program. A procedure cannot call a procedure (no recursion in version 1), so a `CALL` inside a `PROC` body, inside an `IF` branch, or inside a loop that stands in a procedure is `CALL_NOT_ALLOWED`.
+- **Where they stand:** a `PROC` only at the top level (`NESTED_PROC` elsewhere). A `CALL` at the top level or as an item of a loop body of the main program. A procedure cannot call a procedure unless the level lists the mechanic `recursion` (3.16), so a `CALL` inside a `PROC` body, inside an `IF` branch, or inside a loop that stands in a procedure is `CALL_NOT_ALLOWED`; with the mechanic a `CALL` may stand directly in a procedure body.
 - **A procedure body:** 1 to 8 items, each a primitive, an `IF`, or a loop (`REPEAT` or `REPEAT_UNTIL`, with the bodies and rules they already have; a loop still cannot hold a loop).
 - **Running:** a `PROC` is not run where it stands. The main program is the other top-level nodes in order; a `CALL` runs the body of the first `PROC` of that name and then goes on. A `PROC` costs no step and a `CALL` itself costs none.
 - **Slots:** a `CALL` is 1; a `PROC` is 1 plus the slots of its body items. The whole program, definitions included, is bounded by `maxCommands`. Reuse is what pays: a six-instruction procedure used three times costs 7 + 3 slots instead of 18.
@@ -387,6 +387,34 @@ A level may carry `ice` (one to thirty cells) and `belts` (one to twenty `{ cell
 
 **Level design rules for the Ice and belts world:** the shortest program that ignores the ice, belts and guards must fail (a test checks this), and the limit equals the exact par. Chapter one has ice only, chapter two belts only, the last chapter both and then a guard.
 
+### 3.15 Teleporters (world 18)
+
+A level may carry `teleports`, one to three pairs `{ a, b }`. Built: the contract (types, both validators, both schemas, both simulators, the solver), the API (`teleport` mechanic), the game, and five levels. It rides on the shared movement code (3.14), so the solver needed no change.
+
+- **Teleporting.** Entering either end of a pair puts the automaton on the other end in the same step, facing the same way. Arriving does not teleport it back: it stays on the far end until it steps off and in again. The step ends there (a slide or a carry that reached the teleporter stops). The trace event is `TELEPORTED` and `path` lists the cell entered and then the far end.
+- **Chains.** A belt may carry the automaton onto a teleporter, and a slide may end on one; the teleporter then sends it on. There is no chaining from the far end.
+- **Guards.** A guard is checked where the step ends, on the far end.
+- **Validation.** Both ends lie on floor cells inside the board, never on the start or the target, and no cell is shared with another pair, a key, door, crate, dock, switch, gate, ice cell or belt; a pair cannot join a cell to itself. Not allowed with `extraBoards` or the visit-every-cell goal. Issue codes `TELEPORT_ON_WALL`, `TELEPORT_ON_START`, `TELEPORT_ON_GOAL`, `TELEPORT_CELLS_REPEAT`, `TELEPORTS_WITH_BOARDS` and `TELEPORTS_WITH_SWEEP`.
+- **Display.** Each end is two concentric rings (the target is a ring around a solid dot). With several pairs the two ends of a pair carry the same number of pips. The automaton walks to the teleporter and appears on the other end.
+- **Compatibility.** The mechanic is `teleport`.
+
+**Level design rules for the Teleporters world:** the shortest program that ignores the pairs and guard must fail (a test checks this), and the limit equals the exact par. The pairs are shortcuts, so the limit is well under the walk without them. The last chapter adds a guard.
+
+### 3.16 Recursion (world 19)
+
+A level that lists the mechanic `recursion` in `requires.mechanics` lets a procedure call procedures, itself included, and lets a `CALL` carry a sensor. Built: the contract (types, both validators, the schema, both simulators, fixtures), the API (`recursion` mechanic), the game's tape editor, and five levels. The solver does not search procedures, as before: a level's limit is the slots of its reference solution.
+
+- **Where a CALL may stand.** In the main program as before, and with the mechanic directly in the body of a procedure (not inside a loop or an IF branch). Without the mechanic it is `CALL_NOT_ALLOWED` as before. It names a procedure that is defined at the top level (`UNDEFINED_PROCEDURE` otherwise); that may be the procedure it stands in or another one.
+- **The base case.** A `CALL` may carry `when`, one of the nine sensors an `IF` can look at (not allowed without the mechanic: `UNKNOWN_FIELD`; unknown value: `INVALID_VALUE`). The sensor is read when the `CALL` is reached, costs nothing, and the procedure runs only while it is true; otherwise the `CALL` is skipped and the procedure goes on with the next item. That skip is the base case. A `CALL` without `when` always runs.
+- **After the call.** What follows a `CALL` in a body runs when the call is over, once for each level of the recursion, deepest level first.
+- **Depth.** At most 24 procedure calls may be running inside each other (the `CALL` of the main program is the first). Starting a 25th ends the run with `TOO_DEEP` (no trace entry; the steps taken so far stand). A recursion with no base case therefore ends here, not at the step limit.
+- **The trace.** Every trace entry's `call` is the path of the innermost running `CALL`: `[i]` for a call in the main program, `[p, j]` for a call at item j of the body of the procedure at program index p. A primitive in a procedure keeps `node` `[p, j, ...]`.
+- **Slots.** A `CALL` is one slot, in a body as anywhere.
+- **The editor.** With the mechanic a Call tile can be added while a definition is open, never inside one of its loops or IFs. Selecting a call in the tape shows the sensor tool: it moves the call through no sensor and then the sensors an IF can use. A conditional call reads CALL IF with the sensor's icon.
+- **Compatibility.** The mechanic is `recursion` (the level lists it itself, like `nested_loops`).
+
+**Level design rules for the Recursion world:** every level lists `recursion` and carries a reference solution whose procedure calls itself with a sensor; the limit is its slots, and the best program without `PROC` is at least 1.3 times the limit (a test checks this). Levels offer movement and `PROC` only: no loops and no `IF`, so repetition has to come from the procedure. There is no guard chapter: a guard on a one-cell corridor blocks a recursion that cannot wait, and the levels of this world are timing-free.
+
 ## 4. Execution model and feedback
 
 ### Controls
@@ -430,7 +458,7 @@ The simulation engine is separate from visual animation. Animations display simu
 
 ## 5. Difficulty progression and campaign structure
 
-> **Planned:** the campaign grows to 20 worlds (Patrol and the item, tile, and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 17 worlds, 39 chapters, 95 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
+> **Planned:** the campaign grows to 20 worlds (Patrol and the item, tile, and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 19 worlds, 45 chapters, 105 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
 
 The campaign is a tree: **worlds** (one concept each), **chapters** (small groups within a world), and **levels**. Levels unlock sequentially along the flattened order (world, then chapter, then level). The stages below map onto worlds. Placement is campaign data managed in the dashboard, not part of a level's definition.
 
@@ -452,6 +480,8 @@ Teach concepts progressively rather than making early levels arbitrarily difficu
 | 12  | Sweep         | Covering everything efficiently      | Systematic coverage (the lawnmower sweep) and efficiency: the same job in far fewer steps               | goal type "visit every floor cell"; step budgets that scale with the board | 5      |
 | 13  | Patrol        | Timing and prediction                | Obstacles that move by a fixed pattern: read the pattern, go around, or wait for the right step         | patrols: guards on a route that depends on the step number (built; 3.9)    | 6      |
 | 14  | Keys          | Order of dependencies                | Fetch what you need before you need it: a door stays shut until its key has been taken                  | keys and doors: `locks`, picked up by entering a cell (built; 3.11)        | 6      |
+| 19  | Recursion     | Base case and self-call              | A procedure that calls itself, with a condition as the base case, and work that runs on the way back    | `recursion`: a CALL in a procedure body, a sensor on a CALL (built; 3.16)  | 5      |
+| 18  | Teleporters   | Graph jumps                          | Plan the shortcut: a pair of cells is one step apart, so the shortest way is not the shortest walk      | teleporter pairs: `teleports` (built; 3.15)                                | 5      |
 | 17  | Ice and belts | Predicting side effects              | Work out where each action leaves you: a slide on ice, a carry on a belt, before choosing the next      | ice and belts: `ice`, `belts`, one shared movement code (built; 3.14)      | 6      |
 | 16  | Switches      | State machines, toggled gates        | Count the state: a switch flips its gate every time it is entered, so passing twice undoes it           | switches and gates: `switches`, flipped by entering a cell (built; 3.13)   | 6      |
 | 15  | Delivery      | Carry and drop, sub-goals            | Finish a sub-goal before the main goal: carry a crate to its dock, one at a time, then reach the target | crates and docks: `deliveries`, one carried at a time (built; 3.12)        | 6      |

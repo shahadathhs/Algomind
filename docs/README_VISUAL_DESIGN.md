@@ -295,6 +295,8 @@ Verification:
 - **Crates and docks.** A crate is a solid square with a strap, a dock four corner brackets (with the crate inside once delivered); the crate carried is small and signal yellow on the automaton. With several deliveries a crate and its dock carry the same number of pips (built).
 - **Switches and gates.** A switch is a plate with a lever whose knob moves from left to right when flipped; a shut gate is a block with bars (raised on the depth board), an open gate two posts; pairs share pips (built).
 - **Ice and belts.** Ice is a floor cell with a thin inset outline and two glints, a belt two chevrons pointing the way it carries; the automaton slides through each cell of a step (built).
+- **Teleporters.** Each end is two concentric rings (the target is a ring around a dot); pairs share pips; the automaton walks to the end and appears on the other (built).
+- **Recursion.** A CALL with a sensor reads CALL IF and shows the sensor icon in place of the call icon; a Call tile can be added while a definition is open (built).
 - **Failure.** The cell where a run failed is hazard-striped and the piece involved is outlined, so failure is a shape, not only a color.
 
 **Colors.** Shades are never written by hand. The token generator in `packages/design-tokens` derives the face shades and the shadow color from the tokens, and tests check their contrast and that this table matches the token source (`packages/design-tokens/tokens.json`, key `depth`). The generated `DepthPalette` in the game holds these and the derived shades (lips, front, side, and edge shades). The base tokens:

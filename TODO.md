@@ -16,6 +16,17 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [ ] Procedures (world 6): the palette with up to ten tiles in two rows at 360 px, definition groups at the start of the tape, the CALL highlight while running, scrolling a long program
 - [ ] Playtest the 24 levels of worlds 4 to 6 with real people
 
+## Done 2026-10-31: the Recursion world (restructure phase 6, world 19)
+
+- [x] The mechanic `recursion` in the contract (a CALL in a procedure body, `when` on a CALL, the depth limit and `TOO_DEEP`, fixtures, both simulators, both validators, the schema), the API mechanic, the tape editor (Call tile into an open definition, sensor tool on a call), five levels (105 levels, 19 worlds)
+- [ ] A solved playtest of the five Recursion levels; check the tape editor flow for a recursive procedure on a device
+- [ ] No solver for procedures: a player's shorter recursive program is not detected as better than the reference; consider a bounded search over recursive programs for par
+
+## Done 2026-10-31: the Teleporters world (restructure phase 5, world 18)
+
+- [x] `teleports` in the contract (types, both validators, both schemas, both simulators, 23 fixtures), the API mechanic `teleport`, teleporters on both boards, five levels (100 levels, 18 worlds)
+- [ ] A solved playtest of the five Teleporters levels; look at teleporters and the appear animation on a device
+
 ## Done 2026-10-31: the Ice and belts world (restructure phase 5, world 17)
 
 - [x] `ice` and `belts` in the contract (types, both validators, both schemas, both simulators, 25 fixtures, trace `path`); the simulator and the solver now share the `World` class (`RunWorld` in the game), which also replaced the solver's separate state code for keys, crates and switches; the API mechanics `ice` and `belts`; ice and belts on both boards with a step-by-cell slide animation; six levels (95 levels, 17 worlds)
