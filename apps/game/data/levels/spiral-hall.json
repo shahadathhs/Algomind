@@ -61,7 +61,7 @@
   },
   "hints": ["The hall bends the same way every time.", "Run until the wall, turn, repeat."],
   "title": "Spiral hall",
-  "levelId": "d26c97c0-c971-46fa-8ecc-dac68a1b66d4",
+  "levelId": "aa45a17f-342a-42ca-a431-1bd02c0e90e5",
   "requires": {
     "mechanics": ["nested_loops"]
   },

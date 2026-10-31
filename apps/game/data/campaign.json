@@ -291,6 +291,28 @@
           "levels": ["gate-and-crate", "gate-and-guard"]
         }
       ]
+    },
+    {
+      "id": "ice-and-belts",
+      "title": "Ice and belts",
+      "summary": "Ice keeps the automaton sliding and belts carry it on. Work out where each action leaves it.",
+      "chapters": [
+        {
+          "id": "ice",
+          "title": "Ice",
+          "levels": ["first-slide", "three-ice-cells"]
+        },
+        {
+          "id": "belts",
+          "title": "Belts",
+          "levels": ["pushed-aside", "belt-line"]
+        },
+        {
+          "id": "together",
+          "title": "Together",
+          "levels": ["ice-and-belts", "belts-and-a-guard"]
+        }
+      ]
     }
   ],
   "par": {
@@ -647,6 +669,30 @@
       "steps": 16
     },
     "gate-and-guard": {
+      "commands": 16,
+      "steps": 16
+    },
+    "first-slide": {
+      "commands": 3,
+      "steps": 3
+    },
+    "three-ice-cells": {
+      "commands": 8,
+      "steps": 8
+    },
+    "pushed-aside": {
+      "commands": 10,
+      "steps": 10
+    },
+    "belt-line": {
+      "commands": 8,
+      "steps": 8
+    },
+    "ice-and-belts": {
+      "commands": 13,
+      "steps": 13
+    },
+    "belts-and-a-guard": {
       "commands": 16,
       "steps": 16
     }
