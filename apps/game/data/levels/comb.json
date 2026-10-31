@@ -32,7 +32,7 @@
     "The spine on the left joins the teeth."
   ],
   "title": "Comb",
-  "levelId": "efee9f50-d3e0-457a-8ca2-7c668eb3d718",
+  "levelId": "b05fd546-3c7a-4aa3-b322-7e9cc1e6d7f7",
   "requires": {
     "mechanics": ["nested_loops"]
   },

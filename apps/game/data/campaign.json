@@ -313,6 +313,50 @@
           "levels": ["ice-and-belts", "belts-and-a-guard"]
         }
       ]
+    },
+    {
+      "id": "teleporters",
+      "title": "Teleporters",
+      "summary": "Entering one end of a pair puts the automaton on the other end, facing the same way. Plan the shortcut.",
+      "chapters": [
+        {
+          "id": "first-pairs",
+          "title": "First pairs",
+          "levels": ["first-portal", "far-corner"]
+        },
+        {
+          "id": "two-pairs",
+          "title": "Two pairs",
+          "levels": ["two-pairs", "hop-and-walk"]
+        },
+        {
+          "id": "with-a-guard",
+          "title": "With a guard",
+          "levels": ["guarded-portal"]
+        }
+      ]
+    },
+    {
+      "id": "recursion",
+      "title": "Recursion",
+      "summary": "A procedure can call itself. Give the call a condition, and it stops when the condition is false.",
+      "chapters": [
+        {
+          "id": "calling-itself",
+          "title": "Calling itself",
+          "levels": ["long-hall", "hall-and-turn"]
+        },
+        {
+          "id": "conditions",
+          "title": "Conditions",
+          "levels": ["right-and-ahead"]
+        },
+        {
+          "id": "after-the-call",
+          "title": "After the call",
+          "levels": ["return-trip", "snake"]
+        }
+      ]
     }
   ],
   "par": {
@@ -695,6 +739,46 @@
     "belts-and-a-guard": {
       "commands": 16,
       "steps": 16
+    },
+    "first-portal": {
+      "commands": 4,
+      "steps": 4
+    },
+    "far-corner": {
+      "commands": 5,
+      "steps": 5
+    },
+    "two-pairs": {
+      "commands": 8,
+      "steps": 8
+    },
+    "hop-and-walk": {
+      "commands": 8,
+      "steps": 8
+    },
+    "guarded-portal": {
+      "commands": 13,
+      "steps": 13
+    },
+    "long-hall": {
+      "commands": 4,
+      "steps": 11
+    },
+    "hall-and-turn": {
+      "commands": 6,
+      "steps": 13
+    },
+    "right-and-ahead": {
+      "commands": 6,
+      "steps": 17
+    },
+    "return-trip": {
+      "commands": 6,
+      "steps": 15
+    },
+    "snake": {
+      "commands": 8,
+      "steps": 18
     }
   }
 }

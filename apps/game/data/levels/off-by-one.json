@@ -30,7 +30,7 @@
   },
   "hints": ["Run it and see where the automaton stops.", "The loop runs one round too few."],
   "title": "Off by one",
-  "levelId": "f4e8a4f8-cec0-4333-b6fe-687955d0c499",
+  "levelId": "01b25672-96dc-4f01-97ff-8ba3998e00d4",
   "requires": {
     "mechanics": []
   },

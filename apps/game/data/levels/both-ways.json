@@ -103,7 +103,7 @@
     "Turn right when the right side is clear. Otherwise move, or turn left."
   ],
   "title": "Both ways",
-  "levelId": "0e2fb7b2-315a-4481-82e4-758e002b97ae",
+  "levelId": "eb84eac1-f8fb-4f23-b59f-526f496edab4",
   "requires": {
     "mechanics": []
   },
