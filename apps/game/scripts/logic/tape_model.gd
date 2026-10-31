@@ -26,6 +26,22 @@ func _init(
 	nested_loops = allow_nested_loops
 
 
+## Puts a copy of `program` on the tape, closed and with nothing selected: the start program of a
+## debug level, which the player then edits like any other. `program` is a program of the level
+## (the level validator has checked its commands and its length). False, with the tape left empty,
+## when it is not an array or does not fit the limit.
+func load_program(program: Variant) -> bool:
+	nodes = []
+	selected = -1
+	if typeof(program) != TYPE_ARRAY:
+		return false
+	var copy: Array = (program as Array).duplicate(true)
+	if limit > 0 and ProgramSlots.count(copy) > limit:
+		return false
+	nodes = copy
+	return true
+
+
 ## Whether `append(op)` would be accepted.
 func can_append(op: String) -> bool:
 	if not available.has(op) or is_full():

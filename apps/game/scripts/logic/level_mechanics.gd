@@ -62,4 +62,8 @@ static func derived(level: Dictionary) -> Array[String]:
 		out.append("markers")
 	if has_sweep(level):
 		out.append("visit_all")
+	if level.has("startProgram"):
+		out.append("start_program")
+	if level.has("patrols"):
+		out.append("patrol")
 	return out

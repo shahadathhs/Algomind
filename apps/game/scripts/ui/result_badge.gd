@@ -10,5 +10,9 @@ func _init() -> void:
 
 
 func _draw() -> void:
-	UiKit.fill_chamfer(self, Rect2(Vector2.ZERO, size), Palette.SIGNAL)
-	UiKit.icon(self, kind, size / 2.0, size.x * 0.62, Palette.ON_SIGNAL)
+	var face := Rect2(Vector2.ZERO, size)
+	if UiLook.depth:
+		face = TileDraw.tile(self, face, TileDraw.Tone.ACTIVE)
+	else:
+		UiKit.fill_chamfer(self, face, Palette.SIGNAL)
+	UiKit.icon(self, kind, face.get_center(), size.x * 0.62, Palette.ON_SIGNAL)

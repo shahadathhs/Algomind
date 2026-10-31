@@ -214,7 +214,14 @@ class _Legend:
 		for i in items.size():
 			var rect := Rect2(Vector2(x, 4.0), Vector2(24.0, 24.0))
 			var icon_color := Palette.ON_INK
-			if i == 0:
+			var face := rect
+			if UiLook.depth:
+				var tone: TileDraw.Tone = [
+					TileDraw.Tone.SOLID, TileDraw.Tone.ACTIVE, TileDraw.Tone.PLAIN
+				][i]
+				face = TileDraw.tile(self, rect, tone)
+				icon_color = [Palette.ON_INK, Palette.ON_SIGNAL, Palette.MUTE][i]
+			elif i == 0:
 				UiKit.fill_chamfer(self, rect, Palette.INK)
 			elif i == 1:
 				UiKit.fill_chamfer(self, rect, Palette.SIGNAL)
@@ -222,7 +229,7 @@ class _Legend:
 			else:
 				UiKit.outline_chamfer(self, rect, Palette.FAINT)
 				icon_color = Palette.FAINT
-			UiKit.icon(self, items[i][1], rect.get_center(), 15.0, icon_color)
+			UiKit.icon(self, items[i][1], face.get_center(), 15.0, icon_color)
 			var word: String = items[i][0]
 			var text_rect := Rect2(x + 32.0, 0.0, 90.0, 32.0)
 			UiKit.text(self, word, text_rect, 15, Palette.INK, 1, HORIZONTAL_ALIGNMENT_LEFT)

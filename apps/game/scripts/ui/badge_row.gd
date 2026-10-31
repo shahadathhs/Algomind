@@ -19,8 +19,11 @@ func _draw() -> void:
 	var tile := Rect2(Vector2(0, 6), Vector2(44, 44))
 	var earned := not earned_on.is_empty()
 	if earned:
-		UiKit.fill_chamfer(self, tile, Palette.INK)
-		UiKit.icon(self, "check", tile.get_center(), 26.0, Palette.ON_INK)
+		var face := TileDraw.tile(self, tile, TileDraw.Tone.SOLID)
+		UiKit.icon(self, "check", face.get_center(), 26.0, Palette.ON_INK)
+	elif UiLook.depth:
+		var face := TileDraw.tile(self, tile, TileDraw.Tone.PLAIN)
+		UiKit.icon(self, "lock", face.get_center(), 24.0, Palette.MUTE)
 	else:
 		UiKit.outline_chamfer(self, tile, Palette.FAINT)
 		UiKit.icon(self, "lock", tile.get_center(), 24.0, Palette.FAINT)

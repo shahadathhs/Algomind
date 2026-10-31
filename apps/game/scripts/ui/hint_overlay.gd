@@ -66,17 +66,19 @@ func _draw() -> void:
 	var dim := Palette.GROUND
 	dim.a = 0.72
 	draw_rect(Rect2(Vector2.ZERO, size), dim)
-	var panel := _panel_rect()
-	UiKit.fill_chamfer(self, panel, Palette.INK)
+	var panel := TileDraw.tile(self, _panel_rect(), TileDraw.Tone.SOLID)
 	var pad := 18.0
 	var caption := "NO HINTS" if hints.is_empty() else "HINT %d OF %d" % [index + 1, hints.size()]
-	var chip := Rect2(
-		panel.position.x + pad,
-		panel.position.y + pad,
-		UiKit.text_width(caption, 13, 2) + 20.0,
-		26.0
+	var chip := TileDraw.tile(
+		self,
+		Rect2(
+			panel.position.x + pad,
+			panel.position.y + pad,
+			UiKit.text_width(caption, 13, 2) + 20.0,
+			26.0
+		),
+		TileDraw.Tone.ACTIVE
 	)
-	UiKit.fill_chamfer(self, chip, Palette.SIGNAL)
 	UiKit.text(self, caption, chip, 13, Palette.ON_SIGNAL, 2)
 	var text := (
 		"THERE ARE NO HINTS FOR THIS LEVEL." if hints.is_empty() else hints[index].to_upper()

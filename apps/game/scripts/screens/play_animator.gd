@@ -24,13 +24,17 @@ static func show_step(p: PlayScreen, id: int, entry: Dictionary) -> bool:
 	var slide := 0.0 if p.app.progress.settings.reduce_motion() else seconds
 	if slide > 0.0:
 		var tween := p.create_tween().set_parallel(true)
+		if UiLook.depth:
+			tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		tween.tween_property(p._board, "automaton", target, slide)
+		tween.tween_property(p._board, "guard_time", float(entry["index"]) + 1.0, slide)
 		tween.tween_property(
 			p._tape_view, "scroll", p._tape_view.head_scroll(p._tape_view.current), slide
 		)
 		await tween.finished
 	else:
 		p._board.automaton = target
+		p._board.guard_time = float(entry["index"]) + 1.0
 		p._tape_view.scroll = p._tape_view.head_scroll(p._tape_view.current)
 	if id != p._run_id:
 		return false

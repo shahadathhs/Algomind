@@ -151,12 +151,12 @@ func test_malformed_placement_gives_an_empty_campaign() -> void:
 func test_bundled_campaign_loads_cleanly() -> void:
 	var campaign := Campaign.load_bundled()
 	assert_eq(campaign.errors, [] as Array[String])
-	assert_eq(campaign.entries.size(), 82, "the bundled campaign is the published starter set")
-	assert_eq(campaign.worlds.size(), 10)
+	assert_eq(campaign.entries.size(), 71, "the bundled campaign is the published starter set")
+	assert_eq(campaign.worlds.size(), 13)
 	var chapters := 0
 	for world in campaign.worlds:
 		chapters += world["chapters"].size()
-	assert_eq(chapters, 20)
+	assert_eq(chapters, 27)
 
 
 func test_every_bundled_level_is_solvable_within_its_limit() -> void:
@@ -169,9 +169,10 @@ func test_every_bundled_level_is_solvable_within_its_limit() -> void:
 		var shortest := _shortest_program(level)
 		assert_gt(shortest, 0, "%s is solvable" % entry["id"])
 		var limit := int(level["constraints"]["maxCommands"])
-		if level.has("extraBoards"):
+		if level.has("extraBoards") or level.has("startProgram"):
 			# One program solves every board, so the plain program for the first board says nothing
-			# about the limit; the server checks the reference solution on all of them.
+			# about the limit; the server checks the reference solution on all of them. A debug
+			# level's limit fits its broken program and the fix, not the need for a loop.
 			continue
 		if (
 			level["availableCommands"].has("REPEAT")

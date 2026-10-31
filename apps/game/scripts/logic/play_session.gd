@@ -135,7 +135,7 @@ func failing_node() -> Array:
 	if state != State.FAILED:
 		return []
 	var reason: String = result.get("reason", "")
-	if reason == "BLOCKED_BY_WALL" or reason == "BLOCKED_BY_BOUNDARY":
+	if reason == "BLOCKED_BY_WALL" or reason == "BLOCKED_BY_BOUNDARY" or reason == "HIT_BY_PATROL":
 		return trace()[trace().size() - 1]["node"]
 	return []
 

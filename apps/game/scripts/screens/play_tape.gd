@@ -68,6 +68,7 @@ static func show_board(p: PlayScreen) -> void:
 		p._session.blocked_cell(),
 		p._session.crumbs()
 	)
+	p._board.guard_time = float(p._session.cursor)
 
 
 ## Does a tool button of the tape (earlier, later, rounds, condition, remove) to the selection.

@@ -213,7 +213,9 @@ static func message_text(p: PlayScreen) -> String:
 		PlaySession.State.READY:
 			if p._boards.notice != "":
 				return p._boards.notice
-	return LoopMessages.building_text(p._tape, LevelMechanics.is_sweep(p._session.level["goal"]))
+	return LoopMessages.building_text(
+		p._tape, LevelMechanics.is_sweep(p._session.level["goal"]), p._level.has("startProgram")
+	)
 
 
 ## The text of a finished run. A failure on a level with test boards names its board.

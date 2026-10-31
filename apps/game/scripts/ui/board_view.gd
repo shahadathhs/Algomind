@@ -12,15 +12,32 @@ var automaton := Vector2.ZERO:
 	set(value):
 		automaton = value
 		queue_redraw()
-var facing := "north"
+		_on_moved()
+var facing := "north":
+	set(value):
+		facing = value
+		_on_moved()
 var trail: Array[Vector2i] = []
 var crumbs := {}
 var hit_wall: Variant = null
+## How many steps of the run are shown: the guards stand where they do after that many steps. It is
+## fractional while a step slides.
+var guard_time := 0.0:
+	set(value):
+		guard_time = value
+		queue_redraw()
 ## Small offset in cells for the blocked-move nudge.
 var nudge := Vector2.ZERO:
 	set(value):
 		nudge = value
 		queue_redraw()
+		_on_moved()
+
+
+## Called when the automaton, its facing, or its nudge changes. The depth board starts its
+## animation frames here; the flat board has nothing to do.
+func _on_moved() -> void:
+	pass
 
 
 func set_level(level_data: Dictionary) -> void:
@@ -94,6 +111,16 @@ func _draw() -> void:
 			else:
 				draw_rect(rect, Palette.FLOOR)
 	_draw_automaton(geometry)
+	if level.has("patrols"):
+		var origin := cell_rect(Vector2.ZERO, geometry).position
+		var pitch: float = float(geometry["cell"]) + GAP
+		GuardDraw.draw_flat(
+			self,
+			level,
+			guard_time,
+			hit_wall,
+			func(unit: Vector2) -> Vector2: return origin + unit * pitch
+		)
 
 
 func _draw_wall(rect: Rect2, hit: bool) -> void:
