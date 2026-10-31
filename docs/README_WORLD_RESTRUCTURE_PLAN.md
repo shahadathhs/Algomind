@@ -125,6 +125,8 @@ Sizes are relative. There are no dates; a phase is done when its exit criteria a
 
 - Eight levels that use any tool from worlds 1 to 19, at least four with patrols. Built last, because it needs every mechanic and measured numbers from playtests.
 
+**Built 2026-10-31:** eight levels (`frozen-key`, `gate-by-belt`, `portal-freight`, `key-gate-guard`, `slip-and-jump`, `belt-freight`, `four-tools`, `everything`) found by a random search over boards with the exact solver; each tool is needed, five have a guard. They use the board tools of worlds 13 to 18 with movement only; mixing in loops, `IF` and procedures needs a bounded solver for par and is left for later. The measured numbers from playtests are still missing.
+
 ## 5. Parallel tracks
 
 | Track         | Work                                                                                                                                                                                                                                                                 |

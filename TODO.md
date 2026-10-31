@@ -16,6 +16,12 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [ ] Procedures (world 6): the palette with up to ten tiles in two rows at 360 px, definition groups at the start of the tape, the CALL highlight while running, scrolling a long program
 - [ ] Playtest the 24 levels of worlds 4 to 6 with real people
 
+## Done 2026-10-31: the Capstone world (restructure phase 7, world 20)
+
+- [x] Eight levels that mix two to four board tools, five with a guard (113 levels, 20 worlds); tests check that every tool is needed and the plain par is beaten
+- [ ] Playtests of worlds 13 to 20 (45 levels); the capstone pars (14 to 19) are long for a phone, watch where players stop
+- [ ] Mix loops, `IF` and procedures into capstone levels once par for them can be measured
+
 ## Done 2026-10-31: the Recursion world (restructure phase 6, world 19)
 
 - [x] The mechanic `recursion` in the contract (a CALL in a procedure body, `when` on a CALL, the depth limit and `TOO_DEEP`, fixtures, both simulators, both validators, the schema), the API mechanic, the tape editor (Call tile into an open definition, sensor tool on a call), five levels (105 levels, 19 worlds)

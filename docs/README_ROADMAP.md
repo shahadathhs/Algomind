@@ -16,7 +16,7 @@ The game is called Algomind, so the campaign must teach algorithms, not only pat
 
 - The public site, the `/play` browser build, the download page, and the level catalog.
 - Player accounts, progress sync, and the sign-in screens.
-- The campaign: 12 worlds and 65 levels (restructured on 2026-10-31 from 10 worlds and 82 levels, then the Debug world added), with their mechanics: `REPEAT`, `REPEAT_UNTIL`, `IF` and sensors, `PROC` and `CALL`, multi-board levels, the counter and nested loops, breadcrumbs, and the `visit_all` goal. Each is in the contract, the validator, the TypeScript and GDScript simulators, the fixtures, the dashboard, and the game editor.
+- The campaign: 20 worlds and 113 levels (restructured on 2026-10-31 from 10 worlds and 82 levels; worlds 1 to 12 from existing mechanics, worlds 13 to 20 new), with their mechanics: `REPEAT`, `REPEAT_UNTIL`, `IF` and sensors, `PROC` and `CALL`, multi-board levels, the counter and nested loops, breadcrumbs, and the `visit_all` goal. Each is in the contract, the validator, the TypeScript and GDScript simulators, the fixtures, the dashboard, and the game editor.
 - Points, verified submissions, leaderboards, the daily challenge, sharing, achievements, and level statistics (see [README_SOCIAL_PLAN.md](README_SOCIAL_PLAN.md)).
 
 **Not done**
@@ -24,16 +24,16 @@ The game is called Algomind, so the campaign must teach algorithms, not only pat
 - No screen of the recent work has been looked at in screenshots or on a device; the list is in [../TODO.md](../TODO.md).
 - No playtest by other people.
 - The web app has no automated tests.
-- The campaign is slow: the first loop is level 19 and the first `IF` is level 37, and levels repeat within worlds. The plan to fix it is below.
+- The campaign ramp (first loop at about level 11, first `IF` at 22) and the 20-world ladder are built but unmeasured: nobody has played worlds 13 to 20.
 
 ## 3. What comes next
 
 Two plans, agreed in direction on 2026-10-31, run in parallel:
 
-| Plan                                                  | Delivers                                                                                                                              | Status                                                                                                                             |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| [World restructure](README_WORLD_RESTRUCTURE_PLAN.md) | 20 worlds with a faster ramp (loops at about level 11): worlds 1 to 12 from existing mechanics, then patrols, items, tiles, recursion | Order approved; worlds 1 to 19 built (patrols, keys and doors, delivery, switches, ice and belts, teleporters, recursion), 20 next |
-| [Depth look](README_3D_VIEW_PLAN.md)                  | A new theme, UI, and 2.5D board, behind a Flat or Depth setting until approved on a device                                            | Direction approved; phase 1 (tokens) next                                                                                          |
+| Plan                                                  | Delivers                                                                                                                              | Status                                                                                                                                                                |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [World restructure](README_WORLD_RESTRUCTURE_PLAN.md) | 20 worlds with a faster ramp (loops at about level 11): worlds 1 to 12 from existing mechanics, then patrols, items, tiles, recursion | Order approved; all 20 worlds built (patrols, keys and doors, delivery, switches, ice and belts, teleporters, recursion, capstone); playtests and a device check next |
+| [Depth look](README_3D_VIEW_PLAN.md)                  | A new theme, UI, and 2.5D board, behind a Flat or Depth setting until approved on a device                                            | Built through phase 6 (tokens, screens, board, motion, public site); a device check is still open                                                                     |
 
 They touch different files, except that the depth look's phases 1 and 2 must land before the patrol world, so patrols are built once in the new view. The earlier ordering (levels first, then the feature a later world needs) still applies inside the restructure plan.
 

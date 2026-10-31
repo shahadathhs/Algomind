@@ -57,7 +57,7 @@ The automaton `^` starts bottom-left facing north, and you must reach the target
 
 ## The campaign
 
-**19 worlds, 105 levels**, unlocked in order. Each world teaches one idea.
+**20 worlds, 113 levels**, unlocked in order. Each world teaches one idea.
 
 | World                        | You learn                                | New in the toolbox                          |
 | ---------------------------- | ---------------------------------------- | ------------------------------------------- |
@@ -77,6 +77,7 @@ The automaton `^` starts bottom-left facing north, and you must reach the target
 | 17 Ice and belts             | Work out where each action leaves you    | Ice, belts                                  |
 | 18 Teleporters               | Plan the shortcut                        | Paired teleporters                          |
 | 19 Recursion                 | A procedure that calls itself            | A call inside a procedure, with a condition |
+| 20 Capstone                  | Pick the right tools from everything     | Two to four board tools at once             |
 
 ## Make your own levels
 
@@ -97,13 +98,9 @@ When you want company there is a daily challenge, points, leaderboards and achie
 
 ## Roadmap
 
-**Shipped:** the 19-world campaign, accounts and sync, the daily challenge and leaderboards, the level dashboard, the public site, and the depth look (a soft, tilted 2.5D board).
+**Shipped:** the 20-world campaign, accounts and sync, the daily challenge and leaderboards, the level dashboard, the public site, and the depth look (a soft, tilted 2.5D board).
 
-**Next:** one more world, the capstone, taking the campaign to 20.
-
-| World       | Idea                |
-| ----------- | ------------------- |
-| 20 Capstone | Everything together |
+**Next:** playtests of the new worlds, a device check of everything built since the Patrol world, and authoring the new level fields in the dashboard.
 
 The plan, with the reasons for this order, is in the [world restructure plan](docs/README_WORLD_RESTRUCTURE_PLAN.md) and the [roadmap](docs/README_ROADMAP.md).
 

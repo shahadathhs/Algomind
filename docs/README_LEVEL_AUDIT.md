@@ -35,6 +35,19 @@ For each of the 82 levels: world and chapter, board size and wall count, number 
 | 11 Breadcrumbs  | 6      | `first-loop`, `three-mazes`, `long-halls`, `many-dead-ends`, `large-mazes`, `tangle`                   | none                                                                                      |
 | 12 Sweep        | 6      | `small-room`, `big-room`, `comb`, `spiral-hall`, `maze-sweep`                                          | 1: the same room with a step budget that makes wandering fail (the "waste no steps" idea) |
 
+Worlds 13 to 20 are all new and were built after the audit (see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md) for each decision):
+
+| New world        | Levels | Slugs                                                                                                                         |
+| ---------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| 13 Patrol        | 6      | `first-guard`, `cross-the-beat`, `wait-for-it`, `gate-keeper`, `two-beats`, `crossing-paths`                                  |
+| 14 Keys          | 6      | `first-key`, `side-room`, `two-doors`, `maze-gate`, `guarded-key`, `keys-and-a-guard`                                         |
+| 15 Delivery      | 6      | `first-parcel`, `behind-the-start`, `two-parcels`, `full-hands`, `behind-the-door`, `guarded-parcel`                          |
+| 16 Switches      | 6      | `first-switch`, `twice-over`, `two-gates`, `flip-flop`, `gate-and-crate`, `gate-and-guard`                                    |
+| 17 Ice and belts | 6      | `first-slide`, `three-ice-cells`, `pushed-aside`, `belt-line`, `ice-and-belts`, `belts-and-a-guard`                           |
+| 18 Teleporters   | 5      | `first-portal`, `far-corner`, `two-pairs`, `hop-and-walk`, `guarded-portal`                                                   |
+| 19 Recursion     | 5      | `long-hall`, `hall-and-turn`, `right-and-ahead`, `return-trip`, `snake`                                                       |
+| 20 Capstone      | 8      | `frozen-key`, `gate-by-belt`, `portal-freight`, `key-gate-guard`, `slip-and-jump`, `belt-freight`, `four-tools`, `everything` |
+
 Totals for worlds 1 to 12: 66 levels, 55 reused, 11 new (plus the 5 of world 8 counted among the new). The plan said "about 62 reused"; this is 55, because the world 5 and world 6 splits need new levels (finding 2 and 3).
 
 ## 4. The cut list

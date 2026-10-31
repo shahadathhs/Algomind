@@ -415,6 +415,12 @@ A level that lists the mechanic `recursion` in `requires.mechanics` lets a proce
 
 **Level design rules for the Recursion world:** every level lists `recursion` and carries a reference solution whose procedure calls itself with a sensor; the limit is its slots, and the best program without `PROC` is at least 1.3 times the limit (a test checks this). Levels offer movement and `PROC` only: no loops and no `IF`, so repetition has to come from the procedure. There is no guard chapter: a guard on a one-cell corridor blocks a recursion that cannot wait, and the levels of this world are timing-free.
 
+### 3.17 Capstone (world 20)
+
+The last world has no rule of its own. Each level puts two to four of the board tools of worlds 13 to 18 on one board (keys and doors, crates, switches, ice, belts, teleporters, guards), with movement commands only, so the exact solver gives par and the limit equals it.
+
+**Level design rules for the Capstone world:** every tool on a level must be needed (leaving any one out gives a strictly shorter solution, a test checks this), the shortest program that ignores all of them fails, limits stay within 20 commands, and five of the eight levels have a guard. Loops, `IF` and procedures are not offered here; the worlds that teach them keep them.
+
 ## 4. Execution model and feedback
 
 ### Controls
@@ -458,7 +464,7 @@ The simulation engine is separate from visual animation. Animations display simu
 
 ## 5. Difficulty progression and campaign structure
 
-> **Planned:** the campaign grows to 20 worlds (Patrol and the item, tile, and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 19 worlds, 45 chapters, 105 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
+> **Built:** the campaign has grown to 20 worlds (Patrol, the item, tile and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 20 worlds, 48 chapters, 113 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
 
 The campaign is a tree: **worlds** (one concept each), **chapters** (small groups within a world), and **levels**. Levels unlock sequentially along the flattened order (world, then chapter, then level). The stages below map onto worlds. Placement is campaign data managed in the dashboard, not part of a level's definition.
 
@@ -480,6 +486,7 @@ Teach concepts progressively rather than making early levels arbitrarily difficu
 | 12  | Sweep         | Covering everything efficiently      | Systematic coverage (the lawnmower sweep) and efficiency: the same job in far fewer steps               | goal type "visit every floor cell"; step budgets that scale with the board | 5      |
 | 13  | Patrol        | Timing and prediction                | Obstacles that move by a fixed pattern: read the pattern, go around, or wait for the right step         | patrols: guards on a route that depends on the step number (built; 3.9)    | 6      |
 | 14  | Keys          | Order of dependencies                | Fetch what you need before you need it: a door stays shut until its key has been taken                  | keys and doors: `locks`, picked up by entering a cell (built; 3.11)        | 6      |
+| 20  | Capstone      | Choosing the right tool              | Combine what the earlier worlds taught: several board tools on one board, each of them needed           | none (levels only, built; 3.17)                                            | 8      |
 | 19  | Recursion     | Base case and self-call              | A procedure that calls itself, with a condition as the base case, and work that runs on the way back    | `recursion`: a CALL in a procedure body, a sensor on a CALL (built; 3.16)  | 5      |
 | 18  | Teleporters   | Graph jumps                          | Plan the shortcut: a pair of cells is one step apart, so the shortest way is not the shortest walk      | teleporter pairs: `teleports` (built; 3.15)                                | 5      |
 | 17  | Ice and belts | Predicting side effects              | Work out where each action leaves you: a slide on ice, a carry on a belt, before choosing the next      | ice and belts: `ice`, `belts`, one shared movement code (built; 3.14)      | 6      |
