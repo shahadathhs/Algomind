@@ -20,7 +20,7 @@ static func sense(run: Dictionary, sensor: String) -> bool:
 	var cell := Vector2i(int(target[0]), int(target[1]))
 	if cell.x < 0 or cell.y < 0 or cell.x >= int(run["width"]) or cell.y >= int(run["height"]):
 		return false
-	if (run["walls"] as Dictionary).has(cell):
+	if (run["walls"] as Dictionary).has(cell) or RunLocks.closed_door(run, cell):
 		return false
 	if kind == "CLEAR":
 		return true

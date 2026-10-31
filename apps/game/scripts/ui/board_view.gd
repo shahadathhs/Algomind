@@ -110,6 +110,8 @@ func _draw() -> void:
 				_draw_trail(rect, crumbs.get(point, ""))
 			else:
 				draw_rect(rect, Palette.FLOOR)
+	if level.has("locks"):
+		_draw_locks(geometry)
 	_draw_automaton(geometry)
 	if level.has("patrols"):
 		var origin := cell_rect(Vector2.ZERO, geometry).position
@@ -121,6 +123,17 @@ func _draw() -> void:
 			hit_wall,
 			func(unit: Vector2) -> Vector2: return origin + unit * pitch
 		)
+
+
+## Keys, and each door shut or open by whether its key has been taken.
+func _draw_locks(geometry: Dictionary) -> void:
+	var origin := cell_rect(Vector2.ZERO, geometry).position
+	var pitch: float = float(geometry["cell"]) + GAP
+	var place := func(unit: Vector2) -> Vector2: return origin + unit * pitch
+	var taken := LockDraw.held(level, trail)
+	LockDraw.draw_keys(self, level, trail, place, Palette.FLOOR)
+	for i in (level["locks"] as Array).size():
+		LockDraw.draw_door(self, level, i, taken.has(i), place, true)
 
 
 func _draw_wall(rect: Rect2, hit: bool) -> void:

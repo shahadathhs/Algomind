@@ -30,7 +30,7 @@ static func check_patrols(issues: Array[Dictionary], root: Dictionary) -> void:
 			"PATROLS_WITH_BOARDS",
 			"A level with test boards cannot have patrols."
 		)
-	var facts := _board_facts(root)
+	var facts := board_facts(root)
 	for i in entries.size():
 		_check_patrol(issues, entries[i], "patrols[%d]" % i, facts)
 
@@ -119,7 +119,7 @@ static func _adjacent(a: Vector2i, b: Vector2i) -> bool:
 
 
 ## The well-formed parts of the board and start, read without reporting (the board check does that).
-static func _board_facts(root: Dictionary) -> Dictionary:
+static func board_facts(root: Dictionary) -> Dictionary:
 	var size: Variant = null
 	var walls: Array = []
 	var start: Variant = null
@@ -145,7 +145,10 @@ static func _board_facts(root: Dictionary) -> Dictionary:
 					walls.append(pair)
 	if typeof(root.get("initialState")) == TYPE_DICTIONARY:
 		start = _pair((root["initialState"] as Dictionary).get("position"))
-	return {"size": size, "walls": walls, "start": start}
+	var goal: Variant = null
+	if typeof(root.get("goal")) == TYPE_DICTIONARY:
+		goal = _pair((root["goal"] as Dictionary).get("position"))
+	return {"size": size, "walls": walls, "start": start, "goal": goal}
 
 
 static func _pair(v: Variant) -> Variant:

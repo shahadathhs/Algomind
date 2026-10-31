@@ -66,4 +66,6 @@ static func derived(level: Dictionary) -> Array[String]:
 		out.append("start_program")
 	if level.has("patrols"):
 		out.append("patrol")
+	if level.has("locks"):
+		out.append("keys")
 	return out

@@ -60,6 +60,11 @@ for size in 390x844 360x640 412x915; do
 		shot play-patrol-failed play "$theme" "$size" --level=cross-the-beat --program=MMMM --steps=-1
 		shot play-patrol-depth play "$theme" "$size" --level=cross-the-beat --program=MMLMRMM --steps=2 --look=depth
 		shot play-patrol-failed-depth play "$theme" "$size" --level=cross-the-beat --program=MMMM --steps=-1 --look=depth
+		# two-doors: the key of the first door is taken (M R M L L M); the second key is next.
+		shot play-keys play "$theme" "$size" --level=two-doors --program=MRMLLMRMMMMMLM --steps=6
+		shot play-keys-failed play "$theme" "$size" --level=two-doors --program=MMMM --steps=-1
+		shot play-keys-depth play "$theme" "$size" --level=two-doors --program=MRMLLMRMMMMMLM --steps=6 --look=depth
+		shot play-keys-failed-depth play "$theme" "$size" --level=two-doors --program=MMMM --steps=-1 --look=depth
 		# The depth board (Look: depth), on a small board and on the biggest one.
 		shot play-ready-depth play "$theme" "$size" --level=first-turn --program=MMMRM --look=depth
 		shot play-running-depth play "$theme" "$size" --level=first-turn --program=MMMRMMM --steps=5 --look=depth

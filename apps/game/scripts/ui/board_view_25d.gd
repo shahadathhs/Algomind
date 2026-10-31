@@ -13,6 +13,8 @@ const AUTOMATON_CHAMFER := 0.14
 ## the automaton stands on it.
 const LIFT := 0.14
 const GOAL_RISE := 0.12
+## How high a shut door stands above the floor, in cells.
+const DOOR_HEIGHT := 0.34
 const GOAL_RISE_SECONDS := 0.2
 ## A quarter turn of the wedge takes this long.
 const PIVOT_SECONDS := 0.1
@@ -125,6 +127,16 @@ func _draw() -> void:
 	var at := automaton + nudge
 	_draw_automaton_shadow(view, at)
 	var items: Array[Dictionary] = []
+	var open_doors := {}
+	if level.has("locks"):
+		open_doors = _draw_floor_locks(view)
+		var locks: Array = level["locks"]
+		for i in locks.size():
+			if not open_doors.has(i):
+				var door := LockDraw.cell_of(locks[i], "door")
+				items.append(
+					{"depth": view.depth(door.x + 0.5, door.y + 0.5), "wall": null, "door": i}
+				)
 	for wall: Array in level["board"]["walls"]:
 		var point := Vector2i(int(wall[0]), int(wall[1]))
 		items.append({"depth": view.depth(point.x + 0.5, point.y + 0.5), "wall": point})
@@ -135,7 +147,9 @@ func _draw() -> void:
 		)
 	items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["depth"] < b["depth"])
 	for item in items:
-		if item.has("guard"):
+		if item.has("door"):
+			_draw_door_block(view, int(item["door"]))
+		elif item.has("guard"):
 			_draw_guard_block(view, item["guard"])
 		elif item["wall"] == null:
 			_draw_automaton_block(view, at)
@@ -165,6 +179,32 @@ func _draw_wall_block(view: BoardProjection, point: Vector2i, hit: bool) -> void
 		var b := view.project(point.x + finish, point.y + c - finish, z)
 		draw_line(a, b, color, width)
 		c += 0.34 if hit else 0.28
+
+
+## Keys and open doors lie on the floor; the lock indexes of the open doors are returned.
+func _draw_floor_locks(view: BoardProjection) -> Dictionary:
+	var place := func(unit: Vector2) -> Vector2:
+		return view.project(unit.x, unit.y, BoardProjection.Z_FLOOR)
+	var taken := LockDraw.held(level, trail)
+	LockDraw.draw_keys(self, level, trail, place, DepthPalette.FLOOR)
+	for i in taken:
+		LockDraw.draw_door(self, level, i, true, place, false)
+	return taken
+
+
+## A shut door: a low raised block with the keyhole on its top.
+func _draw_door_block(view: BoardProjection, index: int) -> void:
+	var colors := {
+		"top": DepthPalette.INK,
+		"front": DepthPalette.INK_FRONT,
+		"side": DepthPalette.INK_SIDE,
+		"edge": DepthPalette.INK_EDGE
+	}
+	var cell := LockDraw.cell_of(level["locks"][index], "door")
+	var top := BoardProjection.Z_FLOOR + DOOR_HEIGHT
+	DepthKit.prism(self, view, LockDraw.door_footprint(cell), BoardProjection.Z_FLOOR, top, colors)
+	var place := func(unit: Vector2) -> Vector2: return view.project(unit.x, unit.y, top + 0.003)
+	LockDraw.draw_door(self, level, index, false, place, false)
 
 
 func _draw_guard_block(view: BoardProjection, guard: Vector2) -> void:

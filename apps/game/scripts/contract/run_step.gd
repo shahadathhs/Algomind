@@ -49,6 +49,8 @@ static func move(
 		blocked = "BLOCKED_BY_BOUNDARY"
 	elif (run["walls"] as Dictionary).has(Vector2i(tx, ty)):
 		blocked = "BLOCKED_BY_WALL"
+	if blocked == "" and RunLocks.closed_door(run, Vector2i(tx, ty)):
+		blocked = "BLOCKED_BY_DOOR"
 	if blocked != "":
 		trace.append(
 			entry(run, index, command, node, call_path, round_number, position, direction, blocked)
@@ -81,8 +83,9 @@ static func move(
 			)
 		)
 		return finish("SUCCEEDED", "GOAL_REACHED", null, run)
+	var event := "KEY_TAKEN" if RunLocks.take_key(run, cell) else "MOVED"
 	trace.append(
-		entry(run, index, command, node, call_path, round_number, target, direction, "MOVED")
+		entry(run, index, command, node, call_path, round_number, target, direction, event)
 	)
 	return null
 

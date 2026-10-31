@@ -9,6 +9,11 @@ extends RefCounted
 
 enum State { READY, RUNNING, PAUSED, SUCCEEDED, FAILED }
 
+## The failures that an instruction caused (the others end the run without one).
+const FAILING_REASONS := [
+	"BLOCKED_BY_WALL", "BLOCKED_BY_BOUNDARY", "BLOCKED_BY_DOOR", "HIT_BY_PATROL"
+]
+
 var level: Dictionary
 var state := State.READY
 ## The simulator result for the program that was started; empty while READY.
@@ -135,7 +140,7 @@ func failing_node() -> Array:
 	if state != State.FAILED:
 		return []
 	var reason: String = result.get("reason", "")
-	if reason == "BLOCKED_BY_WALL" or reason == "BLOCKED_BY_BOUNDARY" or reason == "HIT_BY_PATROL":
+	if FAILING_REASONS.has(reason):
 		return trace()[trace().size() - 1]["node"]
 	return []
 
