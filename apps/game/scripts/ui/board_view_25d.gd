@@ -137,6 +137,10 @@ func _draw() -> void:
 				items.append(
 					{"depth": view.depth(door.x + 0.5, door.y + 0.5), "wall": null, "door": i}
 				)
+	if level.has("deliveries"):
+		var flat := func(unit: Vector2) -> Vector2:
+			return view.project(unit.x, unit.y, BoardProjection.Z_FLOOR)
+		ItemDraw.draw_floor(self, level, trail, flat, DepthPalette.FLOOR, DepthPalette.INK)
 	for wall: Array in level["board"]["walls"]:
 		var point := Vector2i(int(wall[0]), int(wall[1]))
 		items.append({"depth": view.depth(point.x + 0.5, point.y + 0.5), "wall": point})
@@ -283,3 +287,8 @@ func _draw_automaton_block(view: BoardProjection, at: Vector2) -> void:
 	]:
 		wedge.append(view.project(point.x, point.y, top + 0.003))
 	draw_colored_polygon(wedge, DepthPalette.SIGNAL)
+	if level.has("deliveries"):
+		var carried := func(unit: Vector2) -> Vector2:
+			return view.project(unit.x, unit.y, top + 0.003)
+		var crate := {"edge": DepthPalette.ON_INK, "fill": DepthPalette.SIGNAL}
+		ItemDraw.draw_carried(self, level, trail, carried, at, crate)

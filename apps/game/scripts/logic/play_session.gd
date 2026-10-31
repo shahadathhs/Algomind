@@ -11,7 +11,11 @@ enum State { READY, RUNNING, PAUSED, SUCCEEDED, FAILED }
 
 ## The failures that an instruction caused (the others end the run without one).
 const FAILING_REASONS := [
-	"BLOCKED_BY_WALL", "BLOCKED_BY_BOUNDARY", "BLOCKED_BY_DOOR", "HIT_BY_PATROL"
+	"BLOCKED_BY_WALL",
+	"BLOCKED_BY_BOUNDARY",
+	"BLOCKED_BY_DOOR",
+	"HIT_BY_PATROL",
+	"UNDELIVERED",
 ]
 
 var level: Dictionary

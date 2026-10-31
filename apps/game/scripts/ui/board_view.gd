@@ -112,7 +112,16 @@ func _draw() -> void:
 				draw_rect(rect, Palette.FLOOR)
 	if level.has("locks"):
 		_draw_locks(geometry)
+	if level.has("deliveries"):
+		ItemDraw.draw_floor(
+			self, level, trail, _unit_to_canvas(geometry), Palette.FLOOR, Palette.INK
+		)
 	_draw_automaton(geometry)
+	if level.has("deliveries"):
+		var colors := {"edge": Palette.ON_INK, "fill": Palette.SIGNAL}
+		ItemDraw.draw_carried(
+			self, level, trail, _unit_to_canvas(geometry), automaton + nudge, colors
+		)
 	if level.has("patrols"):
 		var origin := cell_rect(Vector2.ZERO, geometry).position
 		var pitch: float = float(geometry["cell"]) + GAP
@@ -125,11 +134,16 @@ func _draw() -> void:
 		)
 
 
-## Keys, and each door shut or open by whether its key has been taken.
-func _draw_locks(geometry: Dictionary) -> void:
+## Maps a point in board units (a cell is 1 by 1) to the canvas.
+func _unit_to_canvas(geometry: Dictionary) -> Callable:
 	var origin := cell_rect(Vector2.ZERO, geometry).position
 	var pitch: float = float(geometry["cell"]) + GAP
-	var place := func(unit: Vector2) -> Vector2: return origin + unit * pitch
+	return func(unit: Vector2) -> Vector2: return origin + unit * pitch
+
+
+## Keys, and each door shut or open by whether its key has been taken.
+func _draw_locks(geometry: Dictionary) -> void:
+	var place := _unit_to_canvas(geometry)
 	var taken := LockDraw.held(level, trail)
 	LockDraw.draw_keys(self, level, trail, place, Palette.FLOOR)
 	for i in (level["locks"] as Array).size():

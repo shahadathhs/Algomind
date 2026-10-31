@@ -161,6 +161,10 @@ static func simulate(level: Dictionary, program: Array) -> Dictionary:
 		"keys": RunLocks.tables(level)["keys"],
 		"doors": RunLocks.tables(level)["doors"],
 		"held": {},
+		"items": RunItems.tables(level)["items"],
+		"docks": RunItems.tables(level)["docks"],
+		"carrying": -1,
+		"delivered": {},
 	}
 
 	for i in program.size():

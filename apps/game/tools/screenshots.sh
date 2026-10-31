@@ -65,6 +65,12 @@ for size in 390x844 360x640 412x915; do
 		shot play-keys-failed play "$theme" "$size" --level=two-doors --program=MMMM --steps=-1
 		shot play-keys-depth play "$theme" "$size" --level=two-doors --program=MRMLLMRMMMMMLM --steps=6 --look=depth
 		shot play-keys-failed-depth play "$theme" "$size" --level=two-doors --program=MMMM --steps=-1 --look=depth
+		shot play-delivery play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=8
+		shot play-delivery-carry play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=3
+		shot play-delivery-carry-depth play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=3 --look=depth
+		shot play-delivery-failed play "$theme" "$size" --level=first-parcel --program=MMMM --steps=-1
+		shot play-delivery-depth play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=8 --look=depth
+		shot play-delivery-failed-depth play "$theme" "$size" --level=first-parcel --program=MMMM --steps=-1 --look=depth
 		# The depth board (Look: depth), on a small board and on the biggest one.
 		shot play-ready-depth play "$theme" "$size" --level=first-turn --program=MMMRM --look=depth
 		shot play-running-depth play "$theme" "$size" --level=first-turn --program=MMMRMMM --steps=5 --look=depth

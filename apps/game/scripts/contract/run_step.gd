@@ -68,6 +68,13 @@ static func move(
 		reached = (run["visited"] as Dictionary).size() == int(run["floor_cells"])
 	else:
 		reached = cell == run["goal"]
+	if reached and RunItems.pending(run):
+		trace.append(
+			entry(
+				run, index, command, node, call_path, round_number, target, direction, "UNDELIVERED"
+			)
+		)
+		return finish("FAILED", "UNDELIVERED", null, run)
 	if reached:
 		trace.append(
 			entry(
@@ -83,7 +90,9 @@ static func move(
 			)
 		)
 		return finish("SUCCEEDED", "GOAL_REACHED", null, run)
-	var event := "KEY_TAKEN" if RunLocks.take_key(run, cell) else "MOVED"
+	var event := "KEY_TAKEN" if RunLocks.take_key(run, cell) else RunItems.settle(run, cell)
+	if event == "":
+		event = "MOVED"
 	trace.append(
 		entry(run, index, command, node, call_path, round_number, target, direction, event)
 	)

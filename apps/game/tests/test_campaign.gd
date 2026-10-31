@@ -151,12 +151,12 @@ func test_malformed_placement_gives_an_empty_campaign() -> void:
 func test_bundled_campaign_loads_cleanly() -> void:
 	var campaign := Campaign.load_bundled()
 	assert_eq(campaign.errors, [] as Array[String])
-	assert_eq(campaign.entries.size(), 77, "the bundled campaign is the published starter set")
-	assert_eq(campaign.worlds.size(), 14)
+	assert_eq(campaign.entries.size(), 83, "the bundled campaign is the published starter set")
+	assert_eq(campaign.worlds.size(), 15)
 	var chapters := 0
 	for world in campaign.worlds:
 		chapters += world["chapters"].size()
-	assert_eq(chapters, 30)
+	assert_eq(chapters, 33)
 
 
 func test_every_bundled_level_is_solvable_within_its_limit() -> void:

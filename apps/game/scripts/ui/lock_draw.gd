@@ -39,12 +39,12 @@ static func ring(center: Vector2, radius: float) -> PackedVector2Array:
 	return points
 
 
-static func _box(a: Vector2, b: Vector2) -> PackedVector2Array:
+static func box(a: Vector2, b: Vector2) -> PackedVector2Array:
 	return PackedVector2Array([a, Vector2(b.x, a.y), b, Vector2(a.x, b.y)])
 
 
 ## Fills a shape given in cell units (0 to 1) of `cell`.
-static func _fill(
+static func fill(
 	canvas: CanvasItem, place: Callable, cell: Vector2i, shape: PackedVector2Array, color: Color
 ) -> void:
 	var points := PackedVector2Array()
@@ -54,12 +54,12 @@ static func _fill(
 
 
 ## The pips that tell lock `index` (0 based) apart, under the shape in `cell`.
-static func _pips(
+static func pips(
 	canvas: CanvasItem, place: Callable, cell: Vector2i, index: int, color: Color
 ) -> void:
 	for n in index + 1:
 		var at := Vector2(0.5 + (float(n) - float(index) / 2.0) * 0.16, 0.86)
-		_fill(canvas, place, cell, _box(at - Vector2(0.05, 0.05), at + Vector2(0.05, 0.05)), color)
+		fill(canvas, place, cell, box(at - Vector2(0.05, 0.05), at + Vector2(0.05, 0.05)), color)
 
 
 ## Draws every key still on the board. `hole` is the color the ring shows through.
@@ -72,12 +72,12 @@ static func draw_keys(
 		if taken.has(i):
 			continue
 		var cell := cell_of(locks[i], "key")
-		_fill(canvas, place, cell, ring(Vector2(0.34, 0.46), 0.17), Palette.INK)
-		_fill(canvas, place, cell, ring(Vector2(0.34, 0.46), 0.075), hole)
-		_fill(canvas, place, cell, _box(Vector2(0.48, 0.42), Vector2(0.82, 0.5)), Palette.INK)
-		_fill(canvas, place, cell, _box(Vector2(0.72, 0.5), Vector2(0.8, 0.64)), Palette.INK)
+		fill(canvas, place, cell, ring(Vector2(0.34, 0.46), 0.17), Palette.INK)
+		fill(canvas, place, cell, ring(Vector2(0.34, 0.46), 0.075), hole)
+		fill(canvas, place, cell, box(Vector2(0.48, 0.42), Vector2(0.82, 0.5)), Palette.INK)
+		fill(canvas, place, cell, box(Vector2(0.72, 0.5), Vector2(0.8, 0.64)), Palette.INK)
 		if locks.size() > 1:
-			_pips(canvas, place, cell, i, Palette.INK)
+			pips(canvas, place, cell, i, Palette.INK)
 
 
 ## Draws a door: an outline when open; when shut, the keyhole, on a flat block (`flat_block`) or on
@@ -87,7 +87,7 @@ static func draw_door(
 ) -> void:
 	var locks: Array = level["locks"]
 	var cell := cell_of(locks[index], "door")
-	var inner := _box(Vector2(DOOR_INSET, DOOR_INSET), Vector2(1.0 - DOOR_INSET, 1.0 - DOOR_INSET))
+	var inner := box(Vector2(DOOR_INSET, DOOR_INSET), Vector2(1.0 - DOOR_INSET, 1.0 - DOOR_INSET))
 	if open:
 		var outline := PackedVector2Array()
 		for point in inner:
@@ -96,11 +96,11 @@ static func draw_door(
 		canvas.draw_polyline(outline, Palette.INK, 2.0)
 	else:
 		if flat_block:
-			_fill(canvas, place, cell, inner, Palette.INK)
-		_fill(canvas, place, cell, ring(Vector2(0.5, 0.4), 0.1), Palette.ON_INK)
+			fill(canvas, place, cell, inner, Palette.INK)
+		fill(canvas, place, cell, ring(Vector2(0.5, 0.4), 0.1), Palette.ON_INK)
 		var slot := PackedVector2Array(
 			[Vector2(0.45, 0.46), Vector2(0.55, 0.46), Vector2(0.58, 0.68), Vector2(0.42, 0.68)]
 		)
-		_fill(canvas, place, cell, slot, Palette.ON_INK)
+		fill(canvas, place, cell, slot, Palette.ON_INK)
 	if locks.size() > 1:
-		_pips(canvas, place, cell, index, Palette.INK if open else Palette.ON_INK)
+		pips(canvas, place, cell, index, Palette.INK if open else Palette.ON_INK)

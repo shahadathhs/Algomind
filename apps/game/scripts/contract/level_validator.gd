@@ -31,6 +31,7 @@ const _PUBLIC_KEYS: Array[String] = [
 	"startProgram",
 	"patrols",
 	"locks",
+	"deliveries",
 	"hints",
 ]
 
@@ -301,7 +302,7 @@ static func _run(issues: Array[Dictionary], input: Variant, authoring: bool) -> 
 	BoardValidator.check_board_and_cells(issues, root)
 	BoardValidator.check_extra_boards(issues, root)
 	PatrolValidator.check_patrols(issues, root)
-	LockValidator.check_locks(issues, root)
+	PairValidator.check_all(issues, root)
 	_validate_commands(issues, root)
 	_validate_constraints(issues, root)
 	_validate_hints(issues, root)
