@@ -342,6 +342,21 @@ A level may carry `locks`, one to three pairs `{ key, door }`. Built: the contra
 
 **Level design rules for the Keys world:** the shortest program that ignores the keys and doors must fail (a test checks this), and the limit equals the exact par. Chapter one has one door and a key off the straight way; chapter two has two doors, where a key may lie between them; the last chapter adds a guard.
 
+### 3.12 Delivery (world 15)
+
+A level may carry `deliveries`, one to three pairs `{ item, dock }`. Built: the contract (types, both validators, both schemas, both simulators, the solver), the API (`delivery` mechanic), the game (crates and docks on the flat and depth boards), and six levels. It reuses the pickup rule of keys (3.11) and adds a drop.
+
+- **Picking up.** Entering an item's cell with empty hands picks the item up. There is no command for it. The trace event of that move is `ITEM_TAKEN`. The automaton carries one item at a time: an item met while the hands are full is walked over and stays where it lies.
+- **Dropping.** Entering the dock of the item being carried drops it there (`ITEM_DROPPED`) and the item is delivered. A dock accepts only its own item; any other dock, and any dock reached with empty hands, is an ordinary cell. There is no command for dropping and an item cannot be put down anywhere else.
+- **The target.** The target counts only when every item is delivered. Entering it with an item left ends the run with `UNDELIVERED` (event `UNDELIVERED`; `blockedCell` is null and the final position is the target). The guard check still comes first.
+- **With keys and guards.** Deliveries can share a level with `locks` and `patrols`; the cells of all three are different.
+- **Validation.** Items and docks lie on floor cells inside the board, never on the start or the target, and no two (keys and doors included) share a cell. Issue codes `DELIVERY_ON_WALL`, `DELIVERY_ON_START`, `DELIVERY_ON_GOAL`, `DELIVERY_CELLS_REPEAT`, `DELIVERIES_WITH_BOARDS` (not with `extraBoards`) and `DELIVERIES_WITH_SWEEP` (not with the visit-every-cell goal).
+- **Display.** An item is a crate: a solid square with a strap. A dock is four corner brackets, with the crate inside once delivered. The crate carried is drawn small on the automaton, in signal yellow. With more than one delivery, a crate and its dock carry the same number of pips, so the pairing is never only a color. The failing instruction is marked on the tape and the message reads THE AUTOMATON REACHED THE TARGET BEFORE EVERY ITEM WAS DELIVERED.
+- **Solver.** The exact search adds what is carried and what is delivered to the state, and does not search a move into the target while an item is left. Where a level offers loops, the reference solution sets par.
+- **Compatibility.** The mechanic is `delivery`.
+
+**Level design rules for the Delivery world:** the shortest program that ignores the crates, doors and guards must fail (a test checks this), and the limit equals the exact par. Chapter one has one crate; chapter two has two (the second needs the first delivered, because hands hold one); the last chapter adds a key and door, then a guard.
+
 ## 4. Execution model and feedback
 
 ### Controls
@@ -385,28 +400,29 @@ The simulation engine is separate from visual animation. Animations display simu
 
 ## 5. Difficulty progression and campaign structure
 
-> **Planned:** the campaign grows to 20 worlds (Patrol and the item, tile, and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 14 worlds, 30 chapters, 77 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
+> **Planned:** the campaign grows to 20 worlds (Patrol and the item, tile, and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 15 worlds, 33 chapters, 83 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
 
 The campaign is a tree: **worlds** (one concept each), **chapters** (small groups within a world), and **levels**. Levels unlock sequentially along the flattened order (world, then chapter, then level). The stages below map onto worlds. Placement is campaign data managed in the dashboard, not part of a level's definition.
 
 Teach concepts progressively rather than making early levels arbitrarily difficult. Each world teaches one idea, and from the Loops world on each world needs a mechanic the game must implement first (section 3 and its subsections). The first two worlds need nothing new. Worlds are 5 or 6 levels, so a new idea arrives about every five levels: the first loop is level 11, and the first `IF` is level 22.
 
-| #   | World         | Idea                                 | Algorithm the player uses                                                                            | Needs                                                                      | Levels |
-| --- | ------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------ |
-| 1   | Basics        | Sequencing and turning               | Step-by-step execution: trace a program by hand and predict where it ends                            | nothing new                                                                | 5      |
-| 2   | Routes        | Planning and budgets                 | Shortest-path search (turns cost too) and working backward from the goal                             | nothing new                                                                | 5      |
-| 3   | Loops         | Repeating a pattern                  | Pattern detection (find the repeating unit); split a route into loops plus the moves between them    | `REPEAT n` (built; 3.1)                                                    | 6      |
-| 4   | Until         | One program for any distance         | Scan until a condition holds (linear search with a stop condition); reason about when a loop ends    | `REPEAT_UNTIL` (built; 3.2)                                                | 5      |
-| 5   | Decisions     | Choosing by what you sense           | A greedy local rule: decisions based on the current state                                            | `IF` sensors (built; 3.3)                                                  | 5      |
-| 6   | Wall follower | Keeping a hand on the wall           | Wall-following (the right-hand and left-hand rules) in mazes whose walls are all joined              | `IF` sensors (built; 3.3)                                                  | 5      |
-| 7   | Procedures    | Naming and reusing steps             | Abstraction and decomposition: build big solutions from small named parts                            | `PROC` and `CALL` (built; 3.4)                                             | 6      |
-| 8   | Debug         | Reading and fixing a program         | Debugging: run it, see where it goes wrong, find the one thing that is wrong and change it           | `startProgram`: a program on the tape from the start (built; 3.10)         | 5      |
-| 9   | Generalize    | One program, many boards             | Generalization and edge cases: the solution must work on every test board, including the tricky ones | multi-board levels (built; 3.5)                                            | 6      |
-| 10  | Counters      | Remembering a number and changing it | Accumulation: a value that grows each round (spirals, widening stairs, count to n then act)          | one counter variable and nested loops (built; 3.6)                         | 6      |
-| 11  | Memory        | Marking where you have been          | Depth-first search with backtracking (the Tremaux idea): explore, mark, return, never repeat a path  | markers: `MARK`, the fresh and back sensors (built; 3.7)                   | 6      |
-| 12  | Sweep         | Covering everything efficiently      | Systematic coverage (the lawnmower sweep) and efficiency: the same job in far fewer steps            | goal type "visit every floor cell"; step budgets that scale with the board | 5      |
-| 13  | Patrol        | Timing and prediction                | Obstacles that move by a fixed pattern: read the pattern, go around, or wait for the right step      | patrols: guards on a route that depends on the step number (built; 3.9)    | 6      |
-| 14  | Keys          | Order of dependencies                | Fetch what you need before you need it: a door stays shut until its key has been taken               | keys and doors: `locks`, picked up by entering a cell (built; 3.11)        | 6      |
+| #   | World         | Idea                                 | Algorithm the player uses                                                                               | Needs                                                                      | Levels |
+| --- | ------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------ |
+| 1   | Basics        | Sequencing and turning               | Step-by-step execution: trace a program by hand and predict where it ends                               | nothing new                                                                | 5      |
+| 2   | Routes        | Planning and budgets                 | Shortest-path search (turns cost too) and working backward from the goal                                | nothing new                                                                | 5      |
+| 3   | Loops         | Repeating a pattern                  | Pattern detection (find the repeating unit); split a route into loops plus the moves between them       | `REPEAT n` (built; 3.1)                                                    | 6      |
+| 4   | Until         | One program for any distance         | Scan until a condition holds (linear search with a stop condition); reason about when a loop ends       | `REPEAT_UNTIL` (built; 3.2)                                                | 5      |
+| 5   | Decisions     | Choosing by what you sense           | A greedy local rule: decisions based on the current state                                               | `IF` sensors (built; 3.3)                                                  | 5      |
+| 6   | Wall follower | Keeping a hand on the wall           | Wall-following (the right-hand and left-hand rules) in mazes whose walls are all joined                 | `IF` sensors (built; 3.3)                                                  | 5      |
+| 7   | Procedures    | Naming and reusing steps             | Abstraction and decomposition: build big solutions from small named parts                               | `PROC` and `CALL` (built; 3.4)                                             | 6      |
+| 8   | Debug         | Reading and fixing a program         | Debugging: run it, see where it goes wrong, find the one thing that is wrong and change it              | `startProgram`: a program on the tape from the start (built; 3.10)         | 5      |
+| 9   | Generalize    | One program, many boards             | Generalization and edge cases: the solution must work on every test board, including the tricky ones    | multi-board levels (built; 3.5)                                            | 6      |
+| 10  | Counters      | Remembering a number and changing it | Accumulation: a value that grows each round (spirals, widening stairs, count to n then act)             | one counter variable and nested loops (built; 3.6)                         | 6      |
+| 11  | Memory        | Marking where you have been          | Depth-first search with backtracking (the Tremaux idea): explore, mark, return, never repeat a path     | markers: `MARK`, the fresh and back sensors (built; 3.7)                   | 6      |
+| 12  | Sweep         | Covering everything efficiently      | Systematic coverage (the lawnmower sweep) and efficiency: the same job in far fewer steps               | goal type "visit every floor cell"; step budgets that scale with the board | 5      |
+| 13  | Patrol        | Timing and prediction                | Obstacles that move by a fixed pattern: read the pattern, go around, or wait for the right step         | patrols: guards on a route that depends on the step number (built; 3.9)    | 6      |
+| 14  | Keys          | Order of dependencies                | Fetch what you need before you need it: a door stays shut until its key has been taken                  | keys and doors: `locks`, picked up by entering a cell (built; 3.11)        | 6      |
+| 15  | Delivery      | Carry and drop, sub-goals            | Finish a sub-goal before the main goal: carry a crate to its dock, one at a time, then reach the target | crates and docks: `deliveries`, one carried at a time (built; 3.12)        | 6      |
 
 World 2 ends on its longest flat program (19 tiles), so loops are wanted when the Loops world starts. The budget ideas ("the limit equals par") live in the last chapter of the Routes world.
 

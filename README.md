@@ -57,7 +57,7 @@ The automaton `^` starts bottom-left facing north, and you must reach the target
 
 ## The campaign
 
-**14 worlds, 77 levels**, unlocked in order. Each world teaches one idea.
+**15 worlds, 83 levels**, unlocked in order. Each world teaches one idea.
 
 | World                        | You learn                                | New in the toolbox                   |
 | ---------------------------- | ---------------------------------------- | ------------------------------------ |
@@ -72,6 +72,7 @@ The automaton `^` starts bottom-left facing north, and you must reach the target
 | 12 Sweep                     | Cover everything efficiently             | Visit every cell                     |
 | 13 Patrol                    | Timing: guards walk a fixed route        | Read the pattern, then wait or dodge |
 | 14 Keys                      | Fetch what you need before you need it   | Keys and doors                       |
+| 15 Delivery                  | Carry a crate, drop it, then finish      | Crates and docks                     |
 
 ## Make your own levels
 
@@ -92,13 +93,12 @@ When you want company there is a daily challenge, points, leaderboards and achie
 
 ## Roadmap
 
-**Shipped:** the 13-world campaign, accounts and sync, the daily challenge and leaderboards, the level dashboard, the public site, and the depth look (a soft, tilted 2.5D board).
+**Shipped:** the 15-world campaign, accounts and sync, the daily challenge and leaderboards, the level dashboard, the public site, and the depth look (a soft, tilted 2.5D board).
 
-**Next:** six more worlds, taking the campaign to 20.
+**Next:** five more worlds, taking the campaign to 20.
 
 | World                | Idea                              |
 | -------------------- | --------------------------------- |
-| 15 Delivery          | Carry an item to a place          |
 | 16 Switches          | Cause and effect across the board |
 | 17 Ice and conveyors | Forced movement                   |
 | 18 Teleporters       | Shortcuts that need planning      |
