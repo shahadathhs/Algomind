@@ -103,7 +103,7 @@
     "Count up once per step, so the next run is longer."
   ],
   "title": "Tall steps",
-  "levelId": "ed44dbbc-39e6-4da3-9447-d18ba488edd9",
+  "levelId": "a7663dfa-66b1-4c4e-9b8b-195bb4b10d63",
   "requires": {
     "mechanics": ["nested_loops"]
   },

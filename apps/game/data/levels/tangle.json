@@ -57,7 +57,7 @@
   },
   "hints": ["The goal can be anywhere in the maze.", "The search reaches every cell it can."],
   "title": "Tangle",
-  "levelId": "96e27688-a884-4f74-93f1-50689aa94aa0",
+  "levelId": "daf18d7e-a4d1-40d4-ac0d-61abe5f88b03",
   "requires": {
     "mechanics": []
   },

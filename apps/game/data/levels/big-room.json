@@ -13,7 +13,7 @@
     "A tight step limit means no wandering."
   ],
   "title": "Big room",
-  "levelId": "dd86bb8d-3235-4181-98d9-17547dae68b3",
+  "levelId": "2d25e9a2-4c98-40e1-b434-9d7bdffd7065",
   "requires": {
     "mechanics": ["nested_loops"]
   },
