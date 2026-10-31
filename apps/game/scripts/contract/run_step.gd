@@ -19,38 +19,17 @@ static func step(
 	var index := trace.size()
 	if command == LEFT or command == RIGHT:
 		run["direction"] = LevelSimulator.turn(direction, "left" if command == LEFT else "right")
-		trace.append(
-			entry(
-				run,
-				index,
-				command,
-				node,
-				call_path,
-				round_number,
-				position,
-				run["direction"],
-				"TURNED"
-			)
-		)
-		return null
+		return _stayed(run, command, node, round_number, call_path, "TURNED")
 
 	if command == ContractLimits.INC_OP:
 		run["counter"] = mini(int(run["counter"]) + 1, ContractLimits.COUNTER_MAX)
-		trace.append(
-			entry(
-				run, index, command, node, call_path, round_number, position, direction, "COUNTED"
-			)
-		)
-		return null
+		return _stayed(run, command, node, round_number, call_path, "COUNTED")
 	if command == ContractLimits.MARK_OP:
 		var here := Vector2i(int(position[0]), int(position[1]))
 		var crumbs: Dictionary = run["crumbs"]
 		if not crumbs.has(here):
 			crumbs[here] = (ContractLimits.DIRECTIONS.find(direction) + 2) % 4
-		trace.append(
-			entry(run, index, command, node, call_path, round_number, position, direction, "MARKED")
-		)
-		return null
+		return _stayed(run, command, node, round_number, call_path, "MARKED")
 	return move(run, command, node, round_number, call_path)
 
 
@@ -79,6 +58,9 @@ static func move(
 	run["position"] = target
 	var cell := Vector2i(tx, ty)
 	(run["visited"] as Dictionary)[cell] = true
+	var hit: Variant = _caught(run, position, command, node, round_number, call_path)
+	if hit != null:
+		return hit
 	var reached: bool
 	if run["goal"] == null:
 		reached = (run["visited"] as Dictionary).size() == int(run["floor_cells"])
@@ -103,6 +85,65 @@ static func move(
 		entry(run, index, command, node, call_path, round_number, target, direction, "MOVED")
 	)
 	return null
+
+
+## Ends an action that does not move the automaton: caught by a patrol, or done with `event`.
+static func _stayed(
+	run: Dictionary,
+	command: String,
+	node: Array,
+	round_number: Variant,
+	call_path: Variant,
+	event: String
+) -> Variant:
+	var hit: Variant = _caught(run, run["position"], command, node, round_number, call_path)
+	if hit != null:
+		return hit
+	var trace: Array = run["trace"]
+	trace.append(
+		entry(
+			run,
+			trace.size(),
+			command,
+			node,
+			call_path,
+			round_number,
+			run["position"],
+			run["direction"],
+			event
+		)
+	)
+	return null
+
+
+## A patrol that reaches the automaton in this step ends the run (checked before the goal).
+## `from` is where the automaton stood before the action.
+static func _caught(
+	run: Dictionary,
+	from: Array,
+	command: String,
+	node: Array,
+	round_number: Variant,
+	call_path: Variant
+) -> Variant:
+	var trace: Array = run["trace"]
+	var found: Variant = Patrol.meeting(run["patrols"], from, run["position"], trace.size())
+	if found == null:
+		return null
+	trace.append(
+		entry(
+			run,
+			trace.size(),
+			command,
+			node,
+			call_path,
+			round_number,
+			run["position"],
+			run["direction"],
+			"HIT_BY_PATROL"
+		)
+	)
+	return finish("FAILED", "HIT_BY_PATROL", found, run)
 
 
 static func entry(

@@ -157,6 +157,7 @@ static func simulate(level: Dictionary, program: Array) -> Dictionary:
 		"trace": [],
 		"max_steps": int(level["constraints"]["maxSteps"]),
 		"procs": ProgramShape.reachable_procs(program),
+		"patrols": level.get("patrols", []),
 	}
 
 	for i in program.size():

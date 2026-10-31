@@ -83,6 +83,13 @@ const REPEAT_COUNT_MAX := 11
 ## Extra test boards a level may carry besides its own board.
 const EXTRA_BOARDS_MIN := 1
 const EXTRA_BOARDS_MAX := 5
+
+const PATROL_PATTERNS: Array[String] = ["back_and_forth", "loop"]
+const PATROLS_MIN := 1
+const PATROLS_MAX := 3
+const PATROL_CELLS_MIN := 2
+const PATROL_CELLS_MAX := 12
+const PATROL_LOOP_CELLS_MIN := 4
 const PROC_BODY_MIN := 1
 const PROC_BODY_MAX := 8
 const IF_THEN_MIN := 1

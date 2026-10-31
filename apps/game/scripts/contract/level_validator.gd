@@ -28,6 +28,8 @@ const _PUBLIC_KEYS: Array[String] = [
 	"constraints",
 	"goal",
 	"extraBoards",
+	"startProgram",
+	"patrols",
 	"hints",
 ]
 
@@ -297,9 +299,14 @@ static func _run(issues: Array[Dictionary], input: Variant, authoring: bool) -> 
 	_validate_requires(issues, root)
 	BoardValidator.check_board_and_cells(issues, root)
 	BoardValidator.check_extra_boards(issues, root)
+	PatrolValidator.check_patrols(issues, root)
 	_validate_commands(issues, root)
 	_validate_constraints(issues, root)
 	_validate_hints(issues, root)
+	if root.has("startProgram"):
+		ProgramValidator.check_program(
+			issues, root["startProgram"], "startProgram", ProgramValidator.limits_of(root)
+		)
 
 	if authoring:
 		if not root.has("referenceSolution"):
