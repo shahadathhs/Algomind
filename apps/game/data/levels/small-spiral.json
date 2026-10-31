@@ -42,7 +42,7 @@
     "Walk N cells, turn, walk N cells, turn, then count up."
   ],
   "title": "Small spiral",
-  "levelId": "580ece35-6b94-48e5-85a8-e8ee511d076c",
+  "levelId": "7f595fac-bd76-453d-93b4-c5f4698cebcc",
   "requires": {
     "mechanics": ["nested_loops"]
   },

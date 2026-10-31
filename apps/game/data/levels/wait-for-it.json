@@ -14,7 +14,7 @@
     "A turn is a step too. Turning left then right is a wait of two steps."
   ],
   "title": "Wait for it",
-  "levelId": "0f6cb8dc-407c-41b7-9d5f-1661274624d1",
+  "levelId": "85b5ace3-63fd-486f-b11a-fd4a966ebfe1",
   "patrols": [
     {
       "cells": [

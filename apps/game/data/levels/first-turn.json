@@ -11,7 +11,7 @@
   },
   "hints": ["A turn changes the direction Move goes in.", "Move up first, then turn right."],
   "title": "First turn",
-  "levelId": "dd543535-03af-4f62-a325-a40e8b5b6776",
+  "levelId": "cc644d15-792a-4fee-9caf-944f9c4b9b88",
   "requires": {
     "mechanics": []
   },

@@ -225,6 +225,28 @@
           "levels": ["two-beats", "crossing-paths"]
         }
       ]
+    },
+    {
+      "id": "keys",
+      "title": "Keys",
+      "summary": "A door stays shut until the automaton has taken its key. Plan the order.",
+      "chapters": [
+        {
+          "id": "first-keys",
+          "title": "First keys",
+          "levels": ["first-key", "side-room"]
+        },
+        {
+          "id": "two-doors",
+          "title": "Two doors",
+          "levels": ["two-doors", "maze-gate"]
+        },
+        {
+          "id": "guarded",
+          "title": "Guarded",
+          "levels": ["guarded-key", "keys-and-a-guard"]
+        }
+      ]
     }
   ],
   "par": {
@@ -511,6 +533,30 @@
     "crossing-paths": {
       "commands": 18,
       "steps": 18
+    },
+    "first-key": {
+      "commands": 10,
+      "steps": 10
+    },
+    "side-room": {
+      "commands": 11,
+      "steps": 11
+    },
+    "two-doors": {
+      "commands": 14,
+      "steps": 14
+    },
+    "maze-gate": {
+      "commands": 15,
+      "steps": 15
+    },
+    "guarded-key": {
+      "commands": 17,
+      "steps": 17
+    },
+    "keys-and-a-guard": {
+      "commands": 16,
+      "steps": 16
     }
   }
 }

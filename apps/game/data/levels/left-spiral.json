@@ -64,7 +64,7 @@
     "Two counts per lap keep a wall between the laps."
   ],
   "title": "Left spiral",
-  "levelId": "d71fd500-4209-4cf3-b983-79d152bea6b8",
+  "levelId": "32636aef-d597-4626-95c7-3aecfc33ee69",
   "requires": {
     "mechanics": ["nested_loops"]
   },
