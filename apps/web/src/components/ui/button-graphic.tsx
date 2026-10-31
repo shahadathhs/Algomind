@@ -1,5 +1,6 @@
 import { CommandIcon, type IconKind } from "@/components/ui/command-icon";
 import { TileGraphic } from "@/components/ui/tile-graphic";
+import type { Look } from "@/lib/look";
 import { TILE_TONE } from "@/lib/tile-variants";
 
 type Props = {
@@ -12,10 +13,21 @@ type Props = {
   /** The one primary action of a drawn screen (yellow). Others are outlined. */
   primary?: boolean;
   fontSize?: number;
+  look?: Look;
 };
 
 /** A button or command tile drawn in SVG: icon and label centered on a chamfered tile. */
-export function ButtonGraphic({ x, y, w, h, label, icon, primary, fontSize = 12 }: Props) {
+export function ButtonGraphic({
+  x,
+  y,
+  w,
+  h,
+  label,
+  icon,
+  primary,
+  fontSize = 12,
+  look = "flat",
+}: Props) {
   const variant = primary ? "signal" : "ghost";
   const tone = TILE_TONE[variant];
   const spacing = 1;
@@ -26,7 +38,7 @@ export function ButtonGraphic({ x, y, w, h, label, icon, primary, fontSize = 12 
   const left = x + (w - total) / 2;
   const cy = y + h / 2;
   return (
-    <TileGraphic x={x} y={y} w={w} h={h} variant={variant}>
+    <TileGraphic x={x} y={y} w={w} h={h} variant={variant} look={look}>
       {icon && (
         <CommandIcon kind={icon} cx={left + iconSize / 2} cy={cy} size={iconSize} tone={tone} />
       )}

@@ -1,3 +1,4 @@
+import { Key } from "@/components/ui/key";
 import { Caption } from "@/components/ui/caption";
 import { Section } from "@/components/ui/section";
 import { TextLink } from "@/components/ui/text-link";
@@ -21,12 +22,14 @@ export async function WorldsSection() {
       <ul className="mt-10 grid gap-x-8 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
         {campaign.worlds.map((world) => (
           <li key={world.id} className="flex items-start gap-4 border-t-2 border-ink py-5">
-            <span
-              aria-hidden="true"
-              className="tile flex h-12 w-12 flex-none items-center justify-center bg-ink text-xl text-on-ink tabular-nums"
-            >
-              {String(world.number).padStart(2, "0")}
-            </span>
+            <Key tone="ink" className="flex-none">
+              <span
+                aria-hidden="true"
+                className="tile flex h-12 w-12 items-center justify-center bg-ink text-xl text-on-ink tabular-nums"
+              >
+                {String(world.number).padStart(2, "0")}
+              </span>
+            </Key>
             <div>
               <h3 className="text-xl leading-none tracking-[1px] uppercase">{world.title}</h3>
               <p className="mt-2 text-[13px] leading-normal font-semibold tracking-[0.3px] text-mute">

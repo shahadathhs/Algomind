@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/public/site-header";
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <>
+    <div className="look-depth">
       {/* First focusable element: keyboard users skip the header. Visible only while focused. */}
       <a
         href="#main"
@@ -18,6 +18,6 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <SiteFooter />
-    </>
+    </div>
   );
 }

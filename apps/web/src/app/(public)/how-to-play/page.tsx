@@ -87,6 +87,7 @@ export default function HowToPlayPage() {
         title="The board"
         figure={
           <BoardView
+            look="depth"
             board={READY_BOARD}
             label="A board with a wall of three cells, the automaton at the bottom right facing up, and the yellow target just above the wall."
           />
@@ -228,6 +229,7 @@ export default function HowToPlayPage() {
         title="The tape"
         figure={
           <TapeView
+            look="depth"
             tiles={tapeFromProgram(SOLUTION, { current: RUNNING_STEP })}
             head={RUNNING_STEP}
             label="A tape mid-run. Instructions already run are solid, the current one is yellow under the read-head, and the rest are outlined."
@@ -260,6 +262,7 @@ export default function HowToPlayPage() {
         title="When a run fails"
         figure={
           <BoardView
+            look="depth"
             board={FAILED_BOARD}
             label="A failed run: the automaton faces a wall that is striped yellow."
           />

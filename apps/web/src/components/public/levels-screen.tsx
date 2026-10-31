@@ -76,7 +76,7 @@ export function LevelsScreen({ className }: { className?: string }) {
       aria-label={`World ${LANDING_WORLD.number}, ${LANDING_WORLD.title}: ${tiles.length} level tiles in ${captions.length} chapters. ${count("solved")} are solved, one is current, ${count("locked")} are locked and ${count("download")} are not downloaded. A Play level ${current.number} button sits at the bottom.`}
       className={className ?? "block h-auto w-full"}
     >
-      <TileGraphic x={20} y={22} w={40} h={40} variant="ghost" chamfer={8}>
+      <TileGraphic look="depth" x={20} y={22} w={40} h={40} variant="ghost" chamfer={8}>
         <CommandIcon kind="back" cx={40} cy={42} size={18} tone={TILE_TONE.ghost} />
       </TileGraphic>
       <text x={20} y={104} fontSize={10} letterSpacing={2} className="fill-mute" {...TEXT}>
@@ -105,6 +105,7 @@ export function LevelsScreen({ className }: { className?: string }) {
         const variant = VARIANT[tile.state];
         return (
           <TileGraphic
+            look="depth"
             key={tile.number}
             x={tile.x}
             y={tile.y}
@@ -142,6 +143,7 @@ export function LevelsScreen({ className }: { className?: string }) {
         return (
           <g key={item.state}>
             <TileGraphic
+              look="depth"
               x={20}
               y={y}
               w={14}
@@ -175,6 +177,7 @@ export function LevelsScreen({ className }: { className?: string }) {
         OFFLINE. CONNECT TO GET NEW LEVELS.
       </text>
       <ButtonGraphic
+        look="depth"
         x={20}
         y={714}
         w={350}

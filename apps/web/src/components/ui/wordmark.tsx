@@ -1,3 +1,5 @@
+import { Key } from "@/components/ui/key";
+
 const LETTERS = ["A", "L", "G", "O", "M", "I", "N", "D"];
 
 /** The ALGOMIND wordmark: eight tiles, the first one signal yellow. */
@@ -10,16 +12,17 @@ export function Wordmark({ size = "md" }: { size?: "sm" | "md" }) {
   return (
     <span aria-label="Algomind" role="img" className="inline-flex gap-[2px] sm:gap-[3px]">
       {LETTERS.map((letter, i) => (
-        <span
-          key={letter + i}
-          aria-hidden="true"
-          className={`tile flex items-center justify-center ${box} ${
-            i === 0 ? "bg-signal text-on-signal" : "bg-ink text-on-ink"
-          }`}
-          style={{ ["--chamfer" as string]: "clamp(4px, 1.4vw, 6px)" }}
-        >
-          {letter}
-        </span>
+        <Key key={letter + i} tone={i === 0 ? "signal" : "ink"} lip={2}>
+          <span
+            aria-hidden="true"
+            className={`tile flex items-center justify-center ${box} ${
+              i === 0 ? "bg-signal text-on-signal" : "bg-ink text-on-ink"
+            }`}
+            style={{ ["--chamfer" as string]: "clamp(4px, 1.4vw, 6px)" }}
+          >
+            {letter}
+          </span>
+        </Key>
       ))}
     </span>
   );

@@ -19,7 +19,7 @@ export function StatusRow({
     const failed = state === "failed";
     return (
       <g>
-        <TileGraphic x={20} y={98} w={20} h={20} variant="signal" chamfer={4}>
+        <TileGraphic look="depth" x={20} y={98} w={20} h={20} variant="signal" chamfer={4}>
           <CommandIcon
             kind={failed ? "fail" : "check"}
             cx={30}

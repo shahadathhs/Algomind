@@ -7,6 +7,7 @@ export function LevelCard({ level }: { level: CampaignLevel }) {
   return (
     <li>
       <BoardView
+        look="depth"
         board={level.board}
         label={`Level ${level.number}, ${level.title}. Move the automaton to the target.`}
       />

@@ -1,3 +1,4 @@
+import { Key } from "@/components/ui/key";
 import { Caption } from "@/components/ui/caption";
 
 const STEPS = [
@@ -28,15 +29,17 @@ export function InstallSteps() {
       <ol>
         {STEPS.map((step, i) => (
           <li key={step.title} className="flex gap-5 border-t-2 border-ink py-5">
-            <span
-              aria-hidden="true"
-              className={`tile flex h-12 w-12 shrink-0 items-center justify-center text-[22px] ${
-                i === 0 ? "bg-signal text-on-signal" : "bg-ink text-on-ink"
-              }`}
-              style={{ ["--chamfer" as string]: "12px" }}
-            >
-              {i + 1}
-            </span>
+            <Key tone={i === 0 ? "signal" : "ink"} className="shrink-0">
+              <span
+                aria-hidden="true"
+                className={`tile flex h-12 w-12 items-center justify-center text-[22px] ${
+                  i === 0 ? "bg-signal text-on-signal" : "bg-ink text-on-ink"
+                }`}
+                style={{ ["--chamfer" as string]: "12px" }}
+              >
+                {i + 1}
+              </span>
+            </Key>
             <div className="min-w-0">
               <h3 className="text-xl tracking-[1px] uppercase">
                 <span className="sr-only">{`Step ${i + 1}: `}</span>

@@ -1,6 +1,8 @@
 import { useId } from "react";
+import { DepthBoardGraphic } from "@/components/ui/depth-board-graphic";
 import { type BoardData, DIR_ANGLE, hasPoint, samePoint } from "@/lib/board";
 import { chamferPath, round2 } from "@/lib/geometry";
+import type { Look } from "@/lib/look";
 
 type Props = {
   board: BoardData;
@@ -8,6 +10,8 @@ type Props = {
   x?: number;
   y?: number;
   size: number;
+  /** "depth" draws the extruded board of the public site; the default is the flat board. */
+  look?: Look;
 };
 
 const GAP = 2;
@@ -18,8 +22,9 @@ const GAP = 2;
  * the cell behind), a yellow-striped wall for a failure, and the automaton (a chamfered block with
  * a wedge showing its facing). Meaning never rests on color alone.
  */
-export function BoardGraphic({ board, x = 0, y = 0, size }: Props) {
+export function BoardGraphic({ board, x = 0, y = 0, size, look = "flat" }: Props) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  if (look === "depth") return <DepthBoardGraphic board={board} x={x} y={y} size={size} />;
   const hatchId = `hatch${uid}`;
   const stripeId = `stripe${uid}`;
   const cell = (size - GAP * (board.width - 1)) / board.width;

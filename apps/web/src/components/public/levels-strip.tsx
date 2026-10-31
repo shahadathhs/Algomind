@@ -39,6 +39,7 @@ export async function LevelsStrip() {
         {shown.map((level, i) => (
           <li key={level.id} className={i === shown.length - 1 ? "hidden sm:block" : ""}>
             <BoardView
+              look="depth"
               board={level.board}
               label={`${level.real ? "Level" : "Sample level"} ${level.title}. Move the automaton to the target.`}
             />

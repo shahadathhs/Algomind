@@ -11,6 +11,7 @@ export function Commands() {
       </SvgCaption>
       {commands.map((command, i) => (
         <ButtonGraphic
+          look="depth"
           key={command}
           x={20 + i * 120}
           y={650}
