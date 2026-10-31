@@ -262,6 +262,14 @@
           "items": {
             "$ref": "#/$defs/patrol"
           }
+        },
+        "locks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/lock"
+          }
         }
       }
     },
@@ -501,6 +509,19 @@
               }
             ]
           }
+        }
+      }
+    },
+    "lock": {
+      "type": "object",
+      "required": ["key", "door"],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/position"
+        },
+        "door": {
+          "$ref": "#/$defs/position"
         }
       }
     },

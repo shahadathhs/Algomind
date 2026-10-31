@@ -46,6 +46,7 @@ const PUBLIC_KEYS = [
   "extraBoards",
   "startProgram",
   "patrols",
+  "locks",
   "hints",
 ];
 
@@ -352,6 +353,7 @@ function boardFacts(root: Obj): {
   size: { width: number; height: number } | null;
   walls: [number, number][];
   start: [number, number] | null;
+  goal: [number, number] | null;
 } {
   const side = LIMITS.boardSide;
   const board = isObject(root["board"]) ? root["board"] : null;
@@ -370,7 +372,17 @@ function boardFacts(root: Obj): {
   const p = initial ? initial["position"] : undefined;
   const start: [number, number] | null =
     Array.isArray(p) && p.length === 2 && isInt(p[0]) && isInt(p[1]) ? [p[0], p[1]] : null;
-  return { size: width !== null && height !== null ? { width, height } : null, walls, start };
+  const goalCell = isObject(root["goal"]) ? root["goal"]["position"] : undefined;
+  const goal: [number, number] | null =
+    Array.isArray(goalCell) && goalCell.length === 2 && isInt(goalCell[0]) && isInt(goalCell[1])
+      ? [goalCell[0], goalCell[1]]
+      : null;
+  return {
+    size: width !== null && height !== null ? { width, height } : null,
+    walls,
+    start,
+    goal,
+  };
 }
 
 const adjacent = (a: [number, number], b: [number, number]): boolean =>
@@ -456,6 +468,67 @@ function validatePatrols(c: Collector, root: Obj): void {
         "PATROL_NOT_CONNECTED",
         "A ring must close: the last cell is next to the first.",
       );
+    }
+  });
+}
+
+function validateLocks(c: Collector, root: Obj): void {
+  if (!has(root, "locks")) return;
+  const raw = root["locks"];
+  if (!Array.isArray(raw)) {
+    c.add("locks", "INVALID_TYPE", "locks must be an array.");
+    return;
+  }
+  const lim = LIMITS.locks;
+  if (raw.length < lim.min || raw.length > lim.max) {
+    c.add(
+      "locks",
+      "LENGTH_OUT_OF_RANGE",
+      `locks must have ${lim.min} to ${lim.max} entries, or be left out.`,
+    );
+  }
+  if (has(root, "extraBoards")) {
+    c.add("locks", "LOCKS_WITH_BOARDS", "A level with test boards cannot have keys and doors.");
+  }
+  const goalType = isObject(root["goal"]) ? root["goal"]["type"] : undefined;
+  if (goalType === "visit_all") {
+    c.add(
+      "locks",
+      "LOCKS_WITH_SWEEP",
+      "A level that sweeps every cell cannot have keys and doors.",
+    );
+  }
+  const facts = boardFacts(root);
+  const seen: [number, number][] = [];
+  raw.forEach((entry, i) => {
+    const path = `locks[${i}]`;
+    if (!isObject(entry)) {
+      c.add(path, "INVALID_TYPE", `${path} must be an object.`);
+      return;
+    }
+    rejectUnknown(c, entry, path, ["key", "door"]);
+    for (const part of ["key", "door"] as const) {
+      const cellPath = `${path}.${part}`;
+      if (!has(entry, part)) {
+        c.add(cellPath, "REQUIRED", `${cellPath} is required.`);
+        continue;
+      }
+      const pair = checkPair(c, entry[part], cellPath, facts.size);
+      if (!pair) continue;
+      if (facts.walls.some((w) => samePair(w, pair))) {
+        c.add(cellPath, "LOCK_ON_WALL", `${cellPath} must not be a wall.`);
+      }
+      if (facts.start && samePair(facts.start, pair)) {
+        c.add(cellPath, "LOCK_ON_START", `${cellPath} must not be the automaton's cell.`);
+      }
+      if (facts.goal && samePair(facts.goal, pair)) {
+        c.add(cellPath, "LOCK_ON_GOAL", `${cellPath} must not be the target.`);
+      }
+      if (seen.some((s) => samePair(s, pair))) {
+        c.add(cellPath, "LOCK_CELLS_REPEAT", `${cellPath} repeats an earlier key or door.`);
+      } else {
+        seen.push(pair);
+      }
     }
   });
 }
@@ -628,6 +701,7 @@ function run(c: Collector, input: unknown, authoring: boolean): void {
   validateBoardAndCells(c, input);
   validateExtraBoards(c, input);
   validatePatrols(c, input);
+  validateLocks(c, input);
   validateCommands(c, input);
   validateConstraints(c, input);
   validateHints(c, input);

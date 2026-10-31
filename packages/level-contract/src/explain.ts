@@ -11,6 +11,7 @@ export const REASON_MESSAGES: Record<RunReason, string> = {
   PROGRAM_ENDED: "The program ended before the goal.",
   STEP_LIMIT: "The program ran too long and was stopped.",
   HIT_BY_PATROL: "A guard reached the automaton.",
+  BLOCKED_BY_DOOR: "The automaton tried to go through a locked door.",
   INVALID_INSTRUCTION: "The program contains an instruction this level cannot run.",
 };
 

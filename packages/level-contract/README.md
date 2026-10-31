@@ -87,6 +87,8 @@ A level may also carry `startProgram`, a program the tape starts with (a debug l
 
 A level may also carry `patrols`, one to three guards `{ pattern, cells }` (`back_and_forth` or `loop`) whose cell depends only on the step number (`docs/README_GAME_RULES.md` section 3.9). `patrolCell` and `patrolMeeting` (in `src/patrol.ts`) give the cell and the collision; a run that meets a guard fails with `HIT_BY_PATROL`. The validator reports `PATROL_ON_WALL`, `PATROL_ON_START`, `PATROL_CELLS_REPEAT`, `PATROL_NOT_CONNECTED` and `PATROLS_WITH_BOARDS`, and `solve` searches over (cell, facing, step) when a level has patrols.
 
+A level may also carry `locks`, one to three `{ key, door }` pairs (`docs/README_GAME_RULES.md` section 3.11): entering a key's cell picks it up, and a door blocks with `BLOCKED_BY_DOOR` until its key is held. The validator reports `LOCK_ON_WALL`, `LOCK_ON_START`, `LOCK_ON_GOAL`, `LOCK_CELLS_REPEAT`, `LOCKS_WITH_BOARDS` and `LOCKS_WITH_SWEEP`, and `solve` adds the keys held to its state.
+
 The solver does not search `IF` programs. With `IF` offered it still finds the best program without one (loops included); par for such a level is the author's reference solution, which the publish gate runs.
 
 **Slots.** The command limit counts slots: a primitive is 1, a `REPEAT` is 1 plus the number of instructions in its body. `REPEAT 6 { MOVE_FORWARD, TURN_RIGHT, MOVE_FORWARD, TURN_LEFT }` is 5 slots. `programSlots(program)` computes it.

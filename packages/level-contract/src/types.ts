@@ -109,6 +109,15 @@ export interface Patrol {
   cells: Position[];
 }
 
+/**
+ * A key and the door it opens. The automaton picks the key up by entering its cell; until then the
+ * door blocks like a wall (`BLOCKED_BY_DOOR`), and once the key is held the door is an ordinary cell.
+ */
+export interface Lock {
+  key: Position;
+  door: Position;
+}
+
 export interface Level {
   schemaVersion: 1;
   levelId: string;
@@ -139,6 +148,11 @@ export interface Level {
    * the automaton and a patrol share a cell after a step, or swap cells in one step.
    */
   patrols?: Patrol[];
+  /**
+   * Key and door pairs on the level's own board (not with `extraBoards` or the sweep goal). Keys are
+   * picked up by entering their cell and kept for the rest of the run.
+   */
+  locks?: Lock[];
   hints: string[];
 }
 
@@ -172,6 +186,12 @@ export type IssueCode =
   | "CALL_NOT_ALLOWED"
   | "DUPLICATE_PROCEDURE"
   | "UNDEFINED_PROCEDURE"
+  | "LOCK_ON_WALL"
+  | "LOCK_ON_START"
+  | "LOCK_ON_GOAL"
+  | "LOCK_CELLS_REPEAT"
+  | "LOCKS_WITH_BOARDS"
+  | "LOCKS_WITH_SWEEP"
   | "PATROL_ON_WALL"
   | "PATROL_ON_START"
   | "PATROL_CELLS_REPEAT"
@@ -205,6 +225,7 @@ export type RunReason =
   | "PROGRAM_ENDED"
   | "STEP_LIMIT"
   | "HIT_BY_PATROL"
+  | "BLOCKED_BY_DOOR"
   | "INVALID_INSTRUCTION";
 
 export type TraceEvent =
@@ -215,7 +236,9 @@ export type TraceEvent =
   | "GOAL_REACHED"
   | "BLOCKED_BY_WALL"
   | "BLOCKED_BY_BOUNDARY"
-  | "HIT_BY_PATROL";
+  | "HIT_BY_PATROL"
+  | "BLOCKED_BY_DOOR"
+  | "KEY_TAKEN";
 
 export interface TraceEntry {
   /** 0-based index of the executed step. */

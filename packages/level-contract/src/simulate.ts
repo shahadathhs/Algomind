@@ -225,7 +225,16 @@ export function simulate(level: Level, program: Program): RunResult {
 
   const atLimit = (): boolean => trace.length >= level.constraints.maxSteps;
   const onBoard = (cell: Position): boolean => isInsideBoard(level, cell);
-  const isFloor = (cell: Position): boolean => onBoard(cell) && !walls.has(cellKey(cell));
+  // Keys and doors: `keyAt` and `doorAt` map a cell to the index of its lock; `held` is the keys picked up.
+  const keyAt = new Map((level.locks ?? []).map((lock, i) => [cellKey(lock.key), i]));
+  const doorAt = new Map((level.locks ?? []).map((lock, i) => [cellKey(lock.door), i]));
+  const held = new Set<number>();
+  const isClosedDoor = (cell: Position): boolean => {
+    const lock = doorAt.get(cellKey(cell));
+    return lock !== undefined && !held.has(lock);
+  };
+  const isFloor = (cell: Position): boolean =>
+    onBoard(cell) && !walls.has(cellKey(cell)) && !isClosedDoor(cell);
 
   /** Runs one action. Returns the final result when the run ends here, otherwise null. */
   const step = (
@@ -287,6 +296,10 @@ export function simulate(level: Level, program: Program): RunResult {
       trace.push(entry("BLOCKED_BY_WALL"));
       return finish("FAILED", "BLOCKED_BY_WALL", ahead);
     }
+    if (isClosedDoor(ahead)) {
+      trace.push(entry("BLOCKED_BY_DOOR"));
+      return finish("FAILED", "BLOCKED_BY_DOOR", ahead);
+    }
     const from: Position = position;
     position = ahead;
     visited.add(cellKey(position));
@@ -298,6 +311,12 @@ export function simulate(level: Level, program: Program): RunResult {
     if (reached) {
       trace.push(entry("GOAL_REACHED"));
       return finish("SUCCEEDED", "GOAL_REACHED", null);
+    }
+    const key = keyAt.get(cellKey(position));
+    if (key !== undefined && !held.has(key)) {
+      held.add(key);
+      trace.push(entry("KEY_TAKEN"));
+      return null;
     }
     trace.push(entry("MOVED"));
     return null;

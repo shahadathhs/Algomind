@@ -10,6 +10,7 @@ interface Node {
   dir: number; // index into DIRECTIONS
   parent: number; // index into the node list, -1 for the start
   op: PrimitiveName | null; // the command that produced this node
+  held?: number; // bit i is set when the key of lock i is held (levels with keys)
 }
 
 /**
@@ -31,7 +32,8 @@ export function solve(level: Level): SolveResult | null {
   // Only a target can be searched for; the sweep goal (visit_all) has no exact par.
   if (level.goal.type !== "reach_tile") return null;
   // Patrols make the state depend on the step number, so the search is over (x, y, facing, step).
-  if (level.patrols !== undefined && level.patrols.length > 0) return solveWithPatrols(level);
+  // Keys add the keys held to the state, so the same layered search serves them.
+  if (hasPatrols(level) || hasLocks(level)) return solveWithPatrols(level);
   if (
     level.availableCommands.includes(REPEAT_OP) ||
     level.availableCommands.includes(REPEAT_UNTIL_OP)
@@ -97,12 +99,17 @@ export function solve(level: Level): SolveResult | null {
   return null;
 }
 
+const samePosition = (a: Position, b: Position): boolean => a[0] === b[0] && a[1] === b[1];
+const hasPatrols = (level: Level): boolean => (level.patrols ?? []).length > 0;
+const hasLocks = (level: Level): boolean => (level.locks ?? []).length > 0;
+
 function key(x: number, y: number, dir: number, width: number, height: number): number {
   return (dir * height + y) * width + x;
 }
 
 /**
- * The shortest flat program for a level with patrols: breadth first over states (x, y, facing) layer by
+ * The shortest flat program for a level with patrols or keys: breadth first over states (x, y, facing, keys
+ * held) layer by
  * layer, one layer per step, because where a patrol stands depends on the step. A command that would end
  * in a collision with a patrol (see `patrolMeeting`) is not tried; the goal is tested after that, as in
  * the simulator. Loops are not searched: with REPEAT on offer the API takes the better of this and the
@@ -114,6 +121,7 @@ function solveWithPatrols(level: Level): SolveResult | null {
   const available = PRIMITIVE_COMMANDS.filter((c) => level.availableCommands.includes(c));
   const goal = level.goal.position;
   const { width, height } = level.board;
+  const locks = level.locks ?? [];
   const nodes: Node[] = [
     {
       x: level.initialState.position[0],
@@ -148,21 +156,26 @@ function solveWithPatrols(level: Level): SolveResult | null {
         let x = cur.x;
         let y = cur.y;
         let dir = cur.dir;
+        let held = cur.held ?? 0;
         if (op === "MOVE_FORWARD") {
           const target: Position = cellAhead([x, y], DIRECTIONS[dir] as Direction);
           if (!isInsideBoard(level, target) || isWall(level, target)) continue;
+          const door = locks.findIndex((lock) => samePosition(lock.door, target));
+          if (door >= 0 && (held & (1 << door)) === 0) continue;
           x = target[0];
           y = target[1];
+          const picked = locks.findIndex((lock) => samePosition(lock.key, target));
+          if (picked >= 0) held |= 1 << picked;
         } else {
           dir = DIRECTIONS.indexOf(
             turn(DIRECTIONS[dir] as Direction, op === "TURN_LEFT" ? "left" : "right"),
           );
         }
         if (patrolMeeting(level, [cur.x, cur.y], [x, y], depth)) continue;
-        const k = key(x, y, dir, width, height);
+        const k = key(x, y, dir, width, height) + held * width * height * 4;
         if (seen.has(k)) continue;
         seen.add(k);
-        nodes.push({ x, y, dir, parent: head, op });
+        nodes.push({ x, y, dir, parent: head, op, held });
         if (x === goal[0] && y === goal[1]) return finish(nodes.length - 1);
         next.push(nodes.length - 1);
       }
