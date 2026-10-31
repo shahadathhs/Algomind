@@ -94,6 +94,7 @@ test("the schema requires every field of the Level type, and the authoring schem
       "patrols",
       "startProgram",
       "switches",
+      "teleports",
     ].sort(),
   );
   assert.equal(pub.unevaluatedProperties, false);

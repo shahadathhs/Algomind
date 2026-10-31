@@ -287,6 +287,14 @@
             "$ref": "#/$defs/switch"
           }
         },
+        "teleports": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/teleport"
+          }
+        },
         "ice": {
           "type": "array",
           "minItems": 1,
@@ -507,6 +515,19 @@
         },
         "name": {
           "enum": ["A", "B", "C"]
+        },
+        "when": {
+          "enum": [
+            "CLEAR_AHEAD",
+            "CLEAR_LEFT",
+            "CLEAR_RIGHT",
+            "FRESH_AHEAD",
+            "FRESH_LEFT",
+            "FRESH_RIGHT",
+            "BACK_AHEAD",
+            "BACK_LEFT",
+            "BACK_RIGHT"
+          ]
         }
       }
     },
@@ -538,9 +559,25 @@
               },
               {
                 "$ref": "#/$defs/repeatUntilInstruction"
+              },
+              {
+                "$ref": "#/$defs/callInstruction"
               }
             ]
           }
+        }
+      }
+    },
+    "teleport": {
+      "type": "object",
+      "required": ["a", "b"],
+      "additionalProperties": false,
+      "properties": {
+        "a": {
+          "$ref": "#/$defs/position"
+        },
+        "b": {
+          "$ref": "#/$defs/position"
         }
       }
     },

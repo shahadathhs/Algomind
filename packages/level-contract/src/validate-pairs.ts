@@ -12,7 +12,9 @@ import {
   type Obj,
 } from "./validate.js";
 
-type Field = "locks" | "deliveries" | "switches";
+type Field = "locks" | "deliveries" | "switches" | "teleports";
+/** The fields a pair may not share cells with: other pairs, ice cells and belts. */
+type Apart = Field | "ice" | "belts";
 
 /** What differs between the kinds of paired cells on a board: keys and doors, items and docks, switches and gates. */
 interface PairSpec {
@@ -22,7 +24,7 @@ interface PairSpec {
   limits: { min: number; max: number };
   codes: Record<"wall" | "start" | "goal" | "repeat" | "boards" | "sweep", IssueCode>;
   /** The fields whose cells these may not share. */
-  apart: Field[];
+  apart: Apart[];
   /** An optional boolean on each entry. */
   flag?: string;
 }
@@ -74,13 +76,50 @@ const SPECS: PairSpec[] = [
       sweep: "SWITCHES_WITH_SWEEP",
     },
   },
+  {
+    field: "teleports",
+    parts: ["a", "b"],
+    noun: "teleporters",
+    limits: LIMITS.teleports,
+    apart: ["locks", "deliveries", "switches", "ice", "belts"],
+    codes: {
+      wall: "TELEPORT_ON_WALL",
+      start: "TELEPORT_ON_START",
+      goal: "TELEPORT_ON_GOAL",
+      repeat: "TELEPORT_CELLS_REPEAT",
+      boards: "TELEPORTS_WITH_BOARDS",
+      sweep: "TELEPORTS_WITH_SWEEP",
+    },
+  },
 ];
 
 const PART_NAMES: Record<Field, [string, string]> = {
   locks: ["key", "door"],
   deliveries: ["item", "dock"],
   switches: ["switch", "gate"],
+  teleports: ["a", "b"],
 };
+
+function asCell(v: unknown): [number, number] | null {
+  return Array.isArray(v) && v.length === 2 && isInt(v[0]) && isInt(v[1]) ? [v[0], v[1]] : null;
+}
+
+/** The cells named by a field of the level, read leniently (an entry that is not a cell is skipped). */
+function cellsOf(root: Obj, field: Apart): [number, number][] {
+  const entries = root[field];
+  if (!Array.isArray(entries)) return [];
+  const out: [number, number][] = [];
+  for (const entry of entries) {
+    const found =
+      field === "ice"
+        ? [asCell(entry)]
+        : field === "belts"
+          ? [isObject(entry) ? asCell(entry["cell"]) : null]
+          : PART_NAMES[field].map((part) => (isObject(entry) ? asCell(entry[part]) : null));
+    for (const cell of found) if (cell) out.push(cell);
+  }
+  return out;
+}
 
 /** Validates `locks`, `deliveries` and `switches`: pairs of cells on the level's own board, all different. */
 export function validatePairs(c: Collector, root: Obj): void {
@@ -111,18 +150,7 @@ function validateField(c: Collector, root: Obj, spec: PairSpec): void {
   }
   const facts = boardFacts(root);
   const seen: [number, number][] = [];
-  for (const other of spec.apart) {
-    const entries = root[other];
-    if (!Array.isArray(entries)) continue;
-    for (const entry of entries) {
-      for (const part of PART_NAMES[other]) {
-        const cell = isObject(entry) ? entry[part] : undefined;
-        if (Array.isArray(cell) && cell.length === 2 && isInt(cell[0]) && isInt(cell[1])) {
-          seen.push([cell[0], cell[1]]);
-        }
-      }
-    }
-  }
+  for (const other of spec.apart) seen.push(...cellsOf(root, other));
   raw.forEach((entry, i) => {
     const path = `${field}[${i}]`;
     if (!isObject(entry)) {

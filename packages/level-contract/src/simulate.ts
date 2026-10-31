@@ -8,11 +8,12 @@ import {
   LIMITS,
   MARK_OP,
   PROC_OP,
+  RECURSION_MECHANIC,
   REPEAT_OP,
 } from "./constants.js";
 import { patrolMeeting } from "./patrol.js";
 import { World, type Motion } from "./world.js";
-import { TOP, isActionNode, isNode, runnable, type Node } from "./program-shape.js";
+import { topPlace, isActionNode, isNode, runnable, type Node } from "./program-shape.js";
 import type {
   ActionName,
   Direction,
@@ -78,22 +79,32 @@ export function simulate(level: Level, program: Program): RunResult {
   const world = new World(level);
   const trace: TraceEntry[] = [];
   let counter: number = LIMITS.counter.start;
+  // How many procedure calls are running inside each other.
+  let depth = 0;
   const cellKey = (cell: Position): number => cell[1] * level.board.width + cell[0];
   // Breadcrumbs: for a cell that has one, the direction (an index into DIRECTIONS) of the cell it points to.
   const crumbs = new Map<number, number>();
   // A level with ice or belts shows each step's route in the trace.
-  const routed = (level.ice ?? []).length + (level.belts ?? []).length > 0;
+  const routed =
+    (level.ice ?? []).length + (level.belts ?? []).length + (level.teleports ?? []).length > 0;
 
   // The procedures a CALL can reach: the first well-formed definition of each name.
   const procs = new Map<string, Node>();
   const procIndex = new Map<string, number>();
+  const top = topPlace(level.requires.mechanics.includes(RECURSION_MECHANIC));
+  // Every name a definition gives, so that a CALL inside a definition can be checked.
   const noProcs = new Map<string, Node>();
+  for (const node of program as unknown[]) {
+    if (isNode(node) && node["op"] === PROC_OP && typeof node["name"] === "string") {
+      if (!noProcs.has(node["name"])) noProcs.set(node["name"], node);
+    }
+  }
   program.forEach((node, i) => {
     const candidate: unknown = node;
     if (!isNode(candidate) || candidate["op"] !== PROC_OP) return;
     const name = candidate["name"];
     if (typeof name !== "string" || procs.has(name)) return;
-    if (runnable(candidate, TOP, noProcs)) {
+    if (runnable(candidate, top, noProcs)) {
       procs.set(name, candidate);
       procIndex.set(name, i);
     }
@@ -237,13 +248,18 @@ export function simulate(level: Level, program: Program): RunResult {
     if (op === IF_OP) return runIf(node, path, round, call);
 
     if (op === CALL_OP) {
+      if (node["when"] !== undefined && !sensor(node["when"] as string)) return null;
       const name = node["name"] as string;
+      if (!procs.has(name)) return finish("FAILED", "INVALID_INSTRUCTION", null);
+      depth += 1;
+      if (depth > LIMITS.callDepth) return finish("FAILED", "TOO_DEEP", null);
       const body = procs.get(name)!["body"] as Node[];
       const base = [procIndex.get(name)!];
       for (let j = 0; j < body.length; j += 1) {
         const result = run(body[j]!, [...base, j], null, path);
         if (result) return result;
       }
+      depth -= 1;
       return null;
     }
 
@@ -275,11 +291,11 @@ export function simulate(level: Level, program: Program): RunResult {
     const node: unknown = program[i];
     if (isNode(node) && node["op"] === PROC_OP) {
       // A definition: skipped when it is well formed, a content error when it is not.
-      if (!runnable(node, TOP, noProcs)) return finish("FAILED", "INVALID_INSTRUCTION", null);
+      if (!runnable(node, top, noProcs)) return finish("FAILED", "INVALID_INSTRUCTION", null);
       continue;
     }
     if (atLimit()) return finish("FAILED", "STEP_LIMIT", null);
-    if (!runnable(node, TOP, procs)) return finish("FAILED", "INVALID_INSTRUCTION", null);
+    if (!runnable(node, top, procs)) return finish("FAILED", "INVALID_INSTRUCTION", null);
     const result = run(node as Node, [i], null, null);
     if (result) return result;
   }

@@ -19,6 +19,8 @@ interface Tables {
   walls: Set<number>;
   ice: Set<number>;
   belts: Map<number, Direction>;
+  /** For each teleporter end, the cell of the other end. */
+  portals: Map<number, Position>;
   keyAt: Map<number, number>;
   doorAt: Map<number, number>;
   itemAt: Map<number, number>;
@@ -42,6 +44,9 @@ function tablesOf(level: Level): Tables {
     walls,
     ice: new Set((level.ice ?? []).map(key)),
     belts: new Map((level.belts ?? []).map((b) => [key(b.cell), b.direction] as const)),
+    portals: new Map(
+      (level.teleports ?? []).flatMap((t) => [[key(t.a), t.b] as const, [key(t.b), t.a] as const]),
+    ),
     keyAt: cellMap(level.locks, width, (l) => l.key),
     doorAt: cellMap(level.locks, width, (l) => l.door),
     itemAt: cellMap(level.deliveries, width, (d) => d.item),
@@ -150,6 +155,7 @@ export class World {
     for (;;) {
       const next = this.ahead(this.position);
       if (this.enter(next, motion)) return motion;
+      if (motion.event === "TELEPORTED") break;
       if (!this.t.ice.has(this.key1(next)) || !this.canEnter(this.ahead(next))) break;
     }
     this.carryInto(motion);
@@ -184,6 +190,14 @@ export class World {
     if (reached) {
       motion.goal = this.delivered.size < t.itemAt.size ? "undelivered" : "reached";
       return true;
+    }
+    const far = t.portals.get(at);
+    if (far) {
+      this.position = far;
+      this.visited.add(this.key1(far));
+      motion.path.push(far);
+      motion.event = "TELEPORTED";
+      return false;
     }
     const lock = t.keyAt.get(at);
     const dock = t.dockAt.get(at);

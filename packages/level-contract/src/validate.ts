@@ -8,6 +8,7 @@ import {
   INC_OP,
   MARK_OP,
   NESTED_LOOPS_MECHANIC,
+  RECURSION_MECHANIC,
   NODE_OPS,
   PATROL_PATTERNS,
   PROCEDURE_NAMES,
@@ -51,6 +52,7 @@ const PUBLIC_KEYS = [
   "locks",
   "deliveries",
   "switches",
+  "teleports",
   "ice",
   "belts",
   "hints",
@@ -675,10 +677,12 @@ type ProgramLimits = {
   max: number | null;
   /** The level lists the mechanic nested_loops: a loop may hold one loop. */
   nested: boolean;
+  /** The level lists the mechanic recursion: a procedure may CALL, and a CALL may carry a sensor. */
+  recursion: boolean;
 };
 
 function programLimits(level: unknown): ProgramLimits {
-  if (!isObject(level)) return { available: null, max: null, nested: false };
+  if (!isObject(level)) return { available: null, max: null, nested: false, recursion: false };
   let available: CommandName[] | null = null;
   if (Array.isArray(level["availableCommands"])) {
     available = level["availableCommands"].filter(isCommandName);
@@ -689,7 +693,8 @@ function programLimits(level: unknown): ProgramLimits {
   const requires = level["requires"];
   const mechanics = isObject(requires) ? requires["mechanics"] : undefined;
   const nested = Array.isArray(mechanics) && mechanics.includes(NESTED_LOOPS_MECHANIC);
-  return { available, max, nested };
+  const recursion = Array.isArray(mechanics) && mechanics.includes(RECURSION_MECHANIC);
+  return { available, max, nested, recursion };
 }
 
 function checkProgram(c: Collector, program: unknown, base: string, limits: ProgramLimits): void {
@@ -757,11 +762,12 @@ function checkProgram(c: Collector, program: unknown, base: string, limits: Prog
       c.add(opPath, "NESTED_PROC", `${opPath}: a procedure can only be defined at the top level.`);
       return { op: null, nested: true };
     }
-    if (op === CALL_OP && (place.inProc || place.branch)) {
+    const inProcBody = place.inProc && place.loops === 0 && !place.branch;
+    if (op === CALL_OP && (place.branch || (place.inProc && !(limits.recursion && inProcBody)))) {
       c.add(
         opPath,
         "CALL_NOT_ALLOWED",
-        `${opPath}: a CALL stands at the top level or in a loop of the main program.`,
+        `${opPath}: a CALL stands at the top level or in a loop of the main program (and, with the recursion mechanic, in the body of a procedure).`,
       );
       return { op: null, nested: true };
     }
@@ -782,7 +788,9 @@ function checkProgram(c: Collector, program: unknown, base: string, limits: Prog
           : op === PROC_OP
             ? ["op", "name", "body"]
             : op === CALL_OP
-              ? ["op", "name"]
+              ? limits.recursion
+                ? ["op", "name", "when"]
+                : ["op", "name"]
               : ["op"];
 
   /** An array of instructions of one place: returns the list, or null when it is not an array. */
@@ -860,6 +868,14 @@ function checkProgram(c: Collector, program: unknown, base: string, limits: Prog
           "UNDEFINED_PROCEDURE",
           `${path}.name: no procedure ${name} is defined.`,
         );
+      }
+      if (limits.recursion && has(item, "when")) {
+        const whenPath = `${path}.when`;
+        if (typeof item["when"] !== "string") {
+          c.add(whenPath, "INVALID_TYPE", `${whenPath} must be a string.`);
+        } else if (!(SENSORS as readonly string[]).includes(item["when"])) {
+          c.add(whenPath, "INVALID_VALUE", `${whenPath} must be one of ${SENSORS.join(", ")}.`);
+        }
       }
     }
   };

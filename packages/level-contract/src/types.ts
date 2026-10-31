@@ -41,6 +41,8 @@ export interface IfInstruction {
 export interface CallInstruction {
   op: "CALL";
   name: ProcedureName;
+  /** Only on a level with the mechanic recursion: the procedure runs only while the sensor is true. */
+  when?: Sensor;
 }
 /** An item of a loop body: a primitive, an IF, or (in the main program only) a CALL. */
 export type BodyInstruction = PrimitiveInstruction | IfInstruction | CallInstruction;
@@ -68,7 +70,13 @@ export interface RepeatUntilInstruction {
 export interface ProcInstruction {
   op: "PROC";
   name: ProcedureName;
-  body: (PrimitiveInstruction | IfInstruction | RepeatInstruction | RepeatUntilInstruction)[];
+  body: (
+    | PrimitiveInstruction
+    | IfInstruction
+    | RepeatInstruction
+    | RepeatUntilInstruction
+    | CallInstruction
+  )[];
 }
 /** One node of a program. Nodes (not bare strings) so a loop can hold a body. */
 export type Instruction =
@@ -139,6 +147,12 @@ export interface Switch {
   open?: boolean;
 }
 
+/** Two cells joined by a teleporter: entering one puts the automaton on the other, in the same step. */
+export interface Teleport {
+  a: Position;
+  b: Position;
+}
+
 /** A belt: after every action that leaves the automaton on `cell`, it is carried one cell in `direction`. */
 export interface Belt {
   cell: Position;
@@ -196,6 +210,12 @@ export interface Level {
    */
   ice?: Position[];
   /**
+   * Teleporter pairs on the level's own board (not with `extraBoards` or the sweep goal). Entering one end
+   * of a pair puts the automaton on the other end, facing the same way; arriving does not teleport it
+   * back. The cells of a pair are not on ice, belts or any other tile.
+   */
+  teleports?: Teleport[];
+  /**
    * Belts on the level's own board (not with `extraBoards`). After an action that leaves the automaton on a
    * belt it is carried one cell in the belt's direction, unless that cell is blocked.
    */
@@ -245,6 +265,12 @@ export type IssueCode =
   | "DELIVERY_CELLS_REPEAT"
   | "DELIVERIES_WITH_BOARDS"
   | "DELIVERIES_WITH_SWEEP"
+  | "TELEPORT_ON_WALL"
+  | "TELEPORT_ON_START"
+  | "TELEPORT_ON_GOAL"
+  | "TELEPORT_CELLS_REPEAT"
+  | "TELEPORTS_WITH_BOARDS"
+  | "TELEPORTS_WITH_SWEEP"
   | "ICE_ON_WALL"
   | "ICE_CELLS_REPEAT"
   | "ICE_WITH_BOARDS"
@@ -294,6 +320,7 @@ export type RunReason =
   | "BLOCKED_BY_DOOR"
   | "UNDELIVERED"
   | "BLOCKED_BY_GATE"
+  | "TOO_DEEP"
   | "INVALID_INSTRUCTION";
 
 export type TraceEvent =
@@ -313,6 +340,7 @@ export type TraceEvent =
   | "BLOCKED_BY_GATE"
   | "SWITCHED"
   | "SLID"
+  | "TELEPORTED"
   | "CARRIED";
 
 export interface TraceEntry {
@@ -340,7 +368,7 @@ export interface TraceEntry {
   direction: Direction;
   event: TraceEvent;
   /**
-   * Only on a level with ice or belts: the cells the step entered, in order (empty for a turn, INC or MARK
+   * Only on a level with ice, belts or teleporters: the cells the step entered, in order (empty for a turn, INC or MARK
    * that moved nothing). The last one is `position`.
    */
   path?: Position[];

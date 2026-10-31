@@ -21,6 +21,8 @@ export const COUNTER_REF = "N";
 
 /** The mechanic a level lists in requires.mechanics to allow a loop inside a loop. */
 export const NESTED_LOOPS_MECHANIC = "nested_loops";
+/** A level that lists this mechanic lets a procedure CALL (itself or another) and a CALL carry a sensor. */
+export const RECURSION_MECHANIC = "recursion";
 
 /** The loop instruction: a count (a number, or "N") and a body of actions, IFs and one inner loop. */
 export const REPEAT_OP = "REPEAT";
@@ -127,7 +129,11 @@ export const LIMITS = {
   deliveries: { min: 1, max: 3 },
   /** Switch and gate pairs on a level. */
   switches: { min: 1, max: 3 },
+  /** How many procedure calls may be running inside each other (the CALL of the main program is the first). */
+  callDepth: 24,
   /** Ice cells and belts on a level. */
+  /** Teleporter pairs on a level. */
+  teleports: { min: 1, max: 3 },
   ice: { min: 1, max: 30 },
   belts: { min: 1, max: 20 },
   levelVersion: { min: 1, max: 1_000_000 },

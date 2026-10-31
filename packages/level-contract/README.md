@@ -95,6 +95,10 @@ A level may also carry `switches`, one to three `{ switch, gate, open? }` entrie
 
 A level may also carry `ice` (cells) and `belts` (`{ cell, direction }`) (`docs/README_GAME_RULES.md` section 3.14): a move onto ice slides on while the way is free, a belt carries the automaton one cell after an action that leaves it there, and on such a level every trace entry has `path`, the cells the step entered (events `SLID` and `CARRIED`). The validator reports `ICE_ON_WALL`, `ICE_CELLS_REPEAT`, `ICE_WITH_BOARDS`, `BELT_ON_WALL`, `BELT_CELLS_REPEAT`, `BELT_ON_ICE` and `BELTS_WITH_BOARDS`. `simulate` and `solve` move the automaton through the same `World` class (`src/world.ts`).
 
+A level may also carry `teleports`, one to three `{ a, b }` pairs (`docs/README_GAME_RULES.md` section 3.15): entering one end puts the automaton on the other, facing the same way, with no bounce back (event `TELEPORTED`, and `path` on such a level lists the cell entered and the far end). The validator reports `TELEPORT_ON_WALL`, `TELEPORT_ON_START`, `TELEPORT_ON_GOAL`, `TELEPORT_CELLS_REPEAT` (also against every other tile), `TELEPORTS_WITH_BOARDS` and `TELEPORTS_WITH_SWEEP`.
+
+A level that lists the mechanic `recursion` lets a procedure call procedures and itself (a `CALL` stands directly in a procedure body) and lets a `CALL` carry `when`, a sensor read when the call is reached (the base case: the call is skipped while it is false) (`docs/README_GAME_RULES.md` section 3.16). At most 24 calls may run inside each other; the next ends the run with `TOO_DEEP`. `call` in a trace entry is the path of the innermost running `CALL`.
+
 The solver does not search `IF` programs. With `IF` offered it still finds the best program without one (loops included); par for such a level is the author's reference solution, which the publish gate runs.
 
 **Slots.** The command limit counts slots: a primitive is 1, a `REPEAT` is 1 plus the number of instructions in its body. `REPEAT 6 { MOVE_FORWARD, TURN_RIGHT, MOVE_FORWARD, TURN_LEFT }` is 5 slots. `programSlots(program)` computes it.

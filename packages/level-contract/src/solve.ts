@@ -101,9 +101,15 @@ export function solve(level: Level): SolveResult | null {
 
 const hasPatrols = (level: Level): boolean => (level.patrols ?? []).length > 0;
 const hasExtras = (level: Level): boolean =>
-  [level.patrols, level.locks, level.deliveries, level.switches, level.ice, level.belts].some(
-    (list) => (list ?? []).length > 0,
-  );
+  [
+    level.patrols,
+    level.locks,
+    level.deliveries,
+    level.switches,
+    level.ice,
+    level.belts,
+    level.teleports,
+  ].some((list) => (list ?? []).length > 0);
 
 /**
  * The shortest flat program for a level with patrols, keys, crates, switches, ice or belts: breadth first

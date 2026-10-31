@@ -13,6 +13,7 @@ export const REASON_MESSAGES: Record<RunReason, string> = {
   HIT_BY_PATROL: "A guard reached the automaton.",
   BLOCKED_BY_DOOR: "The automaton tried to go through a locked door.",
   BLOCKED_BY_GATE: "The automaton tried to go through a shut gate.",
+  TOO_DEEP: "The procedures called each other too many times.",
   UNDELIVERED: "The automaton reached the target before every item was delivered.",
   INVALID_INSTRUCTION: "The program contains an instruction this level cannot run.",
 };

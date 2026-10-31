@@ -40,9 +40,18 @@ export type Place = {
   /** Inside an IF branch (only actions may stand there). */
   branch: boolean;
   top: boolean;
+  /** The level lists the mechanic recursion: a CALL may stand in a procedure body. */
+  recursion: boolean;
 };
 
-export const TOP: Place = { inProc: false, loops: 0, branch: false, top: true };
+/** The place of a top-level node. */
+export const topPlace = (recursion: boolean): Place => ({
+  inProc: false,
+  loops: 0,
+  branch: false,
+  top: true,
+  recursion,
+});
 
 /** An IF whose branches can run: a known sensor, 1 to 4 actions to run, and 0 to 4 actions or one IF otherwise. */
 function runnableIf(node: Node, chain: number): boolean {
@@ -68,9 +77,15 @@ export function runnable(node: unknown, place: Place, procs: ReadonlyMap<string,
   if (isActionNode(node)) return true;
   if (op === IF_OP) return !place.branch && runnableIf(node, 1);
   if (op === CALL_OP) {
-    return (
-      !place.inProc && !place.branch && typeof node["name"] === "string" && procs.has(node["name"])
-    );
+    // Inside a procedure a CALL stands directly in the body (the validator checks the mechanic).
+    const stands = !place.branch && (!place.inProc || (place.recursion && place.loops === 0));
+    const when = node["when"];
+    const sensorOk =
+      when === undefined ||
+      (place.recursion &&
+        typeof when === "string" &&
+        (SENSORS as readonly string[]).includes(when));
+    return stands && sensorOk && typeof node["name"] === "string" && procs.has(node["name"]);
   }
   const body = node["body"];
   const bodyOk = (min: number, max: number, inner: Place): boolean =>
@@ -110,6 +125,7 @@ export function runnable(node: unknown, place: Place, procs: ReadonlyMap<string,
         loops: 0,
         branch: false,
         top: false,
+        recursion: place.recursion,
       })
     );
   }
