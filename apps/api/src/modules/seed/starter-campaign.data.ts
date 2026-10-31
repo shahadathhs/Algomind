@@ -1,4 +1,4 @@
-// The starter campaign: seventeen worlds, thirty-nine chapters, ninety-five levels, in play order.
+// The starter campaign: nineteen worlds, forty-five chapters, one hundred five levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
@@ -30,6 +30,11 @@
 // World 17 (Ice and belts) puts ice (`ice`) and belts (`belts`) on the board: a move onto ice slides on while the way is
 // free, a belt carries the automaton one cell after an action; the search moves through the same World code as the
 // simulator. Its last chapter adds a guard.
+// World 18 (Teleporters) puts teleporter pairs on the board (`teleports`): entering one end puts the automaton on the
+// other end in the same step. Its last chapter adds a guard.
+// World 19 (Recursion) lists the mechanic `recursion`: a procedure may CALL (itself or another procedure), and a CALL
+// may carry a sensor (`when`), which is the base case. Levels carry the reference `solution`; the limit is its slots, and
+// the best program without PROC is at least 1.3 times the limit.
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -5652,6 +5657,521 @@ export const CAMPAIGN = {
                       2
                     ]
                   ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Teleporters",
+      "description": "Entering one end of a pair puts the automaton on the other end, facing the same way. Plan the shortcut.",
+      "chapters": [
+        {
+          "title": "First pairs",
+          "levels": [
+            {
+              "slug": "first-portal",
+              "title": "First portal",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 4,
+              "maxSteps": 120,
+              "rows": [
+                ">..##G.",
+                ".....#.",
+                "......."
+              ],
+              "hints": [
+                "Entering one end of a pair puts the automaton on the other end, in the same step.",
+                "It arrives facing the same way. Turn after arriving."
+              ],
+              "teleports": [
+                {
+                  "a": [
+                    6,
+                    0
+                  ],
+                  "b": [
+                    1,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "far-corner",
+              "title": "Far corner",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 5,
+              "maxSteps": 120,
+              "rows": [
+                "#...#G.",
+                ">.#.#..",
+                ".##...."
+              ],
+              "hints": [
+                "The pair works both ways.",
+                "Look at which way you face when you arrive."
+              ],
+              "teleports": [
+                {
+                  "a": [
+                    1,
+                    1
+                  ],
+                  "b": [
+                    6,
+                    1
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Two pairs",
+          "levels": [
+            {
+              "slug": "two-pairs",
+              "title": "Two pairs",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 8,
+              "maxSteps": 120,
+              "rows": [
+                ">.#.#..",
+                "....#.G",
+                ".#...#.",
+                "...#..."
+              ],
+              "hints": [
+                "Each end leads only to the other end of its own pair.",
+                "Arriving on a pair does not send you back."
+              ],
+              "teleports": [
+                {
+                  "a": [
+                    5,
+                    1
+                  ],
+                  "b": [
+                    2,
+                    3
+                  ]
+                },
+                {
+                  "a": [
+                    5,
+                    3
+                  ],
+                  "b": [
+                    4,
+                    3
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "hop-and-walk",
+              "title": "Hop and walk",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 8,
+              "maxSteps": 120,
+              "rows": [
+                "..#.#G.",
+                "...#...",
+                ">##..#.",
+                "....##."
+              ],
+              "hints": [
+                "One pair carries you across the wall. The other is a detour.",
+                "Walk to the second pair from where the first one leaves you."
+              ],
+              "teleports": [
+                {
+                  "a": [
+                    3,
+                    2
+                  ],
+                  "b": [
+                    0,
+                    3
+                  ]
+                },
+                {
+                  "a": [
+                    1,
+                    1
+                  ],
+                  "b": [
+                    6,
+                    1
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "With a guard",
+          "levels": [
+            {
+              "slug": "guarded-portal",
+              "title": "Guarded portal",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 13,
+              "maxSteps": 120,
+              "rows": [
+                ">...#..",
+                "...#...",
+                "...#...",
+                ".....#G"
+              ],
+              "hints": [
+                "The guard walks beside the goal.",
+                "Arriving on a cell the guard reaches in the same step is a hit."
+              ],
+              "teleports": [
+                {
+                  "a": [
+                    0,
+                    1
+                  ],
+                  "b": [
+                    5,
+                    0
+                  ]
+                },
+                {
+                  "a": [
+                    2,
+                    1
+                  ],
+                  "b": [
+                    0,
+                    2
+                  ]
+                }
+              ],
+              "patrols": [
+                {
+                  "pattern": "back_and_forth",
+                  "cells": [
+                    [
+                      5,
+                      2
+                    ],
+                    [
+                      6,
+                      2
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Recursion",
+      "description": "A procedure can call itself. Give the call a condition, and it stops when the condition is false.",
+      "chapters": [
+        {
+          "title": "Calling itself",
+          "levels": [
+            {
+              "slug": "long-hall",
+              "title": "Long hall",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "PROC"
+              ],
+              "maxCommands": 4,
+              "maxSteps": 200,
+              "rows": [
+                "............",
+                ">..........G",
+                "............"
+              ],
+              "hints": [
+                "A procedure can call itself. Give that call a condition, and it stops when the condition is false.",
+                "Move once, then call the procedure again while the way ahead is clear."
+              ],
+              "requires": [
+                "recursion"
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "CALL",
+                      "name": "A",
+                      "when": "CLEAR_AHEAD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "hall-and-turn",
+              "title": "Hall and turn",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "PROC"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 200,
+              "rows": [
+                "...........G",
+                ">...........",
+                "............"
+              ],
+              "hints": [
+                "The same procedure can be called twice, with a turn between.",
+                "The call inside it stops at the wall."
+              ],
+              "requires": [
+                "recursion"
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "CALL",
+                      "name": "A",
+                      "when": "CLEAR_AHEAD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_LEFT"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Conditions",
+          "levels": [
+            {
+              "slug": "right-and-ahead",
+              "title": "Right and ahead",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "PROC"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 200,
+              "rows": [
+                ">...........",
+                "...........#",
+                "..........G."
+              ],
+              "hints": [
+                "The call in a procedure can look ahead, left or right.",
+                "Try a call that looks right, then a turn, then a call that looks ahead."
+              ],
+              "requires": [
+                "recursion"
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "CALL",
+                      "name": "A",
+                      "when": "CLEAR_RIGHT"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "CALL",
+                      "name": "A",
+                      "when": "CLEAR_AHEAD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "After the call",
+          "levels": [
+            {
+              "slug": "return-trip",
+              "title": "Return trip",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "PROC"
+              ],
+              "maxCommands": 6,
+              "maxSteps": 200,
+              "rows": [
+                "#.........G.",
+                ">...........",
+                "#..........."
+              ],
+              "hints": [
+                "What comes after the call runs when the call is over, once for each level.",
+                "The deepest level finishes first, then the one above it."
+              ],
+              "requires": [
+                "recursion"
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "CALL",
+                      "name": "A",
+                      "when": "CLEAR_AHEAD"
+                    },
+                    {
+                      "op": "TURN_LEFT"
+                    },
+                    {
+                      "op": "MOVE_FORWARD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                }
+              ]
+            },
+            {
+              "slug": "snake",
+              "title": "Snake",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT",
+                "PROC"
+              ],
+              "maxCommands": 8,
+              "maxSteps": 200,
+              "rows": [
+                ">.......",
+                "#######.",
+                "G......."
+              ],
+              "hints": [
+                "One procedure walks one run. Use it again after each turn.",
+                "Turn between the runs, in the same direction both times."
+              ],
+              "requires": [
+                "recursion"
+              ],
+              "solution": [
+                {
+                  "op": "PROC",
+                  "name": "A",
+                  "body": [
+                    {
+                      "op": "MOVE_FORWARD"
+                    },
+                    {
+                      "op": "CALL",
+                      "name": "A",
+                      "when": "CLEAR_AHEAD"
+                    }
+                  ]
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
+                },
+                {
+                  "op": "TURN_RIGHT"
+                },
+                {
+                  "op": "CALL",
+                  "name": "A"
                 }
               ]
             }

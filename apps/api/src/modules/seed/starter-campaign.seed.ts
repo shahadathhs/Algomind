@@ -201,6 +201,8 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
           "keys",
           "delivery",
           "switch",
+          "teleport",
+          "recursion",
           "ice",
           "belts",
         ],

@@ -61,6 +61,13 @@ export function contentHash(content: unknown): string {
 }
 
 /** True when the level uses something the exact par search does not cover (the par is then the reference). */
+/** True when the level has any of the extras the exact search moves through (not loops). */
+function offersTiles(level: Record<string, unknown>): boolean {
+  return ["patrols", "locks", "deliveries", "switches", "teleports", "ice", "belts"].some(
+    (field) => level[field] !== undefined,
+  );
+}
+
 function offersUnsearched(level: {
   availableCommands: readonly string[];
   extraBoards?: unknown;
@@ -68,6 +75,7 @@ function offersUnsearched(level: {
   locks?: unknown;
   deliveries?: unknown;
   switches?: unknown;
+  teleports?: unknown;
   ice?: unknown;
   belts?: unknown;
   goal: { type: string };
@@ -82,12 +90,9 @@ function offersUnsearched(level: {
     level.requires.mechanics.includes("nested_loops") ||
     level.goal.type !== "reach_tile" ||
     level.extraBoards !== undefined ||
-    // The exact search over patrols, keys, deliveries and switches covers flat programs only, so with
-    // loops on offer the reference counts.
-    ([level.patrols, level.locks, level.deliveries, level.switches, level.ice, level.belts].some(
-      (x) => x !== undefined,
-    ) &&
-      (c.includes("REPEAT") || c.includes("REPEAT_UNTIL")))
+    // The exact search over patrols, keys, deliveries, switches and floor tiles covers flat programs
+    // only, so with loops on offer the reference counts.
+    (offersTiles(level) && (c.includes("REPEAT") || c.includes("REPEAT_UNTIL")))
   );
 }
 
@@ -284,6 +289,7 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
   if (level.locks !== undefined) required.add("keys");
   if (level.deliveries !== undefined) required.add("delivery");
   if (level.switches !== undefined) required.add("switch");
+  if (level.teleports !== undefined) required.add("teleport");
   if (level.ice !== undefined) required.add("ice");
   if (level.belts !== undefined) required.add("belts");
   // A sweep goal on any board needs the client to draw and count it.

@@ -155,6 +155,34 @@ describe("publish gates", () => {
     expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("ice");
   });
 
+  it("teleport: a level with a pair needs the mechanic", () => {
+    const portal = level({ teleports: [{ a: [0, 3], b: [4, 0] }] });
+    expect(analyzeLevel(portal, SOLUTION).requiredMechanics).toContain("teleport");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("teleport");
+  });
+
+  it("recursion: a procedure may call itself only on a level that lists the mechanic", () => {
+    const recursive = [
+      {
+        op: "PROC",
+        name: "A",
+        body: [{ op: "MOVE_FORWARD" }, { op: "CALL", name: "A", when: "CLEAR_AHEAD" }],
+      },
+      { op: "CALL", name: "A" },
+    ];
+    const withMechanic = analyzeLevel(
+      level({
+        availableCommands: ["MOVE_FORWARD", "PROC"],
+        requires: { mechanics: ["recursion"] },
+      }),
+      recursive,
+    );
+    expect(withMechanic.requiredMechanics).toContain("recursion");
+    expect(withMechanic.errors.map((e) => e.code)).not.toContain("CALL_NOT_ALLOWED");
+    const without = analyzeLevel(level({ availableCommands: ["MOVE_FORWARD", "PROC"] }), recursive);
+    expect(without.errors.map((e) => e.code)).toContain("CALL_NOT_ALLOWED");
+  });
+
   it("par: refuses a goal that cannot be reached", () => {
     const walled = level({
       board: {

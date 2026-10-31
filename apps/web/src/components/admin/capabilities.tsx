@@ -24,6 +24,8 @@ const MECHANICS = [
   "keys",
   "delivery",
   "switch",
+  "teleport",
+  "recursion",
   "ice",
   "belts",
 ];

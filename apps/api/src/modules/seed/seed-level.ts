@@ -67,6 +67,8 @@ export type LevelDef = {
     gate: readonly [number, number];
     open?: boolean;
   }[];
+  /** Teleporter pairs: entering one end puts the automaton on the other. */
+  teleports?: readonly { a: readonly [number, number]; b: readonly [number, number] }[];
   /** Ice cells: a move onto ice slides on while the way is free. */
   ice?: readonly (readonly [number, number])[];
   /** Belts: after an action that leaves the automaton on one, it is carried a cell. */
@@ -133,6 +135,11 @@ export function buildLevel(def: LevelDef, id: string): Level {
             gate: [...s.gate],
             ...(s.open !== undefined ? { open: s.open } : {}),
           })) as Level["switches"],
+        }
+      : {}),
+    ...(def.teleports
+      ? {
+          teleports: def.teleports.map((t) => ({ a: [...t.a], b: [...t.b] })) as Level["teleports"],
         }
       : {}),
     ...(def.ice ? { ice: def.ice.map((c) => [...c]) as Level["ice"] } : {}),

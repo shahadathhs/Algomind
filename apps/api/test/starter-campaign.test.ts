@@ -25,7 +25,7 @@ const analysisOf = (entry: (typeof built)[number]) => {
 };
 
 describe("the starter campaign", () => {
-  it("has seventeen worlds, thirty-nine chapters, and ninety-five levels in a fixed order", () => {
+  it("has nineteen worlds, forty-five chapters, and one hundred five levels in a fixed order", () => {
     expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual([
       "Basics",
       "Routes",
@@ -44,6 +44,8 @@ describe("the starter campaign", () => {
       "Delivery",
       "Switches",
       "Ice and belts",
+      "Teleporters",
+      "Recursion",
     ]);
     expect(CAMPAIGN.worlds.flatMap((w) => w.chapters.map((c) => c.title))).toEqual([
       "Moves",
@@ -85,8 +87,14 @@ describe("the starter campaign", () => {
       "Ice",
       "Belts",
       "Together",
+      "First pairs",
+      "Two pairs",
+      "With a guard",
+      "Calling itself",
+      "Conditions",
+      "After the call",
     ]);
-    expect(LEVELS).toHaveLength(95);
+    expect(LEVELS).toHaveLength(105);
   });
 
   it("gives every Patrol level guards, and no other level any", () => {
@@ -96,7 +104,8 @@ describe("the starter campaign", () => {
         entry.chapterTitle === "Guarded" ||
         entry.def.slug === "guarded-parcel" ||
         entry.def.slug === "gate-and-guard" ||
-        entry.def.slug === "belts-and-a-guard";
+        entry.def.slug === "belts-and-a-guard" ||
+        entry.def.slug === "guarded-portal";
       expect(entry.def.patrols !== undefined, entry.def.slug).toBe(patrol);
       if (!patrol) continue;
       // The guards matter: the shortest program without them fails, and the limit is the exact par.
@@ -175,6 +184,33 @@ describe("the starter campaign", () => {
     }
   });
 
+  it("gives every Teleporters level a pair, and the shortest program that ignores them fails", () => {
+    for (const entry of built) {
+      const portals = entry.world.title === "Teleporters";
+      expect(entry.def.teleports !== undefined, entry.def.slug).toBe(portals);
+      if (!portals) continue;
+      const bare = solve({ ...entry.level, teleports: undefined, patrols: undefined })!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+      expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
+    }
+  });
+
+  it("makes every Recursion level call a procedure from its own body, with a sensor as the base case", () => {
+    for (const entry of built.filter((b) => b.world.title === "Recursion")) {
+      expect(entry.def.requires, entry.def.slug).toEqual(["recursion"]);
+      const proc = (referenceOf(entry) as Program).find((n) => n.op === "PROC") as
+        { body: { op: string; when?: string }[] } | undefined;
+      const inner = (proc?.body ?? []).filter((n) => n.op === "CALL");
+      expect(inner.length, entry.def.slug).toBeGreaterThan(0);
+      expect(
+        inner.some((n) => n.when !== undefined),
+        entry.def.slug,
+      ).toBe(true);
+    }
+  });
+
   it("uses each slug, title, and board once", () => {
     const unique = (values: string[]) => new Set(values).size === values.length;
     expect(unique(LEVELS.map((l) => l.def.slug))).toBe(true);
@@ -225,7 +261,9 @@ describe("the starter campaign", () => {
       );
       expect(entry.def.commands.includes("INC")).toBe(world === "Counters");
       expect(entry.def.commands.includes("MARK")).toBe(world === "Memory");
-      expect(entry.def.commands.includes("PROC")).toBe(world === "Procedures" || all);
+      expect(entry.def.commands.includes("PROC")).toBe(
+        world === "Procedures" || world === "Recursion" || all,
+      );
       expect(entry.def.hints?.length ?? 0).toBeGreaterThanOrEqual(1);
       expect(entry.def.hints?.length ?? 0).toBeLessThanOrEqual(3);
       for (const hint of entry.def.hints ?? []) expect(hint.length).toBeLessThanOrEqual(140);
@@ -240,6 +278,7 @@ describe("the starter campaign", () => {
       Decisions: ["REPEAT_UNTIL", "IF"],
       "Wall follower": ["REPEAT_UNTIL", "IF"],
       Procedures: ["REPEAT", "PROC"],
+      Recursion: ["PROC"],
       Debug: ["REPEAT", "REPEAT_UNTIL", "IF", "PROC"],
       Generalize: ["REPEAT", "REPEAT_UNTIL", "IF", "PROC"],
       Counters: ["REPEAT", "REPEAT_UNTIL", "INC"],
@@ -284,6 +323,7 @@ describe("the starter campaign", () => {
     { world: "Decisions", ratio: 1.5, strip: ["IF"], uses: "IF" },
     { world: "Wall follower", ratio: 1.5, strip: ["IF"], uses: "IF" },
     { world: "Procedures", ratio: 1.3, strip: ["PROC"], uses: "PROC" },
+    { world: "Recursion", ratio: 1.3, strip: ["PROC"], uses: "PROC" },
     { world: "Counters", ratio: 2, strip: ["INC"], uses: "INC" },
   ];
 
