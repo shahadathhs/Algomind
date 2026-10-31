@@ -120,7 +120,7 @@ export default function HowToPlayPage() {
       <ProseSection title="Commands" spread>
         <ul className="!list-none !pl-0 lg:grid lg:grid-cols-2 lg:gap-x-12">
           {COMMANDS.map((item) => (
-            <li key={item.command} className="flex items-center gap-4 !pl-0 pb-3">
+            <li key={item.command} className="view-rise flex items-center gap-4 !pl-0 pb-3">
               <CommandTile command={item.command} />
               <span>
                 <strong className="block text-lg tracking-[1px] text-ink uppercase">

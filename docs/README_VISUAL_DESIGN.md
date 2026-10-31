@@ -158,6 +158,14 @@ Animation explains the simulation; it does not delay it.
 - Control feedback is 150 ms or less. Nothing loops while idle. Animation pauses when the app loses focus.
 - Animations display simulation events; they never define game logic.
 
+**On the public site** (`apps/web`), motion is CSS first, never idle, and under the same limits:
+
+- The first things of a page rise one after another as it loads (`.rise`, 200 ms, once).
+- Boards, worlds and list items rise or pop as they scroll into view (`.view-rise`, `.view-pop`, driven by the scroll with `animation-timeline: view()`, so they have no length of their own); a browser without it shows everything at rest. The big sections still slide in once with `Reveal`.
+- Under a pointer a board, a world or a key lifts a few pixels (`.lift`, 150 ms) and a text link gets a heavier rule; the navigation links draw a rule from the left. Only on devices that hover.
+- A thin bar at the top follows the scroll, the header stays at the top and gains its rule once the page has moved, and the phone on the landing page drifts up a little slower than the page.
+- All of it sits inside `prefers-reduced-motion: no-preference`, so reduced motion switches it off, and none of it needs JavaScript.
+
 ## 7. Voice and copy
 
 Short labels in capitals for controls; plain sentences for explanations. Explain what happened and what the player can do next.

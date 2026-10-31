@@ -13,6 +13,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
       >
         Skip to content
       </a>
+      <div className="scroll-progress" aria-hidden="true" />
       <SiteHeader />
       <main id="main" tabIndex={-1} className="outline-none">
         {children}

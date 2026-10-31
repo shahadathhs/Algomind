@@ -60,7 +60,7 @@ export function TileLegend() {
   return (
     <ul className="!list-none !pl-0 lg:grid lg:grid-cols-2 lg:gap-x-12">
       {ITEMS.map((item) => (
-        <li key={item.name} className="flex items-start gap-4 !pl-0 pb-4">
+        <li key={item.name} className="view-rise flex items-start gap-4 !pl-0 pb-4">
           <svg
             viewBox={`-0.1 -0.1 ${item.cells + 0.2} 1.2`}
             role="img"

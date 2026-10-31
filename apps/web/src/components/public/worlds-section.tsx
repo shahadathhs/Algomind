@@ -26,7 +26,10 @@ export async function WorldsSection() {
           <p className="mt-2 text-[13px] font-semibold tracking-[0.3px] text-mute">{act.text}</p>
           <ul className="mt-3 grid gap-x-8 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
             {worlds.map((world) => (
-              <li key={world.id} className="flex items-start gap-4 border-t-2 border-ink py-5">
+              <li
+                key={world.id}
+                className="view-rise lift flex items-start gap-4 border-t-2 border-ink py-5"
+              >
                 <Key tone="ink" className="flex-none">
                   <span
                     aria-hidden="true"
