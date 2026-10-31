@@ -127,6 +127,9 @@ export const LIMITS = {
   deliveries: { min: 1, max: 3 },
   /** Switch and gate pairs on a level. */
   switches: { min: 1, max: 3 },
+  /** Ice cells and belts on a level. */
+  ice: { min: 1, max: 30 },
+  belts: { min: 1, max: 20 },
   levelVersion: { min: 1, max: 1_000_000 },
   /** Lengths are counted in Unicode code points. */
   levelId: { min: 1, max: 64 },

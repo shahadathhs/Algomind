@@ -93,6 +93,8 @@ A level may also carry `deliveries`, one to three `{ item, dock }` pairs (`docs/
 
 A level may also carry `switches`, one to three `{ switch, gate, open? }` entries (`docs/README_GAME_RULES.md` section 3.13): entering a switch's cell flips its gate every time (`SWITCHED`), a shut gate blocks with `BLOCKED_BY_GATE`, and a gate starts shut unless `open` is true. The validator reports `SWITCH_ON_WALL`, `SWITCH_ON_START`, `SWITCH_ON_GOAL`, `SWITCH_CELLS_REPEAT`, `SWITCHES_WITH_BOARDS` and `SWITCHES_WITH_SWEEP`, and `solve` adds the switches flipped to its state.
 
+A level may also carry `ice` (cells) and `belts` (`{ cell, direction }`) (`docs/README_GAME_RULES.md` section 3.14): a move onto ice slides on while the way is free, a belt carries the automaton one cell after an action that leaves it there, and on such a level every trace entry has `path`, the cells the step entered (events `SLID` and `CARRIED`). The validator reports `ICE_ON_WALL`, `ICE_CELLS_REPEAT`, `ICE_WITH_BOARDS`, `BELT_ON_WALL`, `BELT_CELLS_REPEAT`, `BELT_ON_ICE` and `BELTS_WITH_BOARDS`. `simulate` and `solve` move the automaton through the same `World` class (`src/world.ts`).
+
 The solver does not search `IF` programs. With `IF` offered it still finds the best program without one (loops included); par for such a level is the author's reference solution, which the publish gate runs.
 
 **Slots.** The command limit counts slots: a primitive is 1, a `REPEAT` is 1 plus the number of instructions in its body. `REPEAT 6 { MOVE_FORWARD, TURN_RIGHT, MOVE_FORWARD, TURN_LEFT }` is 5 slots. `programSlots(program)` computes it.

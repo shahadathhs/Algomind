@@ -11,6 +11,7 @@ import {
   REPEAT_OP,
 } from "./constants.js";
 import { patrolMeeting } from "./patrol.js";
+import { World, type Motion } from "./world.js";
 import { TOP, isActionNode, isNode, runnable, type Node } from "./program-shape.js";
 import type {
   ActionName,
@@ -74,19 +75,14 @@ export function isInsideBoard(level: Level, cell: Position): boolean {
 export function simulate(level: Level, program: Program): RunResult {
   if (!Array.isArray(program)) throw new TypeError("program must be an array");
 
-  const { width, height } = level.board;
-  let position: Position = [level.initialState.position[0], level.initialState.position[1]];
-  let direction: Direction = level.initialState.direction;
-  const target = level.goal.type === "reach_tile" ? level.goal.position : null;
+  const world = new World(level);
   const trace: TraceEntry[] = [];
   let counter: number = LIMITS.counter.start;
-
-  const cellKey = (cell: Position): number => cell[1] * width + cell[0];
-  const walls = new Set(level.board.walls.map(cellKey));
-  const floorCells = width * height - walls.size;
+  const cellKey = (cell: Position): number => cell[1] * level.board.width + cell[0];
   // Breadcrumbs: for a cell that has one, the direction (an index into DIRECTIONS) of the cell it points to.
   const crumbs = new Map<number, number>();
-  const visited = new Set<number>([cellKey(position)]);
+  // A level with ice or belts shows each step's route in the trace.
+  const routed = (level.ice ?? []).length + (level.belts ?? []).length > 0;
 
   // The procedures a CALL can reach: the first well-formed definition of each name.
   const procs = new Map<string, Node>();
@@ -111,38 +107,12 @@ export function simulate(level: Level, program: Program): RunResult {
     status,
     reason,
     steps: trace.length,
-    finalState: { position: [position[0], position[1]], direction },
+    finalState: { position: [world.position[0], world.position[1]], direction: world.direction },
     blockedCell,
     trace,
   });
 
   const atLimit = (): boolean => trace.length >= level.constraints.maxSteps;
-  const onBoard = (cell: Position): boolean => isInsideBoard(level, cell);
-  // Keys and doors: `keyAt` and `doorAt` map a cell to the index of its lock; `held` is the keys picked up.
-  const keyAt = new Map((level.locks ?? []).map((lock, i) => [cellKey(lock.key), i]));
-  const doorAt = new Map((level.locks ?? []).map((lock, i) => [cellKey(lock.door), i]));
-  const held = new Set<number>();
-  const isClosedDoor = (cell: Position): boolean => {
-    const lock = doorAt.get(cellKey(cell));
-    return lock !== undefined && !held.has(lock);
-  };
-  // Deliveries: `itemAt` and `dockAt` map a cell to the index of its delivery; the automaton carries at
-  // most one item (`carrying`, an index or -1) and `delivered` holds the dropped ones.
-  const itemAt = new Map((level.deliveries ?? []).map((d, i) => [cellKey(d.item), i]));
-  const dockAt = new Map((level.deliveries ?? []).map((d, i) => [cellKey(d.dock), i]));
-  const delivered = new Set<number>();
-  let carrying = -1;
-  // Switches: `switchAt` and `gateAt` map a cell to the index of its pair; `flipped` holds the switches
-  // entered an odd number of times, and a gate is open when it started open xor its switch is flipped.
-  const switchAt = new Map((level.switches ?? []).map((s, i) => [cellKey(s.switch), i]));
-  const gateAt = new Map((level.switches ?? []).map((s, i) => [cellKey(s.gate), i]));
-  const flipped = new Set<number>();
-  const isShutGate = (cell: Position): boolean => {
-    const pair = gateAt.get(cellKey(cell));
-    return pair !== undefined && (level.switches![pair]!.open === true) === flipped.has(pair);
-  };
-  const isFloor = (cell: Position): boolean =>
-    onBoard(cell) && !walls.has(cellKey(cell)) && !isClosedDoor(cell) && !isShutGate(cell);
 
   /** Runs one action. Returns the final result when the run ends here, otherwise null. */
   const step = (
@@ -153,118 +123,74 @@ export function simulate(level: Level, program: Program): RunResult {
   ): RunResult | null => {
     if (atLimit()) return finish("FAILED", "STEP_LIMIT", null);
     const index = trace.length;
-    const entry = (event: TraceEntry["event"]): TraceEntry => ({
+    const from: Position = world.position;
+    const entry = (event: TraceEntry["event"], path: Position[] = []): TraceEntry => ({
       index,
       op: command,
       node,
       call,
       counter,
       round,
-      position: [position[0], position[1]],
-      direction,
+      position: [world.position[0], world.position[1]],
+      direction: world.direction,
       event,
+      ...(routed ? { path: path.map((cell): Position => [cell[0], cell[1]]) } : {}),
     });
 
-    /** A patrol that reaches the automaton in this step ends the run (checked before the goal). */
-    const caught = (from: Position): RunResult | null => {
-      const meeting = patrolMeeting(level, from, position, index);
-      if (!meeting) return null;
-      trace.push(entry("HIT_BY_PATROL"));
-      return finish("FAILED", "HIT_BY_PATROL", meeting);
-    };
-    /** Ends an action that does not move the automaton: caught by a patrol, or done with `event`. */
-    const stayed = (event: TraceEntry["event"]): RunResult | null => {
-      const hit = caught(position);
-      if (hit) return hit;
-      trace.push(entry(event));
-      return null;
-    };
-
+    let motion: Motion = { path: [], event: null, goal: "none" };
+    let base: TraceEntry["event"] = "MOVED";
     if (command === "TURN_LEFT" || command === "TURN_RIGHT") {
-      direction = turn(direction, command === "TURN_LEFT" ? "left" : "right");
-      return stayed("TURNED");
-    }
-    if (command === INC_OP) {
+      world.direction = turn(world.direction, command === "TURN_LEFT" ? "left" : "right");
+      base = "TURNED";
+    } else if (command === INC_OP) {
       counter = Math.min(counter + 1, LIMITS.counter.max);
-      return stayed("COUNTED");
+      base = "COUNTED";
+    } else if (command === MARK_OP) {
+      const here = cellKey(world.position);
+      if (!crumbs.has(here)) crumbs.set(here, (DIRECTIONS.indexOf(world.direction) + 2) % 4);
+      base = "MARKED";
+    } else {
+      const blocked = world.blockedAhead();
+      if (blocked) {
+        trace.push(entry(blocked.event));
+        return finish("FAILED", blocked.event, blocked.cell);
+      }
+      motion = world.move();
     }
-    if (command === MARK_OP) {
-      const here = cellKey(position);
-      if (!crumbs.has(here)) crumbs.set(here, (DIRECTIONS.indexOf(direction) + 2) % 4);
-      return stayed("MARKED");
-    }
+    if (command !== "MOVE_FORWARD") motion = world.carry();
 
-    // MOVE_FORWARD
-    const ahead = cellAhead(position, direction);
-    if (!onBoard(ahead)) {
-      trace.push(entry("BLOCKED_BY_BOUNDARY"));
-      return finish("FAILED", "BLOCKED_BY_BOUNDARY", ahead);
+    // A patrol that reaches the automaton in this step ends the run (checked before the goal).
+    const meeting = patrolMeeting(level, from, world.position, index);
+    if (meeting) {
+      trace.push(entry("HIT_BY_PATROL", motion.path));
+      return finish("FAILED", "HIT_BY_PATROL", meeting);
     }
-    if (walls.has(cellKey(ahead))) {
-      trace.push(entry("BLOCKED_BY_WALL"));
-      return finish("FAILED", "BLOCKED_BY_WALL", ahead);
-    }
-    if (isClosedDoor(ahead)) {
-      trace.push(entry("BLOCKED_BY_DOOR"));
-      return finish("FAILED", "BLOCKED_BY_DOOR", ahead);
-    }
-    if (isShutGate(ahead)) {
-      trace.push(entry("BLOCKED_BY_GATE"));
-      return finish("FAILED", "BLOCKED_BY_GATE", ahead);
-    }
-    const from: Position = position;
-    position = ahead;
-    visited.add(cellKey(position));
-    const hit = caught(from);
-    if (hit) return hit;
-    const reached = target
-      ? position[0] === target[0] && position[1] === target[1]
-      : visited.size === floorCells;
-    if (reached && delivered.size < itemAt.size) {
-      trace.push(entry("UNDELIVERED"));
+    if (motion.goal === "undelivered") {
+      trace.push(entry("UNDELIVERED", motion.path));
       return finish("FAILED", "UNDELIVERED", null);
     }
-    if (reached) {
-      trace.push(entry("GOAL_REACHED"));
+    if (motion.goal === "reached") {
+      trace.push(entry("GOAL_REACHED", motion.path));
       return finish("SUCCEEDED", "GOAL_REACHED", null);
     }
-    const key = keyAt.get(cellKey(position));
-    if (key !== undefined && !held.has(key)) {
-      held.add(key);
-      trace.push(entry("KEY_TAKEN"));
-      return null;
-    }
-    const here = cellKey(position);
-    const dock = dockAt.get(here);
-    if (dock !== undefined && dock === carrying) {
-      delivered.add(dock);
-      carrying = -1;
-      trace.push(entry("ITEM_DROPPED"));
-      return null;
-    }
-    const toggled = switchAt.get(here);
-    if (toggled !== undefined) {
-      if (!flipped.delete(toggled)) flipped.add(toggled);
-      trace.push(entry("SWITCHED"));
-      return null;
-    }
-    const item = itemAt.get(here);
-    if (item !== undefined && carrying < 0 && !delivered.has(item)) {
-      carrying = item;
-      trace.push(entry("ITEM_TAKEN"));
-      return null;
-    }
-    trace.push(entry("MOVED"));
+    const slid = motion.path.length > (command === "MOVE_FORWARD" ? 1 : 0);
+    trace.push(
+      entry(
+        motion.event ?? (slid ? (command === "MOVE_FORWARD" ? "SLID" : "CARRIED") : base),
+        motion.path,
+      ),
+    );
     return null;
   };
 
   /** True when the sensor reads true: the cell on that side is floor (CLEAR), has no breadcrumb (FRESH), or is the cell this cell's breadcrumb points to (BACK). */
   const sensor = (name: string): boolean => {
     const [kind, side] = name.split("_") as [string, string];
+    const { position, direction } = world;
     const facing =
       side === "AHEAD" ? direction : turn(direction, side === "LEFT" ? "left" : "right");
     const cell = cellAhead(position, facing);
-    if (!isFloor(cell)) return false;
+    if (!world.canEnter(cell)) return false;
     if (kind === "CLEAR") return true;
     if (kind === "FRESH") return !crumbs.has(cellKey(cell));
     const toward = crumbs.get(cellKey(position));

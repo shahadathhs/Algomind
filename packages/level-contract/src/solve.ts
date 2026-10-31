@@ -3,6 +3,7 @@ import { patrolMeeting } from "./patrol.js";
 import { cellAhead, isInsideBoard, isWall, turn } from "./simulate.js";
 import type { Direction, Level, Position, PrimitiveName, Program, SolveResult } from "./types.js";
 import { solveWithRepeat } from "./solve-repeat.js";
+import { World } from "./world.js";
 
 interface Node {
   x: number;
@@ -10,10 +11,6 @@ interface Node {
   dir: number; // index into DIRECTIONS
   parent: number; // index into the node list, -1 for the start
   op: PrimitiveName | null; // the command that produced this node
-  held?: number; // bit i is set when the key of lock i is held (levels with keys)
-  carry?: number; // the item being carried plus one, 0 for empty hands (levels with deliveries)
-  done?: number; // bit i is set when delivery i is delivered
-  flips?: number; // bit i is set when switch i has been entered an odd number of times
 }
 
 /**
@@ -36,8 +33,7 @@ export function solve(level: Level): SolveResult | null {
   if (level.goal.type !== "reach_tile") return null;
   // Patrols make the state depend on the step number, so the search is over (x, y, facing, step).
   // Keys add the keys held to the state, so the same layered search serves them.
-  if (hasPatrols(level) || hasLocks(level) || hasDeliveries(level) || hasSwitches(level))
-    return solveWithPatrols(level);
+  if (hasExtras(level)) return solveWorld(level);
   if (
     level.availableCommands.includes(REPEAT_OP) ||
     level.availableCommands.includes(REPEAT_UNTIL_OP)
@@ -103,42 +99,28 @@ export function solve(level: Level): SolveResult | null {
   return null;
 }
 
-const samePosition = (a: Position, b: Position): boolean => a[0] === b[0] && a[1] === b[1];
 const hasPatrols = (level: Level): boolean => (level.patrols ?? []).length > 0;
-const hasLocks = (level: Level): boolean => (level.locks ?? []).length > 0;
-const hasSwitches = (level: Level): boolean => (level.switches ?? []).length > 0;
-const hasDeliveries = (level: Level): boolean => (level.deliveries ?? []).length > 0;
-
-function key(x: number, y: number, dir: number, width: number, height: number): number {
-  return (dir * height + y) * width + x;
-}
+const hasExtras = (level: Level): boolean =>
+  [level.patrols, level.locks, level.deliveries, level.switches, level.ice, level.belts].some(
+    (list) => (list ?? []).length > 0,
+  );
 
 /**
- * The shortest flat program for a level with patrols or keys: breadth first over states (x, y, facing, keys
- * held) layer by
- * layer, one layer per step, because where a patrol stands depends on the step. A command that would end
- * in a collision with a patrol (see `patrolMeeting`) is not tried; the goal is tested after that, as in
- * the simulator. Loops are not searched: with REPEAT on offer the API takes the better of this and the
- * reference solution. The same tie-breaking as `solve`: commands in the order MOVE_FORWARD, TURN_LEFT,
- * TURN_RIGHT, a state kept the first time it is found in a layer.
+ * The shortest flat program for a level with patrols, keys, crates, switches, ice or belts: breadth first
+ * over the states of the run (see `World.key`), layer by layer, one layer per step, because where a patrol
+ * stands depends on the step. A command that would end in a collision with a patrol (see `patrolMeeting`),
+ * or in a failure of the world (a blocked move, the target entered with a crate left), is not tried; the
+ * goal is tested after that, as in the simulator. With patrols a state is kept once per layer, without them
+ * once for the whole search. Loops are not searched: with REPEAT on offer the API takes the better of this
+ * and the reference solution. The same tie-breaking as `solve`: commands in the order MOVE_FORWARD,
+ * TURN_LEFT, TURN_RIGHT, a state kept the first time it is found.
  */
-function solveWithPatrols(level: Level): SolveResult | null {
+function solveWorld(level: Level): SolveResult | null {
   if (level.goal.type !== "reach_tile") return null;
   const available = PRIMITIVE_COMMANDS.filter((c) => level.availableCommands.includes(c));
-  const goal = level.goal.position;
-  const { width, height } = level.board;
-  const locks = level.locks ?? [];
-  const deliveries = level.deliveries ?? [];
-  const switches = level.switches ?? [];
-  const everything = (1 << deliveries.length) - 1;
-  const nodes: Node[] = [
-    {
-      x: level.initialState.position[0],
-      y: level.initialState.position[1],
-      dir: DIRECTIONS.indexOf(level.initialState.direction),
-      parent: -1,
-      op: null,
-    },
+  const patrolled = hasPatrols(level);
+  const nodes: { world: World; parent: number; op: PrimitiveName | null }[] = [
+    { world: new World(level), parent: -1, op: null },
   ];
   const finish = (last: number): SolveResult => {
     const ops: PrimitiveName[] = [];
@@ -155,61 +137,42 @@ function solveWithPatrols(level: Level): SolveResult | null {
     };
   };
 
+  const everSeen = new Set<string>([nodes[0]!.world.key()]);
   let layer = [0];
   for (let depth = 0; depth < level.constraints.maxSteps && layer.length > 0; depth += 1) {
     const next: number[] = [];
-    const seen = new Set<number>();
+    const seen = patrolled ? new Set<string>() : everSeen;
     for (const head of layer) {
-      const cur = nodes[head]!;
+      const cur = nodes[head]!.world;
       for (const op of available) {
-        let x = cur.x;
-        let y = cur.y;
-        let dir = cur.dir;
-        let held = cur.held ?? 0;
-        let carry = cur.carry ?? 0;
-        let done = cur.done ?? 0;
-        let flips = cur.flips ?? 0;
+        const world = cur.clone();
+        const from = world.position;
+        let goal: "none" | "reached" | "undelivered" = "none";
         if (op === "MOVE_FORWARD") {
-          const target: Position = cellAhead([x, y], DIRECTIONS[dir] as Direction);
-          if (!isInsideBoard(level, target) || isWall(level, target)) continue;
-          const door = locks.findIndex((lock) => samePosition(lock.door, target));
-          if (door >= 0 && (held & (1 << door)) === 0) continue;
-          x = target[0];
-          y = target[1];
-          const gate = switches.findIndex((s) => samePosition(s.gate, target));
-          if (gate >= 0 && (switches[gate]!.open === true) === ((flips & (1 << gate)) !== 0))
-            continue;
-          const toggled = switches.findIndex((s) => samePosition(s.switch, target));
-          if (toggled >= 0) flips ^= 1 << toggled;
-          const picked = locks.findIndex((lock) => samePosition(lock.key, target));
-          if (picked >= 0) held |= 1 << picked;
-          const dock = deliveries.findIndex((d) => samePosition(d.dock, target));
-          const item = deliveries.findIndex((d) => samePosition(d.item, target));
-          if (dock >= 0 && carry === dock + 1) {
-            done |= 1 << dock;
-            carry = 0;
-          } else if (item >= 0 && carry === 0 && (done & (1 << item)) === 0) {
-            carry = item + 1;
-          }
+          if (world.blockedAhead()) continue;
+          goal = world.move().goal;
         } else {
-          dir = DIRECTIONS.indexOf(
-            turn(DIRECTIONS[dir] as Direction, op === "TURN_LEFT" ? "left" : "right"),
-          );
+          world.direction = turn(world.direction, op === "TURN_LEFT" ? "left" : "right");
+          goal = world.carry().goal;
         }
-        if (patrolMeeting(level, [cur.x, cur.y], [x, y], depth)) continue;
-        const atGoal = x === goal[0] && y === goal[1];
-        // Entering the target with an item left ends the run in failure, so it is no move to search.
-        if (atGoal && done !== everything) continue;
-        const extra = held | (done << 3) | (carry << 6) | (flips << 8);
-        const k = key(x, y, dir, width, height) + extra * width * height * 4;
+        if (patrolMeeting(level, from, world.position, depth)) continue;
+        if (goal === "undelivered") continue;
+        if (goal === "reached") {
+          nodes.push({ world, parent: head, op });
+          return finish(nodes.length - 1);
+        }
+        const k = world.key();
         if (seen.has(k)) continue;
         seen.add(k);
-        nodes.push({ x, y, dir, parent: head, op, held, carry, done, flips });
-        if (atGoal) return finish(nodes.length - 1);
+        nodes.push({ world, parent: head, op });
         next.push(nodes.length - 1);
       }
     }
     layer = next;
   }
   return null;
+}
+
+function key(x: number, y: number, dir: number, width: number, height: number): number {
+  return (dir * height + y) * width + x;
 }

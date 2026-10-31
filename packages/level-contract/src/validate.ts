@@ -23,6 +23,7 @@ import {
   SCHEMA_VERSION,
 } from "./constants.js";
 import { validatePairs } from "./validate-pairs.js";
+import { validateTiles } from "./validate-tiles.js";
 import type { CommandName, Issue, IssueCode, Level, ValidationResult } from "./types.js";
 
 export type Obj = Record<string, unknown>;
@@ -50,6 +51,8 @@ const PUBLIC_KEYS = [
   "locks",
   "deliveries",
   "switches",
+  "ice",
+  "belts",
   "hints",
 ];
 
@@ -190,7 +193,7 @@ function checkString(
   return v;
 }
 
-function enumField(
+export function enumField(
   c: Collector,
   o: Obj,
   base: string,
@@ -649,6 +652,7 @@ function run(c: Collector, input: unknown, authoring: boolean): void {
   validateExtraBoards(c, input);
   validatePatrols(c, input);
   validatePairs(c, input);
+  validateTiles(c, input);
   validateCommands(c, input);
   validateConstraints(c, input);
   validateHints(c, input);

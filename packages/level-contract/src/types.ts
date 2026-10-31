@@ -139,6 +139,12 @@ export interface Switch {
   open?: boolean;
 }
 
+/** A belt: after every action that leaves the automaton on `cell`, it is carried one cell in `direction`. */
+export interface Belt {
+  cell: Position;
+  direction: Direction;
+}
+
 export interface Level {
   schemaVersion: 1;
   levelId: string;
@@ -184,6 +190,16 @@ export interface Level {
    * goal). The state of a gate depends only on how often its switch cell has been entered.
    */
   switches?: Switch[];
+  /**
+   * Ice cells on the level's own board (not with `extraBoards`). A move onto ice goes on sliding in the
+   * same direction while the next cell is free; it stops on a cell that is not ice.
+   */
+  ice?: Position[];
+  /**
+   * Belts on the level's own board (not with `extraBoards`). After an action that leaves the automaton on a
+   * belt it is carried one cell in the belt's direction, unless that cell is blocked.
+   */
+  belts?: Belt[];
   hints: string[];
 }
 
@@ -229,6 +245,13 @@ export type IssueCode =
   | "DELIVERY_CELLS_REPEAT"
   | "DELIVERIES_WITH_BOARDS"
   | "DELIVERIES_WITH_SWEEP"
+  | "ICE_ON_WALL"
+  | "ICE_CELLS_REPEAT"
+  | "ICE_WITH_BOARDS"
+  | "BELT_ON_WALL"
+  | "BELT_CELLS_REPEAT"
+  | "BELT_ON_ICE"
+  | "BELTS_WITH_BOARDS"
   | "SWITCH_ON_WALL"
   | "SWITCH_ON_START"
   | "SWITCH_ON_GOAL"
@@ -288,7 +311,9 @@ export type TraceEvent =
   | "ITEM_DROPPED"
   | "UNDELIVERED"
   | "BLOCKED_BY_GATE"
-  | "SWITCHED";
+  | "SWITCHED"
+  | "SLID"
+  | "CARRIED";
 
 export interface TraceEntry {
   /** 0-based index of the executed step. */
@@ -314,6 +339,11 @@ export interface TraceEntry {
   position: Position;
   direction: Direction;
   event: TraceEvent;
+  /**
+   * Only on a level with ice or belts: the cells the step entered, in order (empty for a turn, INC or MARK
+   * that moved nothing). The last one is `position`.
+   */
+  path?: Position[];
 }
 
 export interface RunResult {
