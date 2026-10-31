@@ -1,3 +1,5 @@
+import { TileMarks } from "@/components/ui/tile-marks";
+import { tileShapes } from "@/lib/board-tiles";
 import type { ReactNode } from "react";
 import { type BoardData, hasPoint, samePoint } from "@/lib/board";
 import { BoardProjection, DIR_VECTOR, type Pt, UNIT, Z } from "@/lib/board-projection";
@@ -294,6 +296,11 @@ export function DepthBoardGraphic({
       {under}
       {shadows}
       {marks}
+      <TileMarks
+        shapes={tileShapes(board)}
+        place={(tx, ty) => view.project(tx, ty, Z.floor)}
+        unit={UNIT}
+      />
       {items.map((item) => item.node)}
     </g>
   );
