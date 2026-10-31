@@ -1,5 +1,6 @@
 import type { LevelContent } from "./admin-api";
 import { BOARD_MAX, BOARD_MIN } from "./level-model";
+import { dropOutside, hasTile } from "./tile-tools";
 
 export type Tool = "wall" | "floor" | "start" | "goal";
 
@@ -15,7 +16,7 @@ export function applyTool(content: LevelContent, tool: Tool, x: number, y: numbe
   const wall = hasWall(content, x, y);
   switch (tool) {
     case "wall": {
-      if (wall) return content;
+      if (wall || hasTile(content, x, y)) return content;
       if ((x === sx && y === sy) || (x === gx && y === gy)) return content;
       return { ...content, board: { ...content.board, walls: [...content.board.walls, [x, y]] } };
     }
@@ -30,12 +31,14 @@ export function applyTool(content: LevelContent, tool: Tool, x: number, y: numbe
       };
     }
     case "start": {
-      if (wall || (x === gx && y === gy) || (x === sx && y === sy)) return content;
+      if (wall || hasTile(content, x, y) || (x === gx && y === gy) || (x === sx && y === sy))
+        return content;
       return { ...content, initialState: { ...content.initialState, position: [x, y] } };
     }
     case "goal": {
       if (!content.goal.position) return content;
-      if (wall || (x === sx && y === sy) || (x === gx && y === gy)) return content;
+      if (wall || hasTile(content, x, y) || (x === sx && y === sy) || (x === gx && y === gy))
+        return content;
       return { ...content, goal: { ...content.goal, position: [x, y] } };
     }
   }
@@ -61,10 +64,14 @@ export function resizeBoard(content: LevelContent, width: number, height: number
     goal = [w - 1, h - 1];
     if (goal[0] === start[0] && goal[1] === start[1]) start = [0, 0];
   }
-  return {
-    ...content,
-    board: { width: w, height: h, walls },
-    initialState: { ...content.initialState, position: start },
-    goal: goal ? { ...content.goal, position: goal } : content.goal,
-  };
+  return dropOutside(
+    {
+      ...content,
+      board: { width: w, height: h, walls },
+      initialState: { ...content.initialState, position: start },
+      goal: goal ? { ...content.goal, position: goal } : content.goal,
+    },
+    w,
+    h,
+  );
 }

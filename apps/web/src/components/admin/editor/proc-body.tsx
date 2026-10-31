@@ -2,25 +2,38 @@
 
 import { moveItem } from "@/lib/admin/list-ops";
 import type { Instruction } from "@/lib/admin/admin-api";
-import { PROC_LIMITS, isIf, isLoop } from "@/lib/admin/level-model";
+import { PROC_LIMITS, isCall, isIf, isLoop } from "@/lib/admin/level-model";
 import { asIf, nodeLabel } from "@/lib/admin/program-model";
 import { AddCommands } from "./add-commands";
+import { CallName } from "./call-name";
+import { CallWhen } from "./call-when";
 import { IfBranches } from "./if-branches";
 import { ItemRow } from "./item-row";
 import { LoopBody } from "./loop-body";
 
-/** The body of one PROC: primitives, ifs and loops (never a call), shown indented under its row. */
+function withWhen(node: Instruction, when: string | undefined): Instruction {
+  const { when: _drop, ...rest } = node;
+  return when === undefined ? rest : { ...rest, when };
+}
+
+/** The body of one PROC: primitives, ifs and loops, and calls where the level has recursion; shown indented under its row. */
 export function ProcBody({
   node,
   available,
   nested = false,
   idPrefix,
+  names,
+  recursion = false,
   onBody,
 }: {
   node: Instruction;
   available: string[];
   nested?: boolean;
   idPrefix: string;
+  /** The names the program defines (calls in the body may use them). */
+  names?: readonly string[];
+  /** The level lists the mechanic recursion: the body may hold calls, with a sensor. */
+  recursion?: boolean;
   onBody: (body: Instruction[]) => void;
 }) {
   const body = node.body ?? [];
@@ -60,6 +73,26 @@ export function ProcBody({
                   onBody={(inner) => setItem(j, { body: inner })}
                 />
               )}
+              {isCall(b) && recursion && (
+                <>
+                  <CallName
+                    value={b.name ?? ""}
+                    names={names ?? []}
+                    id={`${idPrefix}-call-${j}`}
+                    where={where}
+                    onChange={(callee) => setItem(j, { name: callee })}
+                  />
+                  <CallWhen
+                    value={b.when}
+                    id={`${idPrefix}-when-${j}`}
+                    where={where}
+                    marks={available.includes("MARK")}
+                    onChange={(when) =>
+                      onBody(body.map((x, k) => (k === j ? withWhen(x, when) : x)))
+                    }
+                  />
+                </>
+              )}
               {isIf(b) && (
                 <IfBranches
                   node={asIf(b)}
@@ -78,6 +111,7 @@ export function ProcBody({
         label={`Add a command to ${name}`}
         disabled={full}
         loops
+        callNames={recursion ? (names ?? []) : undefined}
         onAdd={(item) => onBody([...body, item])}
       />
       {full && (
