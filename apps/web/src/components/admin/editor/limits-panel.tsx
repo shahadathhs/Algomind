@@ -6,12 +6,14 @@ import {
   MAX_STEPS,
   NESTED_LOOPS,
   offersNestedLoops,
+  offersRecursion,
+  RECURSION,
 } from "@/lib/admin/level-model";
 import { Field } from "../ui";
 import type { ContentProps } from "./content-props";
 
 /** The mechanics that follow the commands (the API adds counter and markers itself), plus nested_loops when kept. */
-function mechanicsFor(commands: string[], nested: boolean): string[] {
+function mechanicsFor(commands: string[], nested: boolean, recursion = false): string[] {
   const out: string[] = [];
   if (commands.includes("MOVE_FORWARD")) out.push("move");
   if (commands.includes("TURN_LEFT") || commands.includes("TURN_RIGHT")) out.push("turn");
@@ -21,6 +23,7 @@ function mechanicsFor(commands: string[], nested: boolean): string[] {
   if (commands.includes("PROC")) out.push("procedures");
   if (nested && (commands.includes("REPEAT") || commands.includes("REPEAT_UNTIL")))
     out.push(NESTED_LOOPS);
+  if (recursion && commands.includes("PROC")) out.push(RECURSION);
   return out;
 }
 
@@ -33,7 +36,9 @@ export function LimitsPanel({ content, onChange }: ContentProps) {
     onChange({
       ...content,
       availableCommands: next,
-      requires: { mechanics: mechanicsFor(next, offersNestedLoops(content)) },
+      requires: {
+        mechanics: mechanicsFor(next, offersNestedLoops(content), offersRecursion(content)),
+      },
     });
   };
   const hasLoop =
@@ -43,7 +48,22 @@ export function LimitsPanel({ content, onChange }: ContentProps) {
     onChange({
       ...content,
       requires: {
-        mechanics: mechanicsFor(content.availableCommands, !offersNestedLoops(content)),
+        mechanics: mechanicsFor(
+          content.availableCommands,
+          !offersNestedLoops(content),
+          offersRecursion(content),
+        ),
+      },
+    });
+  const toggleRecursion = () =>
+    onChange({
+      ...content,
+      requires: {
+        mechanics: mechanicsFor(
+          content.availableCommands,
+          offersNestedLoops(content),
+          !offersRecursion(content),
+        ),
       },
     });
   return (
@@ -79,6 +99,22 @@ export function LimitsPanel({ content, onChange }: ContentProps) {
               Nested loops
               <span className="block text-sm font-normal text-mute">
                 A loop body may hold one more loop (two levels). Needs Repeat or Repeat until.
+              </span>
+            </span>
+          </label>
+          <label className="flex min-h-11 items-center gap-3 text-base font-semibold">
+            <input
+              type="checkbox"
+              className="h-5 w-5 accent-[var(--ink)]"
+              checked={offersRecursion(content)}
+              disabled={!content.availableCommands.includes("PROC")}
+              onChange={toggleRecursion}
+            />
+            <span>
+              Recursion
+              <span className="block text-sm font-normal text-mute">
+                A procedure may call procedures, itself included, and a call may carry a sensor (the
+                base case). Needs Procedures.
               </span>
             </span>
           </label>

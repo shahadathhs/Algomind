@@ -11,7 +11,7 @@ import {
   type MultiRunResult,
   type RunResult,
 } from "@algomind/level-contract";
-import type { BoardData, Command, Dir } from "@/lib/board";
+import { type BoardData, type Command, type Dir, tilesOf } from "@/lib/board";
 import type { Instruction, LevelContent } from "./admin-api";
 import { usesSweep } from "./goal-model";
 
@@ -53,6 +53,9 @@ export const REPEAT_LIMITS = { count: { min: 2, max: 11 }, body: { max: 8 } } as
 
 /** The mechanic that lets a loop hold one loop (a level lists it in requires.mechanics). */
 export const NESTED_LOOPS = "nested_loops";
+
+/** The mechanic that lets a procedure call procedures and a CALL carry a sensor. */
+export const RECURSION = "recursion";
 
 /** The longest else-if chain (the first IF and each IF in an else). */
 export const IF_CHAIN_MAX = 6;
@@ -99,6 +102,26 @@ export function offersNestedLoops(content: { requires: { mechanics: string[] } }
   return content.requires.mechanics.includes(NESTED_LOOPS);
 }
 
+/** True when the level lets a procedure call procedures, itself included. */
+export function offersRecursion(content: { requires: { mechanics: string[] } }): boolean {
+  return content.requires.mechanics.includes(RECURSION);
+}
+
+/** True when the level has any tile of the later worlds (guards, keys, crates, switches, ice, belts, teleporters). */
+export function hasTiles(content: LevelContent): boolean {
+  return TILE_FIELDS.some((field) => (content[field]?.length ?? 0) > 0);
+}
+
+export const TILE_FIELDS = [
+  "patrols",
+  "locks",
+  "deliveries",
+  "switches",
+  "teleports",
+  "ice",
+  "belts",
+] as const;
+
 export const DIRECTIONS = ["north", "east", "south", "west"] as const;
 export type Direction = (typeof DIRECTIONS)[number];
 
@@ -127,6 +150,7 @@ export function boardData(
     walls: content.board.walls.map(([x, y]) => ({ x, y })),
     goal: content.goal.position && { x: content.goal.position[0], y: content.goal.position[1] },
     automaton: { x: at.x, y: at.y, dir: DIR_LETTER[at.dir] },
+    ...tilesOf(content as unknown as Record<string, unknown>),
     trail: extra.trail?.map(([x, y]) => ({ x, y })),
     crumbs: extra.crumbs?.map((c) => ({ x: c.x, y: c.y, dir: DIR_LETTER[c.dir] })),
     hitWall: extra.hit ? { x: extra.hit[0], y: extra.hit[1] } : undefined,
@@ -154,6 +178,11 @@ export function parIsReferenceFor(content: LevelContent): boolean {
     offersCounter(content) ||
     offersMarks(content) ||
     offersNestedLoops(content) ||
+    offersRecursion(content) ||
+    // The exact search moves through the tiles but not through loops.
+    (hasTiles(content) &&
+      (content.availableCommands.includes("REPEAT") ||
+        content.availableCommands.includes("REPEAT_UNTIL"))) ||
     (content.extraBoards?.length ?? 0) > 0 ||
     usesSweep(content)
   );

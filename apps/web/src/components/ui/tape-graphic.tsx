@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { CommandIcon } from "@/components/ui/command-icon";
 import { TileGraphic } from "@/components/ui/tile-graphic";
+import type { Look } from "@/lib/look";
 import { stepLabel, type TapeTile } from "@/lib/tape";
 import { TILE_TONE, type TileVariant } from "@/lib/tile-variants";
 
@@ -28,13 +29,14 @@ type Props = {
    * the fixed read-head at the center of the strip (a run in progress).
    */
   head?: number;
+  look?: Look;
 };
 
 /**
  * The program tape: a strip of instruction tiles under a fixed yellow read-head, with step numbers.
  * The read-head's triangle sits just above the strip, so leave 12 units free above `y`.
  */
-export function TapeGraphic({ tiles, x = 0, y = 0, width, head }: Props) {
+export function TapeGraphic({ tiles, x = 0, y = 0, width, head, look = "flat" }: Props) {
   const clipId = `tape${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const first = head === undefined ? x + 12 : x + width / 2 - TILE / 2 - head * PITCH;
   const center = x + width / 2;
@@ -47,6 +49,31 @@ export function TapeGraphic({ tiles, x = 0, y = 0, width, head }: Props) {
         </clipPath>
       </defs>
       <rect x={x} y={y} width={width} height={TAPE_HEIGHT} className="fill-strip" />
+      {look === "depth" && (
+        <>
+          {/* The trough: a soft shadow along the top edge and a lit lower edge. */}
+          <g className="fill-shadow">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <rect
+                key={i}
+                x={x}
+                y={y + i * 2}
+                width={width}
+                height={2}
+                fillOpacity={0.32 * (1 - i / 5)}
+              />
+            ))}
+          </g>
+          <rect
+            x={x}
+            y={y + TAPE_HEIGHT - 1}
+            width={width}
+            height={1}
+            className="fill-on-ink"
+            fillOpacity={0.14}
+          />
+        </>
+      )}
       <g clipPath={`url(#${clipId})`}>
         {tiles.map((tile, i) => {
           const tx = first + i * PITCH;
@@ -56,7 +83,15 @@ export function TapeGraphic({ tiles, x = 0, y = 0, width, head }: Props) {
           const ty = y + TOP;
           return (
             <g key={i}>
-              <TileGraphic x={tx} y={ty} w={TILE} h={TILE} variant={variant} chamfer={11}>
+              <TileGraphic
+                x={tx}
+                y={ty}
+                w={TILE}
+                h={TILE}
+                variant={variant}
+                chamfer={11}
+                look={look}
+              >
                 {tile.state === "failed" && (
                   <CommandIcon
                     kind="fail"

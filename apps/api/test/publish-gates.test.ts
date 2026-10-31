@@ -45,6 +45,144 @@ describe("publish gates", () => {
     expect(codes(failed)).toContain("REFERENCE_SOLUTION_FAILS");
   });
 
+  it("start program: a debug level's start program must not already solve it", () => {
+    const solves = gates(level({ startProgram: SOLUTION }), SOLUTION);
+    expect(codes(solves)).toContain("START_PROGRAM_SOLVES");
+    expect(solves.find((i) => i.code === "START_PROGRAM_SOLVES")?.gate).toBe("start_program");
+  });
+
+  it("start program: a broken program passes, and the level then needs the mechanic", () => {
+    const broken = [{ op: "MOVE_FORWARD" }, { op: "MOVE_FORWARD" }, { op: "TURN_LEFT" }];
+    // An app that cannot start a tape with a program refuses the level, which is the point.
+    const needs = codes(gates(level({ startProgram: broken }), SOLUTION));
+    expect(needs).toEqual(["UNSUPPORTED_MECHANIC"]);
+    const supported = {
+      minimum: { version: "0.0.2", supportedMechanics: ["move", "turn", "start_program"] },
+      registry: [{ version: "0.0.2", supportedMechanics: ["move", "turn", "start_program"] }],
+    };
+    expect(gates(level({ startProgram: broken }), SOLUTION, supported)).toEqual([]);
+    const analysis = analyzeLevel(level({ startProgram: broken }), SOLUTION);
+    expect(analysis.requiredMechanics).toContain("start_program");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("start_program");
+  });
+
+  it("start program: one longer than the limit is refused by the validator", () => {
+    const tooLong = Array.from({ length: 7 }, () => ({ op: "MOVE_FORWARD" }));
+    const failed = gates(level({ startProgram: tooLong }), SOLUTION);
+    expect(failed.some((i) => i.gate === "validation" && i.path === "startProgram")).toBe(true);
+  });
+
+  it("patrol: a level with guards needs the mechanic, and its par is searched over time", () => {
+    // A guard on the far side of the board never meets the straight solution.
+    const guarded = level({
+      patrols: [
+        {
+          pattern: "back_and_forth",
+          cells: [
+            [4, 4],
+            [3, 4],
+          ],
+        },
+      ],
+    });
+    const analysis = analyzeLevel(guarded, SOLUTION);
+    expect(analysis.errors).toEqual([]);
+    expect(analysis.requiredMechanics).toContain("patrol");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("patrol");
+    expect(codes(gates(guarded, SOLUTION))).toEqual(["UNSUPPORTED_MECHANIC"]);
+  });
+
+  it("patrol: a reference solution that meets a guard does not solve the level", () => {
+    const blocked = level({
+      patrols: [
+        {
+          pattern: "loop",
+          cells: [
+            [1, 3],
+            [0, 3],
+            [0, 2],
+            [1, 2],
+          ],
+        },
+      ],
+    });
+    const failed = gates(blocked, SOLUTION, {
+      minimum: { version: "0.0.2", supportedMechanics: ["move", "turn", "patrol"] },
+      registry: [{ version: "0.0.2", supportedMechanics: ["move", "turn", "patrol"] }],
+    });
+    expect(codes(failed)).toContain("REFERENCE_SOLUTION_FAILS");
+  });
+
+  it("keys: a level with doors needs the mechanic, and a door that blocks the way needs its key", () => {
+    // The straight way north is shut by a door whose key is one cell to the side.
+    const shut = level({ locks: [{ key: [1, 4], door: [0, 2] }] });
+    const analysis = analyzeLevel(shut, SOLUTION);
+    expect(analysis.requiredMechanics).toContain("keys");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("keys");
+    // The straight program meets the door, so it is not a solution.
+    expect(analysis.errors.map((e) => e.code)).toContain("REFERENCE_SOLUTION_FAILS");
+  });
+
+  it("delivery: a level with crates needs the mechanic, and the straight way is not a solution", () => {
+    const parcel = level({ deliveries: [{ item: [1, 4], dock: [2, 3] }] });
+    const analysis = analyzeLevel(parcel, SOLUTION);
+    expect(analysis.requiredMechanics).toContain("delivery");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("delivery");
+    // The straight program reaches the target with the crate undelivered.
+    expect(analysis.errors.map((e) => e.code)).toContain("REFERENCE_SOLUTION_FAILS");
+  });
+
+  it("switch: a level with gates needs the mechanic, and a shut gate on the way blocks the straight program", () => {
+    const shut = level({ switches: [{ switch: [1, 4], gate: [0, 2] }] });
+    const analysis = analyzeLevel(shut, SOLUTION);
+    expect(analysis.requiredMechanics).toContain("switch");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("switch");
+    expect(analysis.errors.map((e) => e.code)).toContain("REFERENCE_SOLUTION_FAILS");
+  });
+
+  it("ice and belts: a level with them needs the mechanics, and the slide changes where a move ends", () => {
+    const icy = level({
+      ice: [
+        [0, 3],
+        [0, 2],
+      ],
+    });
+    const analysis = analyzeLevel(icy, SOLUTION);
+    expect(analysis.requiredMechanics).toContain("ice");
+    expect(analysis.requiredMechanics).not.toContain("belts");
+    const belted = level({ belts: [{ cell: [0, 3], direction: "east" }] });
+    expect(analyzeLevel(belted, SOLUTION).requiredMechanics).toContain("belts");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("ice");
+  });
+
+  it("teleport: a level with a pair needs the mechanic", () => {
+    const portal = level({ teleports: [{ a: [0, 3], b: [4, 0] }] });
+    expect(analyzeLevel(portal, SOLUTION).requiredMechanics).toContain("teleport");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("teleport");
+  });
+
+  it("recursion: a procedure may call itself only on a level that lists the mechanic", () => {
+    const recursive = [
+      {
+        op: "PROC",
+        name: "A",
+        body: [{ op: "MOVE_FORWARD" }, { op: "CALL", name: "A", when: "CLEAR_AHEAD" }],
+      },
+      { op: "CALL", name: "A" },
+    ];
+    const withMechanic = analyzeLevel(
+      level({
+        availableCommands: ["MOVE_FORWARD", "PROC"],
+        requires: { mechanics: ["recursion"] },
+      }),
+      recursive,
+    );
+    expect(withMechanic.requiredMechanics).toContain("recursion");
+    expect(withMechanic.errors.map((e) => e.code)).not.toContain("CALL_NOT_ALLOWED");
+    const without = analyzeLevel(level({ availableCommands: ["MOVE_FORWARD", "PROC"] }), recursive);
+    expect(without.errors.map((e) => e.code)).toContain("CALL_NOT_ALLOWED");
+  });
+
   it("par: refuses a goal that cannot be reached", () => {
     const walled = level({
       board: {

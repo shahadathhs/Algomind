@@ -66,6 +66,8 @@ static func _add_node(
 	if op == CALL:
 		cell["kind"] = "call"
 		cell["name"] = node["name"]
+		if node.has("when"):
+			cell["when"] = node["when"]
 		cell["groups"] = groups
 		out.append(cell)
 		return
@@ -148,7 +150,10 @@ static func _plain(node: Dictionary) -> Dictionary:
 	if op == PROC:
 		return {"op": PROC, "name": node["name"], "body": _plain_list(node["body"])}
 	if op == CALL:
-		return {"op": CALL, "name": node["name"]}
+		var call := {"op": CALL, "name": node["name"]}
+		if node.has("when"):
+			call["when"] = node["when"]
+		return call
 	return {"op": op}
 
 

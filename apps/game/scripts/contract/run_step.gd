@@ -14,95 +14,79 @@ static func step(
 	var trace: Array = run["trace"]
 	if trace.size() >= int(run["max_steps"]):
 		return finish("FAILED", "STEP_LIMIT", null, run)
-	var position: Array = run["position"]
-	var direction: String = run["direction"]
 	var index := trace.size()
+	var from: Array = (run["position"] as Array).duplicate()
+	var motion := RunWorld.new_motion()
+	var base := "MOVED"
 	if command == LEFT or command == RIGHT:
-		run["direction"] = LevelSimulator.turn(direction, "left" if command == LEFT else "right")
-		trace.append(
-			entry(
-				run,
-				index,
-				command,
-				node,
-				call_path,
-				round_number,
-				position,
-				run["direction"],
-				"TURNED"
-			)
+		run["direction"] = LevelSimulator.turn(
+			run["direction"], "left" if command == LEFT else "right"
 		)
-		return null
-
-	if command == ContractLimits.INC_OP:
+		base = "TURNED"
+	elif command == ContractLimits.INC_OP:
 		run["counter"] = mini(int(run["counter"]) + 1, ContractLimits.COUNTER_MAX)
-		trace.append(
-			entry(
-				run, index, command, node, call_path, round_number, position, direction, "COUNTED"
-			)
-		)
-		return null
-	if command == ContractLimits.MARK_OP:
+		base = "COUNTED"
+	elif command == ContractLimits.MARK_OP:
+		var position: Array = run["position"]
 		var here := Vector2i(int(position[0]), int(position[1]))
 		var crumbs: Dictionary = run["crumbs"]
 		if not crumbs.has(here):
-			crumbs[here] = (ContractLimits.DIRECTIONS.find(direction) + 2) % 4
-		trace.append(
-			entry(run, index, command, node, call_path, round_number, position, direction, "MARKED")
-		)
-		return null
-	return move(run, command, node, round_number, call_path)
-
-
-## Runs MOVE_FORWARD. Returns the final result when the run ends here, else null.
-static func move(
-	run: Dictionary, command: String, node: Array, round_number: Variant, call_path: Variant
-) -> Variant:
-	var trace: Array = run["trace"]
-	var position: Array = run["position"]
-	var direction: String = run["direction"]
-	var index := trace.size()
-	var target := LevelSimulator.cell_ahead(position, direction)
-	var tx := int(target[0])
-	var ty := int(target[1])
-	var blocked := ""
-	if tx < 0 or ty < 0 or tx >= int(run["width"]) or ty >= int(run["height"]):
-		blocked = "BLOCKED_BY_BOUNDARY"
-	elif (run["walls"] as Dictionary).has(Vector2i(tx, ty)):
-		blocked = "BLOCKED_BY_WALL"
-	if blocked != "":
-		trace.append(
-			entry(run, index, command, node, call_path, round_number, position, direction, blocked)
-		)
-		return finish("FAILED", blocked, target, run)
-
-	run["position"] = target
-	var cell := Vector2i(tx, ty)
-	(run["visited"] as Dictionary)[cell] = true
-	var reached: bool
-	if run["goal"] == null:
-		reached = (run["visited"] as Dictionary).size() == int(run["floor_cells"])
+			crumbs[here] = (ContractLimits.DIRECTIONS.find(run["direction"]) + 2) % 4
+		base = "MARKED"
 	else:
-		reached = cell == run["goal"]
-	if reached:
-		trace.append(
-			entry(
-				run,
-				index,
-				command,
-				node,
-				call_path,
-				round_number,
-				target,
-				direction,
-				"GOAL_REACHED"
+		var blocked := RunWorld.blocked_ahead(run)
+		if not blocked.is_empty():
+			trace.append(
+				_entry(run, index, command, node, call_path, round_number, blocked["event"], [])
 			)
+			return finish("FAILED", blocked["event"], blocked["cell"], run)
+		motion = RunWorld.move(run)
+	if command != "MOVE_FORWARD":
+		motion = RunWorld.carry(run)
+
+	# A patrol that reaches the automaton in this step ends the run (checked before the goal).
+	var path: Array = motion["path"]
+	var found: Variant = Patrol.meeting(run["patrols"], from, run["position"], index)
+	if found != null:
+		trace.append(
+			_entry(run, index, command, node, call_path, round_number, "HIT_BY_PATROL", path)
+		)
+		return finish("FAILED", "HIT_BY_PATROL", found, run)
+	if motion["goal"] == "undelivered":
+		trace.append(
+			_entry(run, index, command, node, call_path, round_number, "UNDELIVERED", path)
+		)
+		return finish("FAILED", "UNDELIVERED", null, run)
+	if motion["goal"] == "reached":
+		trace.append(
+			_entry(run, index, command, node, call_path, round_number, "GOAL_REACHED", path)
 		)
 		return finish("SUCCEEDED", "GOAL_REACHED", null, run)
-	trace.append(
-		entry(run, index, command, node, call_path, round_number, target, direction, "MOVED")
-	)
+	var event: String = motion["event"]
+	if event == "":
+		var slid := path.size() > (1 if command == "MOVE_FORWARD" else 0)
+		event = ("SLID" if command == "MOVE_FORWARD" else "CARRIED") if slid else base
+	trace.append(_entry(run, index, command, node, call_path, round_number, event, path))
 	return null
+
+
+## A trace entry for the state after the step; `path` is kept only on a level with ice or belts.
+static func _entry(
+	run: Dictionary,
+	index: int,
+	op: String,
+	node: Array,
+	call_path: Variant,
+	round_number: Variant,
+	event: String,
+	path: Array
+) -> Dictionary:
+	var result := entry(
+		run, index, op, node, call_path, round_number, run["position"], run["direction"], event
+	)
+	if run["routed"]:
+		result["path"] = path.duplicate(true)
+	return result
 
 
 static func entry(

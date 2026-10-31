@@ -12,6 +12,13 @@ import {
   removeBoard,
 } from "@/lib/admin/board-model";
 import { applyTool, resizeBoard, type Tool } from "@/lib/admin/board-tools";
+import {
+  NO_TILE_STATE,
+  tileAt,
+  type TileState,
+  type TileTool,
+  applyTileTool,
+} from "@/lib/admin/tile-tools";
 import { GOAL_LABELS, isSweep, setGoalType } from "@/lib/admin/goal-model";
 import {
   BOARD_MAX,
@@ -22,6 +29,7 @@ import {
 } from "@/lib/admin/level-model";
 import { Field, OutlineAction, SelectField } from "../ui";
 import { BoardTabs } from "./board-tabs";
+import { TileToolbox } from "./tile-toolbox";
 import type { ContentProps } from "./content-props";
 
 const TOOLS: { id: Tool; label: string }[] = [
@@ -33,6 +41,8 @@ const TOOLS: { id: Tool; label: string }[] = [
 
 export function BoardPanel({ content: level, onChange: onLevelChange }: ContentProps) {
   const [tool, setTool] = useState<Tool>("wall");
+  const [tileTool, setTileTool] = useState<TileTool | null>(null);
+  const [tileState, setTileState] = useState<TileState>(NO_TILE_STATE);
   const [picked, setPicked] = useState(0);
   const count = boardCount(level);
   const index = Math.min(picked, count - 1);
@@ -45,19 +55,33 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
   const [gx, gy] = content.goal.position ?? [-1, -1];
   const tools = sweep ? TOOLS.filter((t) => t.id !== "goal") : TOOLS;
   const activeTool = tools.some((t) => t.id === tool) ? tool : "wall";
+  const clickCell = (x: number, y: number) => {
+    if (tileTool && count === 1) {
+      // Tiles are not part of a board's own fields, so the whole level changes.
+      const result = applyTileTool(level, tileTool, x, y, tileState);
+      setTileState(result.state);
+      if (result.content !== level) onLevelChange(result.content);
+      return;
+    }
+    onChange(applyTool(content, activeTool, x, y));
+  };
   const cells = [];
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const isWall = content.board.walls.some(([wx, wy]) => wx === x && wy === y);
       const isStart = x === sx && y === sy;
       const isGoal = x === gx && y === gy;
-      const label = `Cell ${x + 1}, ${y + 1}: ${isStart ? "start" : isGoal ? "goal" : isWall ? "wall" : "floor"}`;
+      const tile = tileAt(content, x, y);
+      const waiting =
+        (tileState.pending !== null && tileState.pending[0] === x && tileState.pending[1] === y) ||
+        tileState.route.some(([rx, ry]) => rx === x && ry === y);
+      const label = `Cell ${x + 1}, ${y + 1}: ${isStart ? "start" : isGoal ? "goal" : isWall ? "wall" : (tile?.word ?? "floor")}`;
       cells.push(
         <button
           key={`${x}-${y}`}
           type="button"
           aria-label={label}
-          onClick={() => onChange(applyTool(content, activeTool, x, y))}
+          onClick={() => clickCell(x, y)}
           className={`flex aspect-square items-center justify-center text-[15px] font-bold outline-offset-[-4px] ${
             isWall
               ? "bg-wall text-on-ink"
@@ -66,7 +90,7 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
                 : "bg-floor text-ink"
           } ${isStart ? "outline-[3px] -outline-offset-[5px] outline-ink" : ""}`}
         >
-          {isStart ? "S" : isGoal ? "G" : isWall ? "W" : ""}
+          {isStart ? "S" : isGoal ? "G" : isWall ? "W" : waiting ? "?" : (tile?.mark ?? "")}
         </button>,
       );
     }
@@ -130,12 +154,16 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
                 key={t.id}
                 type="button"
                 role="radio"
-                aria-checked={activeTool === t.id}
+                aria-checked={activeTool === t.id && !tileTool}
                 tabIndex={activeTool === t.id ? 0 : -1}
-                onClick={() => setTool(t.id)}
+                onClick={() => {
+                  setTool(t.id);
+                  setTileTool(null);
+                  setTileState(NO_TILE_STATE);
+                }}
                 onKeyDown={(e) => moveTool(e, i)}
                 className={`tile inline-flex h-11 items-center px-5 text-[13px] tracking-[2px] uppercase ${
-                  activeTool === t.id ? "bg-ink text-on-ink" : "bg-strip text-ink"
+                  activeTool === t.id && !tileTool ? "bg-ink text-on-ink" : "bg-strip text-ink"
                 }`}
                 style={{ ["--chamfer" as string]: "10px" }}
               >
@@ -151,10 +179,19 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
           >
             {cells}
           </div>
+          <TileToolbox
+            content={level}
+            tool={tileTool}
+            onTool={setTileTool}
+            state={tileState}
+            onState={setTileState}
+            onChange={onLevelChange}
+            disabled={count > 1}
+          />
           <p className="mt-3 text-sm font-semibold text-mute">
             {sweep
               ? "Pick a tool, then select cells. S marks the start, W a wall. The run succeeds when every floor cell has been entered."
-              : "Pick a tool, then select cells. S marks the start, G the goal, W a wall."}
+              : "Pick a tool, then select cells. S marks the start, G the goal, W a wall. Tiles: ~ ice, arrows belts, k key, d door, c crate, b dock, s switch, g gate, o teleporter, x guard route."}
           </p>
         </div>
         <div className="grid content-start gap-5">

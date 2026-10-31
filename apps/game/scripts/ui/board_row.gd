@@ -45,7 +45,7 @@ func _draw() -> void:
 	var you := bool(entry.get("you", false))
 	var ink := Palette.ON_INK if you else Palette.INK
 	if you:
-		UiKit.fill_chamfer(self, rect, Palette.INK)
+		rect = TileDraw.tile(self, rect, TileDraw.Tone.SOLID)
 	else:
 		draw_line(Vector2(0, rect.size.y), Vector2(size.x, rect.size.y), Palette.FAINT, 2.0)
 	var middle := Rect2(0, 0, 0, rect.size.y)
@@ -73,8 +73,11 @@ func _draw() -> void:
 	var name_x := 58.0
 	var name_right := right - value_w - 10.0
 	if you:
-		var tag := Rect2(name_right - 44.0, rect.size.y / 2.0 - 11.0, 44.0, 22.0)
-		UiKit.fill_chamfer(self, tag, Palette.SIGNAL)
+		var tag := TileDraw.tile(
+			self,
+			Rect2(name_right - 44.0, rect.size.y / 2.0 - 11.0, 44.0, 22.0),
+			TileDraw.Tone.ACTIVE
+		)
 		UiKit.text(self, "YOU", tag, 14, Palette.ON_SIGNAL, 1)
 		name_right -= 52.0
 	middle = Rect2(name_x, 0, maxf(name_right - name_x, 0.0), rect.size.y)

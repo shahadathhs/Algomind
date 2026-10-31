@@ -1,5 +1,4 @@
 import {
-  ACTION_COMMANDS,
   CALL_OP,
   COUNTER_REF,
   DIRECTIONS,
@@ -8,13 +7,13 @@ import {
   INC_OP,
   LIMITS,
   MARK_OP,
-  PROCEDURE_NAMES,
   PROC_OP,
+  RECURSION_MECHANIC,
   REPEAT_OP,
-  REPEAT_UNTIL_OP,
-  SENSORS,
-  UNTIL_CONDITIONS,
 } from "./constants.js";
+import { patrolMeeting } from "./patrol.js";
+import { World, type Motion } from "./world.js";
+import { topPlace, isActionNode, isNode, runnable, type Node } from "./program-shape.js";
 import type {
   ActionName,
   Direction,
@@ -49,109 +48,6 @@ export function isInsideBoard(level: Level, cell: Position): boolean {
   );
 }
 
-const ACTIONS = ACTION_COMMANDS as readonly string[];
-
-type Node = Record<string, unknown>;
-
-function isNode(node: unknown): node is Node {
-  return typeof node === "object" && node !== null;
-}
-
-function isActionNode(node: unknown): node is PrimitiveInstruction {
-  return isNode(node) && typeof node["op"] === "string" && ACTIONS.includes(node["op"]);
-}
-
-function isActionList(list: unknown, min: number, max: number): boolean {
-  return (
-    Array.isArray(list) && list.length >= min && list.length <= max && list.every(isActionNode)
-  );
-}
-
-/** Where a node stands, which decides what it may hold. */
-type Place = {
-  /** Inside a procedure body (a CALL may not stand there). */
-  inProc: boolean;
-  /** How many loops enclose the node (a loop needs fewer than two). */
-  loops: number;
-  /** Inside an IF branch (only actions may stand there). */
-  branch: boolean;
-  top: boolean;
-};
-
-const TOP: Place = { inProc: false, loops: 0, branch: false, top: true };
-
-/** An IF whose branches can run: a known sensor, 1 to 4 actions to run, and 0 to 4 actions or one IF otherwise. */
-function runnableIf(node: Node, chain: number): boolean {
-  if (chain > LIMITS.ifChain) return false;
-  if (typeof node["when"] !== "string" || !(SENSORS as readonly string[]).includes(node["when"])) {
-    return false;
-  }
-  if (!isActionList(node["then"], LIMITS.ifThen.min, LIMITS.ifThen.max)) return false;
-  const other = node["else"];
-  if (Array.isArray(other) && other.length === 1 && isNode(other[0]) && other[0]["op"] === IF_OP) {
-    return runnableIf(other[0], chain + 1);
-  }
-  return isActionList(other, LIMITS.ifElse.min, LIMITS.ifElse.max);
-}
-
-/**
- * True when the node and everything inside it can be run: known ops and conditions, bodies and branches
- * of the right size, and only what the place allows. `procs` are the procedures a CALL may name.
- */
-function runnable(node: unknown, place: Place, procs: ReadonlyMap<string, Node>): boolean {
-  if (!isNode(node)) return false;
-  const op = node["op"];
-  if (isActionNode(node)) return true;
-  if (op === IF_OP) return !place.branch && runnableIf(node, 1);
-  if (op === CALL_OP) {
-    return (
-      !place.inProc && !place.branch && typeof node["name"] === "string" && procs.has(node["name"])
-    );
-  }
-  const body = node["body"];
-  const bodyOk = (min: number, max: number, inner: Place): boolean =>
-    Array.isArray(body) &&
-    body.length >= min &&
-    body.length <= max &&
-    body.every((item) => runnable(item, inner, procs));
-  if (op === REPEAT_OP || op === REPEAT_UNTIL_OP) {
-    if (place.branch || place.loops >= 2) return false;
-    if (op === REPEAT_OP) {
-      const count = node["count"];
-      const fixed =
-        typeof count === "number" &&
-        Number.isInteger(count) &&
-        count >= LIMITS.repeatCount.min &&
-        count <= LIMITS.repeatCount.max;
-      if (!fixed && count !== COUNTER_REF) return false;
-    } else if (
-      typeof node["until"] !== "string" ||
-      !(UNTIL_CONDITIONS as readonly string[]).includes(node["until"])
-    ) {
-      return false;
-    }
-    return bodyOk(LIMITS.repeatBody.min, LIMITS.repeatBody.max, {
-      ...place,
-      top: false,
-      loops: place.loops + 1,
-    });
-  }
-  if (op === PROC_OP) {
-    return (
-      place.top &&
-      typeof node["name"] === "string" &&
-      (PROCEDURE_NAMES as readonly string[]).includes(node["name"]) &&
-      bodyOk(LIMITS.procBody.min, LIMITS.procBody.max, {
-        inProc: true,
-        loops: 0,
-        branch: false,
-        top: false,
-      })
-    );
-  }
-  return false;
-}
-
 /**
  * Runs `program` on `level`. Deterministic and pure: the inputs are not modified.
  *
@@ -180,30 +76,35 @@ function runnable(node: unknown, place: Place, procs: ReadonlyMap<string, Node>)
 export function simulate(level: Level, program: Program): RunResult {
   if (!Array.isArray(program)) throw new TypeError("program must be an array");
 
-  const { width, height } = level.board;
-  let position: Position = [level.initialState.position[0], level.initialState.position[1]];
-  let direction: Direction = level.initialState.direction;
-  const target = level.goal.type === "reach_tile" ? level.goal.position : null;
+  const world = new World(level);
   const trace: TraceEntry[] = [];
   let counter: number = LIMITS.counter.start;
-
-  const cellKey = (cell: Position): number => cell[1] * width + cell[0];
-  const walls = new Set(level.board.walls.map(cellKey));
-  const floorCells = width * height - walls.size;
+  // How many procedure calls are running inside each other.
+  let depth = 0;
+  const cellKey = (cell: Position): number => cell[1] * level.board.width + cell[0];
   // Breadcrumbs: for a cell that has one, the direction (an index into DIRECTIONS) of the cell it points to.
   const crumbs = new Map<number, number>();
-  const visited = new Set<number>([cellKey(position)]);
+  // A level with ice or belts shows each step's route in the trace.
+  const routed =
+    (level.ice ?? []).length + (level.belts ?? []).length + (level.teleports ?? []).length > 0;
 
   // The procedures a CALL can reach: the first well-formed definition of each name.
   const procs = new Map<string, Node>();
   const procIndex = new Map<string, number>();
+  const top = topPlace(level.requires.mechanics.includes(RECURSION_MECHANIC));
+  // Every name a definition gives, so that a CALL inside a definition can be checked.
   const noProcs = new Map<string, Node>();
+  for (const node of program as unknown[]) {
+    if (isNode(node) && node["op"] === PROC_OP && typeof node["name"] === "string") {
+      if (!noProcs.has(node["name"])) noProcs.set(node["name"], node);
+    }
+  }
   program.forEach((node, i) => {
     const candidate: unknown = node;
     if (!isNode(candidate) || candidate["op"] !== PROC_OP) return;
     const name = candidate["name"];
     if (typeof name !== "string" || procs.has(name)) return;
-    if (runnable(candidate, TOP, noProcs)) {
+    if (runnable(candidate, top, noProcs)) {
       procs.set(name, candidate);
       procIndex.set(name, i);
     }
@@ -217,14 +118,12 @@ export function simulate(level: Level, program: Program): RunResult {
     status,
     reason,
     steps: trace.length,
-    finalState: { position: [position[0], position[1]], direction },
+    finalState: { position: [world.position[0], world.position[1]], direction: world.direction },
     blockedCell,
     trace,
   });
 
   const atLimit = (): boolean => trace.length >= level.constraints.maxSteps;
-  const onBoard = (cell: Position): boolean => isInsideBoard(level, cell);
-  const isFloor = (cell: Position): boolean => onBoard(cell) && !walls.has(cellKey(cell));
 
   /** Runs one action. Returns the final result when the run ends here, otherwise null. */
   const step = (
@@ -235,65 +134,74 @@ export function simulate(level: Level, program: Program): RunResult {
   ): RunResult | null => {
     if (atLimit()) return finish("FAILED", "STEP_LIMIT", null);
     const index = trace.length;
-    const entry = (event: TraceEntry["event"]): TraceEntry => ({
+    const from: Position = world.position;
+    const entry = (event: TraceEntry["event"], path: Position[] = []): TraceEntry => ({
       index,
       op: command,
       node,
       call,
       counter,
       round,
-      position: [position[0], position[1]],
-      direction,
+      position: [world.position[0], world.position[1]],
+      direction: world.direction,
       event,
+      ...(routed ? { path: path.map((cell): Position => [cell[0], cell[1]]) } : {}),
     });
 
+    let motion: Motion = { path: [], event: null, goal: "none" };
+    let base: TraceEntry["event"] = "MOVED";
     if (command === "TURN_LEFT" || command === "TURN_RIGHT") {
-      direction = turn(direction, command === "TURN_LEFT" ? "left" : "right");
-      trace.push(entry("TURNED"));
-      return null;
-    }
-    if (command === INC_OP) {
+      world.direction = turn(world.direction, command === "TURN_LEFT" ? "left" : "right");
+      base = "TURNED";
+    } else if (command === INC_OP) {
       counter = Math.min(counter + 1, LIMITS.counter.max);
-      trace.push(entry("COUNTED"));
-      return null;
+      base = "COUNTED";
+    } else if (command === MARK_OP) {
+      const here = cellKey(world.position);
+      if (!crumbs.has(here)) crumbs.set(here, (DIRECTIONS.indexOf(world.direction) + 2) % 4);
+      base = "MARKED";
+    } else {
+      const blocked = world.blockedAhead();
+      if (blocked) {
+        trace.push(entry(blocked.event));
+        return finish("FAILED", blocked.event, blocked.cell);
+      }
+      motion = world.move();
     }
-    if (command === MARK_OP) {
-      const here = cellKey(position);
-      if (!crumbs.has(here)) crumbs.set(here, (DIRECTIONS.indexOf(direction) + 2) % 4);
-      trace.push(entry("MARKED"));
-      return null;
-    }
+    if (command !== "MOVE_FORWARD") motion = world.carry();
 
-    // MOVE_FORWARD
-    const ahead = cellAhead(position, direction);
-    if (!onBoard(ahead)) {
-      trace.push(entry("BLOCKED_BY_BOUNDARY"));
-      return finish("FAILED", "BLOCKED_BY_BOUNDARY", ahead);
+    // A patrol that reaches the automaton in this step ends the run (checked before the goal).
+    const meeting = patrolMeeting(level, from, world.position, index);
+    if (meeting) {
+      trace.push(entry("HIT_BY_PATROL", motion.path));
+      return finish("FAILED", "HIT_BY_PATROL", meeting);
     }
-    if (walls.has(cellKey(ahead))) {
-      trace.push(entry("BLOCKED_BY_WALL"));
-      return finish("FAILED", "BLOCKED_BY_WALL", ahead);
+    if (motion.goal === "undelivered") {
+      trace.push(entry("UNDELIVERED", motion.path));
+      return finish("FAILED", "UNDELIVERED", null);
     }
-    position = ahead;
-    visited.add(cellKey(position));
-    const reached = target
-      ? position[0] === target[0] && position[1] === target[1]
-      : visited.size === floorCells;
-    if (reached) {
-      trace.push(entry("GOAL_REACHED"));
+    if (motion.goal === "reached") {
+      trace.push(entry("GOAL_REACHED", motion.path));
       return finish("SUCCEEDED", "GOAL_REACHED", null);
     }
-    trace.push(entry("MOVED"));
+    const slid = motion.path.length > (command === "MOVE_FORWARD" ? 1 : 0);
+    trace.push(
+      entry(
+        motion.event ?? (slid ? (command === "MOVE_FORWARD" ? "SLID" : "CARRIED") : base),
+        motion.path,
+      ),
+    );
     return null;
   };
 
   /** True when the sensor reads true: the cell on that side is floor (CLEAR), has no breadcrumb (FRESH), or is the cell this cell's breadcrumb points to (BACK). */
   const sensor = (name: string): boolean => {
     const [kind, side] = name.split("_") as [string, string];
+    const { position, direction } = world;
     const facing =
       side === "AHEAD" ? direction : turn(direction, side === "LEFT" ? "left" : "right");
     const cell = cellAhead(position, facing);
-    if (!isFloor(cell)) return false;
+    if (!world.canEnter(cell)) return false;
     if (kind === "CLEAR") return true;
     if (kind === "FRESH") return !crumbs.has(cellKey(cell));
     const toward = crumbs.get(cellKey(position));
@@ -340,13 +248,18 @@ export function simulate(level: Level, program: Program): RunResult {
     if (op === IF_OP) return runIf(node, path, round, call);
 
     if (op === CALL_OP) {
+      if (node["when"] !== undefined && !sensor(node["when"] as string)) return null;
       const name = node["name"] as string;
+      if (!procs.has(name)) return finish("FAILED", "INVALID_INSTRUCTION", null);
+      depth += 1;
+      if (depth > LIMITS.callDepth) return finish("FAILED", "TOO_DEEP", null);
       const body = procs.get(name)!["body"] as Node[];
       const base = [procIndex.get(name)!];
       for (let j = 0; j < body.length; j += 1) {
         const result = run(body[j]!, [...base, j], null, path);
         if (result) return result;
       }
+      depth -= 1;
       return null;
     }
 
@@ -378,11 +291,11 @@ export function simulate(level: Level, program: Program): RunResult {
     const node: unknown = program[i];
     if (isNode(node) && node["op"] === PROC_OP) {
       // A definition: skipped when it is well formed, a content error when it is not.
-      if (!runnable(node, TOP, noProcs)) return finish("FAILED", "INVALID_INSTRUCTION", null);
+      if (!runnable(node, top, noProcs)) return finish("FAILED", "INVALID_INSTRUCTION", null);
       continue;
     }
     if (atLimit()) return finish("FAILED", "STEP_LIMIT", null);
-    if (!runnable(node, TOP, procs)) return finish("FAILED", "INVALID_INSTRUCTION", null);
+    if (!runnable(node, top, procs)) return finish("FAILED", "INVALID_INSTRUCTION", null);
     const result = run(node as Node, [i], null, null);
     if (result) return result;
   }

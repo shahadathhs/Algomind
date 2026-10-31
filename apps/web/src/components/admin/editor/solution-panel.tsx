@@ -4,19 +4,28 @@ import { useMemo } from "react";
 import { Caption } from "@/components/ui/caption";
 import type { Instruction, LevelContent } from "@/lib/admin/admin-api";
 import { boardCount } from "@/lib/admin/board-model";
-import { localCheck, offersNestedLoops, parIsReferenceFor, slotsOf } from "@/lib/admin/level-model";
+import {
+  localCheck,
+  offersNestedLoops,
+  offersRecursion,
+  parIsReferenceFor,
+  slotsOf,
+} from "@/lib/admin/level-model";
 import { Notice } from "../ui";
 import { BoardResults } from "./board-results";
 import { ProgramEditor } from "./program-editor";
+import { StartProgram } from "./start-program";
 
 export function SolutionPanel({
   content,
   solution,
   onSolution,
+  onContent,
 }: {
   content: LevelContent;
   solution: Instruction[];
   onSolution: (next: Instruction[]) => void;
+  onContent: (next: LevelContent) => void;
 }) {
   const check = useMemo(() => localCheck(content, solution), [content, solution]);
   const par = check.par;
@@ -29,8 +38,10 @@ export function SolutionPanel({
           onChange={onSolution}
           available={content.availableCommands}
           nested={offersNestedLoops(content)}
+          recursion={offersRecursion(content)}
           idPrefix="Reference"
         />
+        <StartProgram content={content} onContent={onContent} />
       </div>
       <div className="grid content-start gap-4">
         <Caption>Reference solution</Caption>

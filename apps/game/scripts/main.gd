@@ -120,12 +120,20 @@ func _debug_screenshot(options: Dictionary) -> void:
 	await _fake_social(options)
 	_state.progress.settings.set_theme(String(options.get("theme", "light")))
 	_state.progress.settings.set_reduce_motion(true)
+	if options.has("look"):
+		_state.progress.settings.set_look(String(options["look"]))
 	for i in int(options.get("done", "0")):
 		var entry: Dictionary = _state.campaign.entries[i]
 		_state.progress.record_completion(entry["id"], int(entry["level"]["levelVersion"]), 5)
 	_state.apply_theme()
 
 	var target := String(options.get("screen", "home"))
+	if target == "depth_kit":
+		var sample := DepthKitSample.new()
+		sample.set_anchors_preset(Control.PRESET_FULL_RECT)
+		viewport.add_child(sample)
+		await _capture(viewport, options)
+		return
 	var packed: PackedScene = load(SCREENS[target])
 	var screen: ScreenBase = packed.instantiate()
 	var level_id := String(options.get("level", _state.campaign.entries[0]["id"]))
@@ -155,6 +163,11 @@ func _debug_screenshot(options: Dictionary) -> void:
 		PlayDebug.select(screen, int(options["select"]))
 	if target == "play" and options.has("overlay"):
 		PlayDebug.overlay(screen, String(options["overlay"]))
+	await _capture(viewport, options)
+
+
+## Waits for the controls to settle, saves the viewport as a PNG, and quits.
+func _capture(viewport: SubViewport, options: Dictionary) -> void:
 	# Controls settle their size over a few frames; wait before capturing.
 	for i in 8:
 		await get_tree().process_frame

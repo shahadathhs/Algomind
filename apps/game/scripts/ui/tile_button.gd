@@ -12,6 +12,8 @@ enum Kind { PRIMARY, SECONDARY, TERTIARY, SOLID, LOCKED }
 const MIN_TOUCH := 44.0
 ## A press that moves farther than this is a scroll, not a tap.
 const TAP_SLOP := 12.0
+## A depth key takes this long to sink or to spring back (well under the 250 ms limit).
+const SINK_SECONDS := 0.06
 
 var kind := Kind.SECONDARY
 var label := ""
@@ -27,6 +29,14 @@ var align := HORIZONTAL_ALIGNMENT_CENTER
 
 var _down := false
 var _press_at := Vector2.ZERO
+## How far a depth key has sunk, 0 (up) to 1 (pressed); it eases toward `_down` in a few frames.
+var _sink := 0.0
+
+
+func _ready() -> void:
+	# Only a depth key that is moving needs a frame callback; an idle button never redraws itself.
+	# (Godot turns processing on for a script with _process when the node becomes ready.)
+	set_process(false)
 
 
 static func make(
@@ -44,6 +54,14 @@ static func make(
 	return button
 
 
+func _process(delta: float) -> void:
+	var target := 1.0 if _down else 0.0
+	_sink = target if not UiLook.animate else move_toward(_sink, target, delta / SINK_SECONDS)
+	queue_redraw()
+	if _sink == target:
+		set_process(false)
+
+
 func set_disabled(value: bool) -> void:
 	disabled = value
 	queue_redraw()
@@ -58,23 +76,30 @@ func _gui_input(event: InputEvent) -> void:
 		if click.pressed:
 			_down = true
 			_press_at = click.position
+			set_process(UiLook.depth)
 			queue_redraw()
 		else:
 			var inside := Rect2(Vector2.ZERO, size).has_point(click.position)
 			var moved: bool = click.position.distance_to(_press_at) > TAP_SLOP
 			var fire: bool = _down and inside and not moved
 			_down = false
+			set_process(UiLook.depth)
 			queue_redraw()
 			if fire:
 				pressed.emit()
 	elif motion != null and _down:
 		if motion.position.distance_to(_press_at) > TAP_SLOP:
 			_down = false
+			set_process(UiLook.depth)
 			queue_redraw()
 
 
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
+	if UiLook.depth and kind != Kind.TERTIARY:
+		_draw_key(rect)
+		return
+	self_modulate.a = 1.0
 	var ink := Palette.INK
 	var on_color := Palette.INK
 	match kind:
@@ -101,6 +126,27 @@ func _draw() -> void:
 		Kind.TERTIARY:
 			on_color = Palette.MUTE if disabled else Palette.INK
 	_draw_content(rect, on_color)
+
+
+## The depth look: a key with a lip. A pressed key sinks onto its lip. A disabled or locked key is
+## a sunk, neutral tile with a muted label: opaque, so nothing shows through it, and its label and
+## icon still say what it is.
+func _draw_key(rect: Rect2) -> void:
+	var tone := DepthKit.Kind.TILE
+	if kind == Kind.PRIMARY:
+		tone = DepthKit.Kind.SIGNAL
+	elif kind == Kind.SOLID:
+		tone = DepthKit.Kind.INK
+	var inert := disabled or kind == Kind.LOCKED
+	var color := DepthKit.label_color(tone)
+	if inert:
+		tone = DepthKit.Kind.TILE
+		color = Palette.MUTE
+	self_modulate.a = 1.0
+	var face := DepthKit.key_sunk(self, rect, tone, 1.0 if inert else _sink)
+	draw_set_transform(face.position, 0.0, Vector2.ONE)
+	_draw_content(Rect2(Vector2.ZERO, face.size), color)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_content(rect: Rect2, color: Color) -> void:

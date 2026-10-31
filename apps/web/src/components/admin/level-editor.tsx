@@ -187,6 +187,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
                 content={content}
                 solution={solution}
                 onSolution={(s) => edit(content, s)}
+                onContent={(c) => edit(c, solution)}
               />
             )}
             {tab === "preview" && (

@@ -23,6 +23,15 @@ const SUPPORTED_MECHANICS: Array[String] = [
 	"nested_loops",
 	"markers",
 	"visit_all",
+	"start_program",
+	"patrol",
+	"keys",
+	"delivery",
+	"switch",
+	"teleport",
+	"recursion",
+	"ice",
+	"belts",
 ]
 
 ## [{ id, title, summary, chapters: [{ id, title, entries: [entry] }] }]

@@ -17,6 +17,9 @@ const ACTION_COMMANDS: Array[String] = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT
 const COUNTER_REF := "N"
 ## The mechanic a level lists in requires.mechanics to allow a loop inside a loop.
 const NESTED_LOOPS_MECHANIC := "nested_loops"
+const RECURSION_MECHANIC := "recursion"
+## How many procedure calls may be running inside each other.
+const CALL_DEPTH_MAX := 24
 ## The loop instruction: a count (a number or "N") and a body of actions, IFs and one inner loop.
 const REPEAT_OP := "REPEAT"
 ## The conditional loop: it runs its body while the way ahead is open.
@@ -83,6 +86,25 @@ const REPEAT_COUNT_MAX := 11
 ## Extra test boards a level may carry besides its own board.
 const EXTRA_BOARDS_MIN := 1
 const EXTRA_BOARDS_MAX := 5
+
+const PATROL_PATTERNS: Array[String] = ["back_and_forth", "loop"]
+const PATROLS_MIN := 1
+const PATROLS_MAX := 3
+const PATROL_CELLS_MIN := 2
+const PATROL_CELLS_MAX := 12
+const PATROL_LOOP_CELLS_MIN := 4
+const LOCKS_MIN := 1
+const LOCKS_MAX := 3
+const DELIVERIES_MIN := 1
+const DELIVERIES_MAX := 3
+const SWITCHES_MIN := 1
+const SWITCHES_MAX := 3
+const TELEPORTS_MIN := 1
+const TELEPORTS_MAX := 3
+const ICE_MIN := 1
+const ICE_MAX := 30
+const BELTS_MIN := 1
+const BELTS_MAX := 20
 const PROC_BODY_MIN := 1
 const PROC_BODY_MAX := 8
 const IF_THEN_MIN := 1

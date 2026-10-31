@@ -15,6 +15,7 @@ const program = z.array(z.unknown()).max(256);
 export const GATES = [
   "validation",
   "reference_solution",
+  "start_program",
   "par",
   "playtest",
   "compatibility",

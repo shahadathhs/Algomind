@@ -1,7 +1,7 @@
 # Algomind — Roadmap
 
 > **Purpose:** The order of work from here to a complete game, with what each step delivers and when it is done. The day-to-day checklist is [../TODO.md](../TODO.md).  
-> **Status:** agreed 2026-10-19. Steps 1 to 3 are planned in detail; later steps are outlined and are detailed when reached.  
+> **Status:** the first roadmap (2026-10-19) is done; the next work is in the two plans in section 3 (2026-10-31).  
 > **Related:** rules and the world ladder in [README_GAME_RULES.md](README_GAME_RULES.md); points, leaderboards, daily challenge, and sharing in [README_SOCIAL_PLAN.md](README_SOCIAL_PLAN.md); the dashboard in [README_DASHBOARD_PLAN.md](README_DASHBOARD_PLAN.md).
 
 ## 1. Principle
@@ -12,33 +12,30 @@ The game is called Algomind, so the campaign must teach algorithms, not only pat
 
 ## 2. Where things stand
 
-**Done**
+**Done** (steps 1 to 7 of the first roadmap, agreed 2026-10-19, all on `dev`)
 
-- Public site, the `/play` browser build (always offline-only), the download page, and the level catalog.
+- The public site, the `/play` browser build, the download page, and the level catalog.
 - Player accounts, progress sync, and the sign-in screens.
-- `REPEAT` in the rules package: contract, validator, simulator, loop-aware solver, fixtures, and the GDScript simulator and validator, all passing the same fixtures (PR #10 on `dev`).
-- Plans: the world ladder ([README_GAME_RULES.md](README_GAME_RULES.md)) and the social plan ([README_SOCIAL_PLAN.md](README_SOCIAL_PLAN.md)).
+- The campaign: 20 worlds and 113 levels (restructured on 2026-10-31 from 10 worlds and 82 levels; worlds 1 to 12 from existing mechanics, worlds 13 to 20 new), with their mechanics: `REPEAT`, `REPEAT_UNTIL`, `IF` and sensors, `PROC` and `CALL`, multi-board levels, the counter and nested loops, breadcrumbs, and the `visit_all` goal. Each is in the contract, the validator, the TypeScript and GDScript simulators, the fixtures, the dashboard, and the game editor.
+- Points, verified submissions, leaderboards, the daily challenge, sharing, achievements, and level statistics (see [README_SOCIAL_PLAN.md](README_SOCIAL_PLAN.md)).
 
 **Not done**
 
-- The game's editor cannot build loops yet; the tape, palette, and counters treat a program as a flat list.
-- The dashboard and the publish gates do not know loops yet.
-- The 19 starter levels are basic. The campaign is not yet a designed curriculum.
+- No screen of the recent work has been looked at in screenshots or on a device; the list is in [../TODO.md](../TODO.md).
+- No playtest by other people.
 - The web app has no automated tests.
+- The campaign ramp (first loop at about level 11, first `IF` at 22) and the 20-world ladder are built but unmeasured: nobody has played worlds 13 to 20.
 
-## 3. Steps
+## 3. What comes next
 
-| Step | Delivers                                                                                                         | Needs                           | Done when                                                                                                                         |
-| ---- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | Worlds 1 and 2: 18 curated levels, a level lab, a clean database reset and reseed, and a regenerated game bundle | nothing new                     | The seed validates and solves every level; the game plays them; the dashboard lists them; both themes and all three sizes checked |
-| 2    | `REPEAT` in the game's editor and in the dashboard and publish gates                                             | nothing (independent of step 1) | A player can build, run, and fail and fix a loop on a phone; the dashboard can author, preview, and publish a loop level          |
-| 3    | World 3, Loops: 8 to 10 levels                                                                                   | step 2                          | Every level requires a loop (flat par above the limit); bundled; playtested by real people                                        |
-| 4    | Points, verified submissions, and player management (phases 1 and 2 of the social plan)                          | step 3                          | A solved level awards points from a verified program; the dashboard manages players                                               |
-| 5    | World 4 (`REPEAT UNTIL`), then world 5 (`IF` sensors), one mechanic and one set of levels at a time              | step 3                          | As for step 3, per world                                                                                                          |
-| 6    | Leaderboards, daily challenge, and sharing (phases 3 to 5 of the social plan)                                    | steps 4 and 5                   | As defined in the social plan                                                                                                     |
-| 7    | Worlds 6 to 10 (procedures, generalize, counters, memory, sweep)                                                 | step 5                          | Each designed in detail when reached, based on how players do with the earlier worlds                                             |
+Two plans, agreed in direction on 2026-10-31, run in parallel:
 
-Steps 4 and 6 can move earlier if you want players to earn points sooner, but not before step 3: there is nothing interesting to score before the first loop.
+| Plan                                                  | Delivers                                                                                                                              | Status                                                                                                                                                                |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [World restructure](README_WORLD_RESTRUCTURE_PLAN.md) | 20 worlds with a faster ramp (loops at about level 11): worlds 1 to 12 from existing mechanics, then patrols, items, tiles, recursion | Order approved; all 20 worlds built (patrols, keys and doors, delivery, switches, ice and belts, teleporters, recursion, capstone); playtests and a device check next |
+| [Depth look](README_3D_VIEW_PLAN.md)                  | A new theme, UI, and 2.5D board, behind a Flat or Depth setting until approved on a device                                            | Built through phase 6 (tokens, screens, board, motion, public site); a device check is still open                                                                     |
+
+They touch different files, except that the depth look's phases 1 and 2 must land before the patrol world, so patrols are built once in the new view. The earlier ordering (levels first, then the feature a later world needs) still applies inside the restructure plan.
 
 ## 4. The quality bar for every level
 

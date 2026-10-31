@@ -1,3 +1,4 @@
+import { Key } from "@/components/ui/key";
 import { Container } from "@/components/ui/container";
 import { DownloadIcon } from "@/components/ui/download-icon";
 import { PrimaryButton } from "@/components/ui/primary-button";
@@ -24,16 +25,15 @@ export function DownloadHero({ state }: { state: ReleaseState }) {
           </p>
           {state.status === "available" ? <Available state={state} /> : <Unavailable />}
         </div>
-        <div
-          className="tile qr-tile hidden p-5 lg:block"
-          style={{ ["--chamfer" as string]: "18px" }}
-        >
-          <QrCode
-            text={qrPayload()}
-            label="QR code that opens the Algomind download page on a phone."
-          />
-          <p className="mt-2 text-center text-xs tracking-[2px] uppercase">Scan on your phone</p>
-        </div>
+        <Key className="hidden lg:flex">
+          <div className="tile qr-tile p-5" style={{ ["--chamfer" as string]: "18px" }}>
+            <QrCode
+              text={qrPayload()}
+              label="QR code that opens the Algomind download page on a phone."
+            />
+            <p className="mt-2 text-center text-xs tracking-[2px] uppercase">Scan on your phone</p>
+          </div>
+        </Key>
       </Container>
     </section>
   );

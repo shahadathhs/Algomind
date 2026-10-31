@@ -12,15 +12,34 @@ var automaton := Vector2.ZERO:
 	set(value):
 		automaton = value
 		queue_redraw()
-var facing := "north"
+		_on_moved()
+var facing := "north":
+	set(value):
+		facing = value
+		_on_moved()
 var trail: Array[Vector2i] = []
+## Every cell entered, with repeats: what keys, crates and switches are replayed from.
+var route: Array[Vector2i] = []
 var crumbs := {}
 var hit_wall: Variant = null
+## How many steps of the run are shown: the guards stand where they do after that many steps. It is
+## fractional while a step slides.
+var guard_time := 0.0:
+	set(value):
+		guard_time = value
+		queue_redraw()
 ## Small offset in cells for the blocked-move nudge.
 var nudge := Vector2.ZERO:
 	set(value):
 		nudge = value
 		queue_redraw()
+		_on_moved()
+
+
+## Called when the automaton, its facing, or its nudge changes. The depth board starts its
+## animation frames here; the flat board has nothing to do.
+func _on_moved() -> void:
+	pass
 
 
 func set_level(level_data: Dictionary) -> void:
@@ -39,11 +58,13 @@ func show_state(
 	direction: String,
 	passed: Array[Vector2i],
 	blocked: Variant,
-	marks: Dictionary = {}
+	marks: Dictionary = {},
+	walked: Array[Vector2i] = []
 ) -> void:
 	automaton = Vector2(int(position[0]), int(position[1]))
 	facing = direction
 	trail = passed
+	route = walked if not walked.is_empty() else passed
 	crumbs = marks
 	hit_wall = blocked
 	nudge = Vector2.ZERO
@@ -93,7 +114,60 @@ func _draw() -> void:
 				_draw_trail(rect, crumbs.get(point, ""))
 			else:
 				draw_rect(rect, Palette.FLOOR)
+	if level.has("ice") or level.has("belts"):
+		FloorDraw.draw(self, level, _unit_to_canvas(geometry), Palette.WALL_HATCH, Palette.INK)
+	if level.has("teleports"):
+		TeleportDraw.draw(self, level, _unit_to_canvas(geometry), Palette.INK)
+	if level.has("locks"):
+		_draw_locks(geometry)
+	if level.has("deliveries"):
+		ItemDraw.draw_floor(
+			self, level, route, _unit_to_canvas(geometry), Palette.FLOOR, Palette.INK
+		)
+	if level.has("switches"):
+		_draw_switches(geometry)
 	_draw_automaton(geometry)
+	if level.has("deliveries"):
+		var colors := {"edge": Palette.ON_INK, "fill": Palette.SIGNAL}
+		ItemDraw.draw_carried(
+			self, level, route, _unit_to_canvas(geometry), automaton + nudge, colors
+		)
+	if level.has("patrols"):
+		var origin := cell_rect(Vector2.ZERO, geometry).position
+		var pitch: float = float(geometry["cell"]) + GAP
+		GuardDraw.draw_flat(
+			self,
+			level,
+			guard_time,
+			hit_wall,
+			func(unit: Vector2) -> Vector2: return origin + unit * pitch
+		)
+
+
+## Maps a point in board units (a cell is 1 by 1) to the canvas.
+func _unit_to_canvas(geometry: Dictionary) -> Callable:
+	var origin := cell_rect(Vector2.ZERO, geometry).position
+	var pitch: float = float(geometry["cell"]) + GAP
+	return func(unit: Vector2) -> Vector2: return origin + unit * pitch
+
+
+## Keys, and each door shut or open by whether its key has been taken.
+func _draw_locks(geometry: Dictionary) -> void:
+	var place := _unit_to_canvas(geometry)
+	var taken := LockDraw.held(level, route)
+	LockDraw.draw_keys(self, level, route, place, Palette.FLOOR)
+	for i in (level["locks"] as Array).size():
+		LockDraw.draw_door(self, level, i, taken.has(i), place, true)
+
+
+## Switch plates, and each gate shut or open by how often its switch has been entered.
+func _draw_switches(geometry: Dictionary) -> void:
+	var place := _unit_to_canvas(geometry)
+	SwitchDraw.draw_switches(self, level, route, place, Palette.INK)
+	var open: Dictionary = SwitchDraw.state(level, route)["open"]
+	var colors := {"block": Palette.INK, "bar": Palette.ON_INK}
+	for i in (level["switches"] as Array).size():
+		SwitchDraw.draw_gate(self, level, i, open.has(i), place, true, colors)
 
 
 func _draw_wall(rect: Rect2, hit: bool) -> void:

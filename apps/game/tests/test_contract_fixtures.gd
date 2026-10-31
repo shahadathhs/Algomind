@@ -123,3 +123,17 @@ func test_boards_match_the_expected_summary() -> void:
 		if not ContractSupport.same(summary, data["expected"]):
 			failures.append("%s: got %s, want %s" % [file_name, summary, data["expected"]])
 	assert_eq(failures, [], "boards fixtures that differ")
+
+
+func test_patrols_stand_where_the_fixtures_say() -> void:
+	assert_gt(ContractSupport.fixture_names("patrols").size(), 0, "patrol fixtures")
+	var failures: Array[String] = []
+	for file_name in ContractSupport.fixture_names("patrols"):
+		var data: Dictionary = ContractSupport.load_fixture("patrols", file_name)
+		var want: Array = data["cells"]
+		var got: Array = []
+		for step in want.size():
+			got.append(Patrol.cell(data["patrol"], step))
+		if not ContractSupport.same(got, want):
+			failures.append("%s: got %s" % [file_name, got])
+	assert_eq(failures, [], "patrol fixtures that differ")

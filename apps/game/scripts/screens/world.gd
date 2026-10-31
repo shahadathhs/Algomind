@@ -3,7 +3,7 @@ extends ScreenBase
 ## fill: solved (solid, check), current (yellow, play), locked (outline, lock), and a level that
 ## needs a newer game (outline, up arrow). `args["world"]` is the index into the campaign.
 
-const COLUMNS := 5
+const COLUMNS := 3
 const TILE_GAP := 10.0
 
 var _world_index := 0
@@ -85,11 +85,13 @@ func _layout() -> void:
 	_title.position = Vector2(m, top + 70.0)
 	_title.size = Vector2(width, 40.0)
 	_summary.position = Vector2(m, top + 114.0)
-	_summary.size = Vector2(width, 40.0)
+	_summary.size = Vector2(width, 0.0)
+	var summary_h := maxf(40.0, _summary.get_minimum_size().y)
+	_summary.size = Vector2(width, summary_h)
 	var play_h := 64.0 if size.y >= 700.0 else 52.0
 	_play.size = Vector2(width, play_h)
 	_play.position = Vector2(m, size.y - inset_bottom() - m - play_h)
-	var list_top := top + 160.0
+	var list_top := top + 114.0 + summary_h + 8.0
 	_scroll.position = Vector2(m, list_top)
 	_scroll.size = Vector2(width, _play.position.y - 16.0 - list_top)
 	_content.custom_minimum_size = Vector2(width, 0)
@@ -154,21 +156,21 @@ func _level_tile(entry: Dictionary, tile: float) -> TileButton:
 	var index: int = entry["number"] - 1
 	var number := "%02d" % entry["number"]
 	var state := app.progress.level_state(app.campaign, index)
-	var button: TileButton
-	match state:
-		"done":
-			button = TileButton.make(TileButton.Kind.SOLID, number, "check", 22)
-		"current":
-			button = TileButton.make(TileButton.Kind.PRIMARY, number, "play", 22)
-		_:
-			button = TileButton.make(TileButton.Kind.LOCKED, number, "lock", 22)
+	var button := LevelTile.new()
+	button.kind = {"done": TileButton.Kind.SOLID, "current": TileButton.Kind.PRIMARY}.get(
+		state, TileButton.Kind.LOCKED
+	)
+	button.icon = {"done": "check", "current": "play"}.get(state, "lock")
+	button.label = number
+	button.mouse_filter = Control.MOUSE_FILTER_PASS
+	button.show_board(entry["level"], number, state == "locked")
 	button.stacked = true
 	button.accessibility_name = "Level %s, %s" % [number, state]
 	if state == "done":
 		button.stars = LevelStars.of(app.progress, entry)
 		if button.stars > 0:
 			button.accessibility_name += ", %s" % LevelStars.words(button.stars)
-	button.custom_minimum_size = Vector2(tile, tile)
+	button.custom_minimum_size = Vector2(tile, tile + LevelTile.STRIP)
 	if state != "locked":
 		button.pressed.connect(_open.bind(index))
 	return button
@@ -180,7 +182,7 @@ func _blocked_tile(blocked: Dictionary, tile: float) -> TileButton:
 	button.stacked = true
 	button.font_size = 12
 	button.accessibility_name = "%s, needs a newer version of the game" % blocked["title"]
-	button.custom_minimum_size = Vector2(tile, tile)
+	button.custom_minimum_size = Vector2(tile, tile + LevelTile.STRIP)
 	button.pressed.connect(
 		func() -> void:
 			navigate.emit("update_required", {"title": blocked["title"], "world": _world_index})
@@ -214,7 +216,14 @@ class _Legend:
 		for i in items.size():
 			var rect := Rect2(Vector2(x, 4.0), Vector2(24.0, 24.0))
 			var icon_color := Palette.ON_INK
-			if i == 0:
+			var face := rect
+			if UiLook.depth:
+				var tone: TileDraw.Tone = [
+					TileDraw.Tone.SOLID, TileDraw.Tone.ACTIVE, TileDraw.Tone.PLAIN
+				][i]
+				face = TileDraw.tile(self, rect, tone)
+				icon_color = [Palette.ON_INK, Palette.ON_SIGNAL, Palette.MUTE][i]
+			elif i == 0:
 				UiKit.fill_chamfer(self, rect, Palette.INK)
 			elif i == 1:
 				UiKit.fill_chamfer(self, rect, Palette.SIGNAL)
@@ -222,7 +231,7 @@ class _Legend:
 			else:
 				UiKit.outline_chamfer(self, rect, Palette.FAINT)
 				icon_color = Palette.FAINT
-			UiKit.icon(self, items[i][1], rect.get_center(), 15.0, icon_color)
+			UiKit.icon(self, items[i][1], face.get_center(), 15.0, icon_color)
 			var word: String = items[i][0]
 			var text_rect := Rect2(x + 32.0, 0.0, 90.0, 32.0)
 			UiKit.text(self, word, text_rect, 15, Palette.INK, 1, HORIZONTAL_ALIGNMENT_LEFT)

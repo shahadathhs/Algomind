@@ -21,6 +21,8 @@ export const COUNTER_REF = "N";
 
 /** The mechanic a level lists in requires.mechanics to allow a loop inside a loop. */
 export const NESTED_LOOPS_MECHANIC = "nested_loops";
+/** A level that lists this mechanic lets a procedure CALL (itself or another) and a CALL carry a sensor. */
+export const RECURSION_MECHANIC = "recursion";
 
 /** The loop instruction: a count (a number, or "N") and a body of actions, IFs and one inner loop. */
 export const REPEAT_OP = "REPEAT";
@@ -83,6 +85,12 @@ export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 
 export const GOAL_TYPES = ["reach_tile", "visit_all"] as const;
 
+/**
+ * How a patrol walks its cells: back and forth along the list (1, 2, 3, 2, 1, 2, ...) or round it
+ * as a ring (1, 2, 3, 4, 1, ...). Its cell depends only on the step number.
+ */
+export const PATROL_PATTERNS = ["back_and_forth", "loop"] as const;
+
 /** Unit step for each direction. x grows right, y grows down (0,0 is the top-left cell). */
 export const DIRECTION_DELTAS = {
   north: [0, -1],
@@ -111,6 +119,23 @@ export const LIMITS = {
   ifChain: 6,
   /** The counter N: its value at the start of a run, and the most it reaches. */
   counter: { start: 1, max: 11 },
+  /** Patrols on a level, and the cells of one: a ring (loop) needs at least four. */
+  patrols: { min: 1, max: 3 },
+  patrolCells: { min: 2, max: 12 },
+  patrolLoopCells: { min: 4, max: 12 },
+  /** Key and door pairs on a level. */
+  locks: { min: 1, max: 3 },
+  /** Items to deliver on a level. */
+  deliveries: { min: 1, max: 3 },
+  /** Switch and gate pairs on a level. */
+  switches: { min: 1, max: 3 },
+  /** How many procedure calls may be running inside each other (the CALL of the main program is the first). */
+  callDepth: 24,
+  /** Ice cells and belts on a level. */
+  /** Teleporter pairs on a level. */
+  teleports: { min: 1, max: 3 },
+  ice: { min: 1, max: 30 },
+  belts: { min: 1, max: 20 },
   levelVersion: { min: 1, max: 1_000_000 },
   /** Lengths are counted in Unicode code points. */
   levelId: { min: 1, max: 64 },

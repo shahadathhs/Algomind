@@ -8,7 +8,9 @@ import {
   INC_OP,
   MARK_OP,
   NESTED_LOOPS_MECHANIC,
+  RECURSION_MECHANIC,
   NODE_OPS,
+  PATROL_PATTERNS,
   PROCEDURE_NAMES,
   PROC_OP,
   SENSORS,
@@ -21,9 +23,11 @@ import {
   MECHANIC_PATTERN,
   SCHEMA_VERSION,
 } from "./constants.js";
+import { validatePairs } from "./validate-pairs.js";
+import { validateTiles } from "./validate-tiles.js";
 import type { CommandName, Issue, IssueCode, Level, ValidationResult } from "./types.js";
 
-type Obj = Record<string, unknown>;
+export type Obj = Record<string, unknown>;
 
 const ID_RE = new RegExp(ID_PATTERN);
 const MECHANIC_RE = new RegExp(MECHANIC_PATTERN);
@@ -43,18 +47,26 @@ const PUBLIC_KEYS = [
   "constraints",
   "goal",
   "extraBoards",
+  "startProgram",
+  "patrols",
+  "locks",
+  "deliveries",
+  "switches",
+  "teleports",
+  "ice",
+  "belts",
   "hints",
 ];
 
-function isObject(v: unknown): v is Obj {
+export function isObject(v: unknown): v is Obj {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-function has(o: Obj, key: string): boolean {
+export function has(o: Obj, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(o, key);
 }
 
-function isInt(v: unknown): v is number {
+export function isInt(v: unknown): v is number {
   return typeof v === "number" && Number.isSafeInteger(v);
 }
 
@@ -76,7 +88,7 @@ function join(base: string, key: string): string {
   return base === "" ? key : `${base}.${key}`;
 }
 
-class Collector {
+export class Collector {
   issues: Issue[] = [];
   add(path: string, code: IssueCode, message: string): void {
     this.issues.push({ path, code, message });
@@ -93,7 +105,12 @@ function field(c: Collector, o: Obj, base: string, key: string): unknown {
 }
 
 /** Reports every key of `o` that is not in `allowed`. */
-function rejectUnknown(c: Collector, o: Obj, base: string, allowed: readonly string[]): void {
+export function rejectUnknown(
+  c: Collector,
+  o: Obj,
+  base: string,
+  allowed: readonly string[],
+): void {
   for (const key of Object.keys(o)) {
     if (!allowed.includes(key)) {
       c.add(join(base, key), "UNKNOWN_FIELD", `${join(base, key)} is not a known field.`);
@@ -178,7 +195,7 @@ function checkString(
   return v;
 }
 
-function enumField(
+export function enumField(
   c: Collector,
   o: Obj,
   base: string,
@@ -207,7 +224,7 @@ function enumField(
  * When the board size is known and the cell lies outside it, reports OUTSIDE_BOARD but still returns the pair
  * so the later wall / start / goal comparisons can run.
  */
-function checkPair(
+export function checkPair(
   c: Collector,
   v: unknown,
   path: string,
@@ -229,7 +246,7 @@ function checkPair(
   return [x, y];
 }
 
-function samePair(a: [number, number], b: [number, number]): boolean {
+export function samePair(a: [number, number], b: [number, number]): boolean {
   return a[0] === b[0] && a[1] === b[1];
 }
 
@@ -342,6 +359,130 @@ function validateWalls(
     }
   });
   return out;
+}
+
+/** The board facts the patrol checks need, read the way validateBoardAndCells reads them. */
+export function boardFacts(root: Obj): {
+  size: { width: number; height: number } | null;
+  walls: [number, number][];
+  start: [number, number] | null;
+  goal: [number, number] | null;
+} {
+  const side = LIMITS.boardSide;
+  const board = isObject(root["board"]) ? root["board"] : null;
+  const dim = (v: unknown): number | null =>
+    isInt(v) && v >= side.min && v <= side.max ? v : null;
+  const width = board ? dim(board["width"]) : null;
+  const height = board ? dim(board["height"]) : null;
+  const walls: [number, number][] = [];
+  if (board && Array.isArray(board["walls"])) {
+    for (const w of board["walls"]) {
+      if (Array.isArray(w) && w.length === 2 && isInt(w[0]) && isInt(w[1]))
+        walls.push([w[0], w[1]]);
+    }
+  }
+  const initial = isObject(root["initialState"]) ? root["initialState"] : null;
+  const p = initial ? initial["position"] : undefined;
+  const start: [number, number] | null =
+    Array.isArray(p) && p.length === 2 && isInt(p[0]) && isInt(p[1]) ? [p[0], p[1]] : null;
+  const goalCell = isObject(root["goal"]) ? root["goal"]["position"] : undefined;
+  const goal: [number, number] | null =
+    Array.isArray(goalCell) && goalCell.length === 2 && isInt(goalCell[0]) && isInt(goalCell[1])
+      ? [goalCell[0], goalCell[1]]
+      : null;
+  return {
+    size: width !== null && height !== null ? { width, height } : null,
+    walls,
+    start,
+    goal,
+  };
+}
+
+const adjacent = (a: [number, number], b: [number, number]): boolean =>
+  Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) === 1;
+
+function validatePatrols(c: Collector, root: Obj): void {
+  if (!has(root, "patrols")) return;
+  const raw = root["patrols"];
+  if (!Array.isArray(raw)) {
+    c.add("patrols", "INVALID_TYPE", "patrols must be an array.");
+    return;
+  }
+  const lim = LIMITS.patrols;
+  if (raw.length < lim.min || raw.length > lim.max) {
+    c.add(
+      "patrols",
+      "LENGTH_OUT_OF_RANGE",
+      `patrols must have ${lim.min} to ${lim.max} entries, or be left out.`,
+    );
+  }
+  if (has(root, "extraBoards")) {
+    c.add("patrols", "PATROLS_WITH_BOARDS", "A level with test boards cannot have patrols.");
+  }
+  const facts = boardFacts(root);
+  raw.forEach((entry, i) => {
+    const path = `patrols[${i}]`;
+    if (!isObject(entry)) {
+      c.add(path, "INVALID_TYPE", `${path} must be an object.`);
+      return;
+    }
+    rejectUnknown(c, entry, path, ["pattern", "cells"]);
+    const pattern = enumField(c, entry, path, "pattern", PATROL_PATTERNS);
+    const cellsPath = `${path}.cells`;
+    if (!has(entry, "cells")) {
+      c.add(cellsPath, "REQUIRED", `${cellsPath} is required.`);
+      return;
+    }
+    const cells = entry["cells"];
+    if (!Array.isArray(cells)) {
+      c.add(cellsPath, "INVALID_TYPE", `${cellsPath} must be an array.`);
+      return;
+    }
+    const range = pattern === "loop" ? LIMITS.patrolLoopCells : LIMITS.patrolCells;
+    if (cells.length < range.min || cells.length > range.max) {
+      c.add(
+        cellsPath,
+        "LENGTH_OUT_OF_RANGE",
+        `${cellsPath} must have ${range.min} to ${range.max} cells.`,
+      );
+    }
+    const pairs: ([number, number] | null)[] = [];
+    const seen: [number, number][] = [];
+    cells.forEach((cell, j) => {
+      const cellPath = `${cellsPath}[${j}]`;
+      const pair = checkPair(c, cell, cellPath, facts.size);
+      pairs.push(pair);
+      if (!pair) return;
+      if (facts.walls.some((w) => samePair(w, pair))) {
+        c.add(cellPath, "PATROL_ON_WALL", `${cellPath} must not be a wall.`);
+      }
+      if (seen.some((s) => samePair(s, pair))) {
+        c.add(cellPath, "PATROL_CELLS_REPEAT", `${cellPath} repeats an earlier cell.`);
+      } else {
+        seen.push(pair);
+      }
+      const before = pairs[j - 1];
+      if (j > 0 && before && !adjacent(before, pair)) {
+        c.add(cellPath, "PATROL_NOT_CONNECTED", `${cellPath} must be next to the cell before it.`);
+      }
+    });
+    const first = pairs[0];
+    if (first && facts.start && samePair(first, facts.start)) {
+      c.add(
+        `${cellsPath}[0]`,
+        "PATROL_ON_START",
+        "A patrol must not start on the automaton's cell.",
+      );
+    }
+    const last = pairs[pairs.length - 1];
+    if (pattern === "loop" && first && last && pairs.length > 1 && !adjacent(last, first)) {
+      c.add(
+        cellsPath,
+        "PATROL_NOT_CONNECTED",
+        "A ring must close: the last cell is next to the first.",
+      );
+    }
+  });
 }
 
 function validateExtraBoards(c: Collector, root: Obj): void {
@@ -511,9 +652,15 @@ function run(c: Collector, input: unknown, authoring: boolean): void {
   validateRequires(c, input);
   validateBoardAndCells(c, input);
   validateExtraBoards(c, input);
+  validatePatrols(c, input);
+  validatePairs(c, input);
+  validateTiles(c, input);
   validateCommands(c, input);
   validateConstraints(c, input);
   validateHints(c, input);
+  if (has(input, "startProgram")) {
+    checkProgram(c, input["startProgram"], "startProgram", programLimits(input));
+  }
 
   if (authoring) {
     if (!has(input, "referenceSolution")) {
@@ -530,10 +677,12 @@ type ProgramLimits = {
   max: number | null;
   /** The level lists the mechanic nested_loops: a loop may hold one loop. */
   nested: boolean;
+  /** The level lists the mechanic recursion: a procedure may CALL, and a CALL may carry a sensor. */
+  recursion: boolean;
 };
 
 function programLimits(level: unknown): ProgramLimits {
-  if (!isObject(level)) return { available: null, max: null, nested: false };
+  if (!isObject(level)) return { available: null, max: null, nested: false, recursion: false };
   let available: CommandName[] | null = null;
   if (Array.isArray(level["availableCommands"])) {
     available = level["availableCommands"].filter(isCommandName);
@@ -544,7 +693,8 @@ function programLimits(level: unknown): ProgramLimits {
   const requires = level["requires"];
   const mechanics = isObject(requires) ? requires["mechanics"] : undefined;
   const nested = Array.isArray(mechanics) && mechanics.includes(NESTED_LOOPS_MECHANIC);
-  return { available, max, nested };
+  const recursion = Array.isArray(mechanics) && mechanics.includes(RECURSION_MECHANIC);
+  return { available, max, nested, recursion };
 }
 
 function checkProgram(c: Collector, program: unknown, base: string, limits: ProgramLimits): void {
@@ -612,11 +762,12 @@ function checkProgram(c: Collector, program: unknown, base: string, limits: Prog
       c.add(opPath, "NESTED_PROC", `${opPath}: a procedure can only be defined at the top level.`);
       return { op: null, nested: true };
     }
-    if (op === CALL_OP && (place.inProc || place.branch)) {
+    const inProcBody = place.inProc && place.loops === 0 && !place.branch;
+    if (op === CALL_OP && (place.branch || (place.inProc && !(limits.recursion && inProcBody)))) {
       c.add(
         opPath,
         "CALL_NOT_ALLOWED",
-        `${opPath}: a CALL stands at the top level or in a loop of the main program.`,
+        `${opPath}: a CALL stands at the top level or in a loop of the main program (and, with the recursion mechanic, in the body of a procedure).`,
       );
       return { op: null, nested: true };
     }
@@ -637,7 +788,9 @@ function checkProgram(c: Collector, program: unknown, base: string, limits: Prog
           : op === PROC_OP
             ? ["op", "name", "body"]
             : op === CALL_OP
-              ? ["op", "name"]
+              ? limits.recursion
+                ? ["op", "name", "when"]
+                : ["op", "name"]
               : ["op"];
 
   /** An array of instructions of one place: returns the list, or null when it is not an array. */
@@ -715,6 +868,14 @@ function checkProgram(c: Collector, program: unknown, base: string, limits: Prog
           "UNDEFINED_PROCEDURE",
           `${path}.name: no procedure ${name} is defined.`,
         );
+      }
+      if (limits.recursion && has(item, "when")) {
+        const whenPath = `${path}.when`;
+        if (typeof item["when"] !== "string") {
+          c.add(whenPath, "INVALID_TYPE", `${whenPath} must be a string.`);
+        } else if (!(SENSORS as readonly string[]).includes(item["when"])) {
+          c.add(whenPath, "INVALID_VALUE", `${whenPath} must be one of ${SENSORS.join(", ")}.`);
+        }
       }
     }
   };

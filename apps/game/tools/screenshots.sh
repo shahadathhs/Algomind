@@ -15,9 +15,18 @@ shot() {
 	theme="$3"
 	size="$4"
 	shift 4
+	# ONLY=depth renders just the shots whose name contains "depth".
+	if [ -n "$ONLY" ] && [ "${name#*"$ONLY"}" = "$name" ]; then
+		return
+	fi
+	# The plain shots are the flat look; a shot that passes --look chooses its own.
+	look="--look=flat"
+	for argument in "$@"; do
+		case "$argument" in --look=*) look="" ;; esac
+	done
 	# A bad argument can leave Godot running; a watchdog ends it after a minute.
 	"$GODOT" --path . --resolution 200x200 -- \
-		--shot="$OUT/$name-$theme-$size.png" --screen="$screen" --theme="$theme" --size="$size" "$@" >/dev/null &
+		--shot="$OUT/$name-$theme-$size.png" --screen="$screen" --theme="$theme" --size="$size" $look "$@" >/dev/null &
 	pid=$!
 	(sleep 60 && kill -9 "$pid" 2>/dev/null) &
 	watchdog=$!
@@ -28,6 +37,10 @@ shot() {
 for size in 390x844 360x640 412x915; do
 	for theme in light dark; do
 		shot home home "$theme" "$size"
+		shot depth-kit depth_kit "$theme" "$size"
+		shot world-tiles world "$theme" "$size" --done=91 --world=16
+		shot world-tiles-depth world "$theme" "$size" --done=91 --world=16 --look=depth
+		shot world-big-boards world "$theme" "$size" --done=30 --world=10
 		shot worlds worlds "$theme" "$size" --done=4
 		shot world world "$theme" "$size" --done=4 --world=1
 		shot world-stars world "$theme" "$size" --done=6 --world=0
@@ -45,6 +58,53 @@ for size in 390x844 360x640 412x915; do
 		shot play-running play "$theme" "$size" --level=first-turn --program=MMMRMMM --steps=5
 		shot play-failed play "$theme" "$size" --level=first-turn --program=MMMMMM --steps=-1
 		shot play-solved play "$theme" "$size" --level=first-turn --program=MMMRMMM --steps=-1
+		# cross-the-beat: a guard walks column 3; MMMM meets it on the third move.
+		shot play-patrol play "$theme" "$size" --level=cross-the-beat --program=MMLMRMM --steps=2
+		shot play-patrol-failed play "$theme" "$size" --level=cross-the-beat --program=MMMM --steps=-1
+		shot play-patrol-depth play "$theme" "$size" --level=cross-the-beat --program=MMLMRMM --steps=2 --look=depth
+		shot play-patrol-failed-depth play "$theme" "$size" --level=cross-the-beat --program=MMMM --steps=-1 --look=depth
+		# two-doors: the key of the first door is taken (M R M L L M); the second key is next.
+		shot play-keys play "$theme" "$size" --level=two-doors --program=MRMLLMRMMMMMLM --steps=6
+		shot play-keys-failed play "$theme" "$size" --level=two-doors --program=MMMM --steps=-1
+		shot play-keys-depth play "$theme" "$size" --level=two-doors --program=MRMLLMRMMMMMLM --steps=6 --look=depth
+		shot play-keys-failed-depth play "$theme" "$size" --level=two-doors --program=MMMM --steps=-1 --look=depth
+		shot play-delivery play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=8
+		shot play-delivery-carry play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=3
+		shot play-delivery-carry-depth play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=3 --look=depth
+		shot play-switch play "$theme" "$size" --level=flip-flop --program=MMMLLMMMMM --steps=4
+		shot play-switch-failed play "$theme" "$size" --level=first-switch --program=MMMM --steps=-1
+		shot play-switch-depth play "$theme" "$size" --level=flip-flop --program=MMMLLMMMMM --steps=4 --look=depth
+		shot play-switch-failed-depth play "$theme" "$size" --level=first-switch --program=MMMM --steps=-1 --look=depth
+		shot play-ice play "$theme" "$size" --level=three-ice-cells --program=MMRMRMMM --steps=2
+		shot play-belts play "$theme" "$size" --level=belt-line --program=RMLMLMLM --steps=3
+		shot play-ice-depth play "$theme" "$size" --level=three-ice-cells --program=MMRMRMMM --steps=2 --look=depth
+		shot play-belts-depth play "$theme" "$size" --level=belt-line --program=RMLMLMLM --steps=3 --look=depth
+		shot play-teleport play "$theme" "$size" --level=two-pairs --program=MMMLMMRMM --steps=4
+		shot play-teleport-depth play "$theme" "$size" --level=two-pairs --program=MMMLMMRMM --steps=4 --look=depth
+		shot play-recursion play "$theme" "$size" --level=hall-and-turn --program=P{M@A?}@A --steps=0
+		shot play-recursion-depth play "$theme" "$size" --level=hall-and-turn --program=P{M@A?}@A --steps=0 --look=depth
+		shot play-capstone play "$theme" "$size" --level=everything --program=MM --steps=2
+		shot play-capstone-depth play "$theme" "$size" --level=everything --program=MM --steps=2 --look=depth
+		shot play-delivery-failed play "$theme" "$size" --level=first-parcel --program=MMMM --steps=-1
+		shot play-delivery-depth play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=8 --look=depth
+		shot play-delivery-failed-depth play "$theme" "$size" --level=first-parcel --program=MMMM --steps=-1 --look=depth
+		# The depth board (Look: depth), on a small board and on the biggest one.
+		shot play-ready-depth play "$theme" "$size" --level=first-turn --program=MMMRM --look=depth
+		shot play-running-depth play "$theme" "$size" --level=first-turn --program=MMMRMMM --steps=5 --look=depth
+		shot play-failed-depth play "$theme" "$size" --level=first-turn --program=MMMMMM --steps=-1 --look=depth
+		shot play-solved-depth play "$theme" "$size" --level=first-turn --program=MMMRMMM --steps=-1 --look=depth
+		shot play-big-depth play "$theme" "$size" --level=big-spiral --look=depth
+		shot home-depth home "$theme" "$size" --look=depth
+		shot worlds-depth worlds "$theme" "$size" --done=4 --look=depth
+		shot world-depth world "$theme" "$size" --done=4 --world=0 --look=depth
+		shot settings-depth settings "$theme" "$size" --look=depth
+		shot play-tutorial-depth play "$theme" "$size" --level=first-step --look=depth
+		shot play-hint-depth play "$theme" "$size" --level=first-step --overlay=hint --look=depth
+		shot play-pause-depth play "$theme" "$size" --level=first-turn --program=MMMRM --overlay=pause --look=depth
+		shot sign-in-depth sign_in "$theme" "$size" --look=depth
+		shot badges-depth badges "$theme" "$size" --account=you@example.com --newbadges=1 --look=depth
+		shot leaderboard-depth leaderboard "$theme" "$size" --account=you@example.com --look=depth
+		shot daily-depth daily "$theme" "$size" --account=you@example.com --daily-slots=9 --streak=3,5 --look=depth
 		# The social screens answer from canned data (ShotServer), no network.
 		who="--account=you@example.com"
 		shot profile profile "$theme" "$size" $who

@@ -61,8 +61,11 @@ await mkdir(`${dataDir}levels`, { recursive: true });
 for (const file of await readdir(`${dataDir}levels`)) {
   if (file.endsWith(".json")) await rm(`${dataDir}levels/${file}`);
 }
-// Par is what the solver finds for the level, the same call the server makes when it publishes.
+// The server's par is the one to ship: for a level with test boards or IF and PROC it is the
+// reference solution, which this script cannot see. The solver reads one board and searches neither
+// IF nor PROC, so it is only a fallback for a level the server gave no par.
 for (const [slug, content] of levels) {
+  if (pars[slug]) continue;
   const best = solve(content);
   if (best) pars[slug] = { commands: best.commands, steps: best.steps };
 }

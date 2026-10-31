@@ -21,7 +21,7 @@ export function ProsePage({
     <Container className="pt-6 pb-16 sm:pb-24">
       <div data-wide={wide || undefined} className="group/prose">
         <div className="max-w-[680px]">
-          <h1 className="text-[40px] leading-none tracking-[1px] uppercase sm:text-[56px]">
+          <h1 className="rise text-[40px] leading-none tracking-[1px] uppercase sm:text-[56px]">
             {title}
           </h1>
           {lead && (

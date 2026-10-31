@@ -73,8 +73,14 @@ func _build() -> void:
 	_session = PlaySession.new(_boards.board_level())
 	var available := LevelMechanics.available(_level)
 	_tape = TapeModel.new(
-		int(_level["constraints"]["maxCommands"]), available, LevelMechanics.nested_loops(_level)
+		int(_level["constraints"]["maxCommands"]),
+		available,
+		LevelMechanics.nested_loops(_level),
+		LevelMechanics.recursion(_level)
 	)
+	# A debug level starts with a program to fix.
+	if _level.has("startProgram"):
+		_tape.load_program(_level["startProgram"])
 	if persist and not _entry.has("daily"):
 		app.progress.set_last_level(_entry["id"])
 		app.progress.save()

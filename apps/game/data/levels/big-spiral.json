@@ -71,7 +71,7 @@
     "Let the outer loop run until the goal."
   ],
   "title": "Big spiral",
-  "levelId": "db2e13ea-8fd6-4668-8894-84e256880346",
+  "levelId": "b53ee7dd-978e-4629-a494-ea4bef57f0b9",
   "requires": {
     "mechanics": ["nested_loops"]
   },

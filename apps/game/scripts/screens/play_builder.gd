@@ -6,8 +6,7 @@ extends RefCounted
 static func build(p: PlayScreen, available: Array[String]) -> void:
 	_build_header(p)
 	_build_objective(p)
-	p._board = BoardView.new()
-	p._board.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p._board = BoardViews.make(p.app.progress.settings.look())
 	p.add_child(p._board)
 	p._board.set_level(p._session.level)
 	PlayBoards.build(p)

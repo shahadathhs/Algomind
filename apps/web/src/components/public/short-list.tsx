@@ -16,7 +16,7 @@ export function ShortList() {
       <Caption as="h2">The short list</Caption>
       <ul className="mt-8 grid gap-x-8 md:grid-cols-3">
         {ITEMS.map((item) => (
-          <li key={item.title} className="border-t-2 border-ink py-4 pb-6">
+          <li key={item.title} className="view-rise border-t-2 border-ink py-4 pb-6">
             <h3 className="text-lg tracking-[1px] uppercase">{item.title}</h3>
             <p className="mt-1 text-[13px] leading-normal font-semibold tracking-[0.3px] text-mute">
               {item.text}

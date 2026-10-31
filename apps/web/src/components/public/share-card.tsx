@@ -16,6 +16,7 @@ export function ShareCard({ share, board }: { share: Share; board: BoardData | n
     <div className="grid items-start gap-8 sm:grid-cols-[minmax(0,380px)_1fr] sm:gap-12">
       {board && (
         <BoardView
+          look="depth"
           board={board}
           label={`The board of ${share.title}. Move the automaton to the target.`}
         />

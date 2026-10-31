@@ -35,7 +35,7 @@ export function HowItWorks() {
       <ol className="mt-8 grid gap-12 lg:grid-cols-3 lg:gap-8">
         {STEPS.map((step, i) => (
           <li key={step.title}>
-            <TapeView tiles={step.tiles} head={step.head} label={step.label} />
+            <TapeView look="depth" tiles={step.tiles} head={step.head} label={step.label} />
             <p className="mt-5 text-[11px] tracking-[2px] text-mute">{`0${i + 1}`}</p>
             <h3 className="mt-1 mb-2 text-[26px] tracking-[1px] uppercase">{step.title}</h3>
             <p className="max-w-[340px] text-[15px] leading-normal font-semibold tracking-[0.3px] text-mute">

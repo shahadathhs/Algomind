@@ -4,14 +4,22 @@ extends RefCounted
 ## INVALID_INSTRUCTION. Mirrors the runnable function of level-contract src/simulate.ts.
 
 ## The place of a node in the main program: nothing encloses it.
-const TOP := {"top": true, "proc": false, "loops": 0, "branch": false}
+const TOP := {"top": true, "proc": false, "loops": 0, "branch": false, "recursion": false}
+
+
+## The place of a top-level node of a level; `recursion` is true when the level lists the mechanic
+## recursion (a CALL may then stand in a procedure body).
+static func top_place(recursion: bool) -> Dictionary:
+	return place_of(true, false, 0, false, recursion)
 
 
 ## Where a node stands, which decides what it may hold: top (a PROC may stand here), proc (inside
-## a procedure body: no CALL), loops (how many loops enclose it: a loop needs fewer than two) and
-## branch (inside an IF branch: only actions).
-static func place_of(top: bool, proc: bool, loops: int, branch: bool) -> Dictionary:
-	return {"top": top, "proc": proc, "loops": loops, "branch": branch}
+## a procedure body: a CALL only with the mechanic recursion), loops (how many loops enclose it: a
+## loop needs fewer than two), branch (inside an IF branch: only actions) and recursion.
+static func place_of(
+	top: bool, proc: bool, loops: int, branch: bool, recursion: bool = false
+) -> Dictionary:
+	return {"top": top, "proc": proc, "loops": loops, "branch": branch, "recursion": recursion}
 
 
 ## True for one action node: an object whose op is a move, a turn, INC or MARK.
@@ -82,12 +90,21 @@ static func is_runnable(node: Variant, place: Dictionary, procs: Dictionary) -> 
 		return not place["branch"] and is_runnable_if(node)
 	if ContractLimits.is_call(op):
 		var name: Variant = node.get("name")
-		return (
-			not place["proc"]
-			and not place["branch"]
-			and typeof(name) == TYPE_STRING
-			and procs.has(name)
+		# Inside a procedure a CALL stands directly in the body (the validator checks the mechanic).
+		var stands: bool = (
+			not place["branch"]
+			and (not place["proc"] or (place["recursion"] and int(place["loops"]) == 0))
 		)
+		var when: Variant = node.get("when", null)
+		var sensor_ok: bool = (
+			when == null
+			or (
+				place["recursion"]
+				and typeof(when) == TYPE_STRING
+				and ContractLimits.SENSORS.has(when)
+			)
+		)
+		return stands and sensor_ok and typeof(name) == TYPE_STRING and procs.has(name)
 	if ContractLimits.is_loop(op):
 		if place["branch"] or int(place["loops"]) >= 2:
 			return false
@@ -98,7 +115,9 @@ static func is_runnable(node: Variant, place: Dictionary, procs: Dictionary) -> 
 			var until: Variant = node.get("until")
 			if typeof(until) != TYPE_STRING or not ContractLimits.UNTIL_CONDITIONS.has(until):
 				return false
-		var inner := place_of(false, place["proc"], int(place["loops"]) + 1, false)
+		var inner := place_of(
+			false, place["proc"], int(place["loops"]) + 1, false, place["recursion"]
+		)
 		return _is_runnable_list(
 			node.get("body"),
 			ContractLimits.REPEAT_BODY_MIN,
@@ -116,7 +135,7 @@ static func is_runnable(node: Variant, place: Dictionary, procs: Dictionary) -> 
 				node.get("body"),
 				ContractLimits.PROC_BODY_MIN,
 				ContractLimits.PROC_BODY_MAX,
-				place_of(false, true, 0, false),
+				place_of(false, true, 0, false, place["recursion"]),
 				procs
 			)
 		)
@@ -137,10 +156,22 @@ static func _is_valid_count(count: Variant) -> bool:
 	)
 
 
+## Every procedure name a definition of the program gives, for checking a CALL inside a definition.
+static func proc_names(program: Array) -> Dictionary:
+	var names := {}
+	for node: Variant in program:
+		if typeof(node) == TYPE_DICTIONARY and ContractLimits.is_proc(node.get("op")):
+			var name: Variant = node.get("name")
+			if typeof(name) == TYPE_STRING and not names.has(name):
+				names[name] = true
+	return names
+
+
 ## The procedures a CALL can reach: name -> { "node": the PROC node, "index": its index }. The
 ## first well-formed definition of each name wins.
-static func reachable_procs(program: Array) -> Dictionary:
+static func reachable_procs(program: Array, top: Dictionary = TOP) -> Dictionary:
 	var procs := {}
+	var names := proc_names(program)
 	for i in program.size():
 		var node: Variant = program[i]
 		if typeof(node) != TYPE_DICTIONARY or not ContractLimits.is_proc(node.get("op")):
@@ -148,6 +179,6 @@ static func reachable_procs(program: Array) -> Dictionary:
 		var name: Variant = node.get("name")
 		if typeof(name) != TYPE_STRING or procs.has(name):
 			continue
-		if is_runnable(node, TOP, {}):
+		if is_runnable(node, top, names):
 			procs[name] = {"node": node, "index": i}
 	return procs

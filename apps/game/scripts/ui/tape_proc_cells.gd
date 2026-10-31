@@ -20,20 +20,21 @@ static func is_call(cell: Dictionary) -> bool:
 ## Draws a procedure header or a CALL cell into rect.
 static func draw(canvas: CanvasItem, cell: Dictionary, rect: Rect2, fill: Fill) -> void:
 	var color := Palette.INK
+	var tone := TileDraw.Tone.PLAIN
 	match fill:
 		Fill.ACTIVE:
-			UiKit.fill_chamfer(canvas, rect, Palette.SIGNAL)
+			tone = TileDraw.Tone.ACTIVE
 			color = Palette.ON_SIGNAL
 		Fill.SOLID:
-			UiKit.fill_chamfer(canvas, rect, Palette.INK)
+			tone = TileDraw.Tone.SOLID
 			color = Palette.ON_INK
-		_:
-			UiKit.fill_chamfer(canvas, rect, Palette.FLOOR)
-			UiKit.outline_chamfer(canvas, rect, Palette.INK)
-	var word := "PROC" if is_header(cell) else "CALL"
+	rect = TileDraw.tile(canvas, rect, tone)
+	var word := "PROC" if is_header(cell) else ("CALL IF" if cell.has("when") else "CALL")
 	var tall := rect.size.y >= 48.0
 	if tall:
 		var kind := "proc" if is_header(cell) else "call"
+		if cell.has("when"):
+			kind = TapeIfCells.icon(cell["when"])
 		var center := Vector2(rect.get_center().x, rect.position.y + rect.size.y * 0.24)
 		UiKit.icon(canvas, kind, center, rect.size.x * 0.4, color)
 	var area := Rect2(

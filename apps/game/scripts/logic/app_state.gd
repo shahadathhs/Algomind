@@ -105,7 +105,11 @@ func is_dark() -> bool:
 
 
 func apply_theme() -> void:
-	Palette.apply(is_dark())
+	var depth := progress.settings.look() == Settings.LOOK_DEPTH
+	UiLook.depth = depth
+	UiLook.animate = not progress.settings.reduce_motion()
+	Palette.apply(is_dark(), depth)
+	DepthPalette.apply(is_dark())
 
 
 ## Downloads newer levels in the background, then rebuilds the campaign from the device.
