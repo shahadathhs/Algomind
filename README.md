@@ -57,7 +57,7 @@ The automaton `^` starts bottom-left facing north, and you must reach the target
 
 ## The campaign
 
-**16 worlds, 89 levels**, unlocked in order. Each world teaches one idea.
+**17 worlds, 95 levels**, unlocked in order. Each world teaches one idea.
 
 | World                        | You learn                                | New in the toolbox                   |
 | ---------------------------- | ---------------------------------------- | ------------------------------------ |
@@ -74,6 +74,7 @@ The automaton `^` starts bottom-left facing north, and you must reach the target
 | 14 Keys                      | Fetch what you need before you need it   | Keys and doors                       |
 | 15 Delivery                  | Carry a crate, drop it, then finish      | Crates and docks                     |
 | 16 Switches                  | A switch flips its gate each time        | Switches and gates                   |
+| 17 Ice and belts             | Work out where each action leaves you    | Ice, belts                           |
 
 ## Make your own levels
 
@@ -94,16 +95,15 @@ When you want company there is a daily challenge, points, leaderboards and achie
 
 ## Roadmap
 
-**Shipped:** the 16-world campaign, accounts and sync, the daily challenge and leaderboards, the level dashboard, the public site, and the depth look (a soft, tilted 2.5D board).
+**Shipped:** the 17-world campaign, accounts and sync, the daily challenge and leaderboards, the level dashboard, the public site, and the depth look (a soft, tilted 2.5D board).
 
-**Next:** four more worlds, taking the campaign to 20.
+**Next:** three more worlds, taking the campaign to 20.
 
-| World                | Idea                          |
-| -------------------- | ----------------------------- |
-| 17 Ice and conveyors | Forced movement               |
-| 18 Teleporters       | Shortcuts that need planning  |
-| 19 Recursion         | A procedure that calls itself |
-| 20 Capstone          | Everything together           |
+| World          | Idea                          |
+| -------------- | ----------------------------- |
+| 18 Teleporters | Shortcuts that need planning  |
+| 19 Recursion   | A procedure that calls itself |
+| 20 Capstone    | Everything together           |
 
 The plan, with the reasons for this order, is in the [world restructure plan](docs/README_WORLD_RESTRUCTURE_PLAN.md) and the [roadmap](docs/README_ROADMAP.md).
 

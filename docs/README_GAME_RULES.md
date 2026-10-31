@@ -371,6 +371,22 @@ A level may carry `switches`, one to three entries `{ switch, gate, open? }`. Bu
 
 **Level design rules for the Switches world:** the shortest program that ignores the switches (and crates and guards) must fail (a test checks this), and the limit equals the exact par. Chapter one has one gate, the second level with a gate that starts open and a switch on the only way in; chapter two has two pairs; the last chapter adds a crate, then a guard.
 
+### 3.14 Ice and belts (world 17)
+
+A level may carry `ice` (one to thirty cells) and `belts` (one to twenty `{ cell, direction }`). These two change where an action leaves the automaton, so the simulator and the solver now move it through one shared piece of code (`World` in `world.ts`, `RunWorld` in the game) and keep the rules there. Built: the contract (types, both validators, both schemas, both simulators, the solver), the API (`ice` and `belts` mechanics), the game, and six levels.
+
+- **Ice.** A move onto an ice cell goes on sliding in the same direction while the next cell can be entered (on the board, not a wall, not a shut door or gate). It stops on the first cell that is not ice, or in front of whatever blocks it; being stopped by a wall is not a failure. The slide is one step. Every cell it passes counts as entered: a key is taken, a crate picked up or dropped, a switch flipped there, and a door the key opens is open for the rest of the slide.
+- **Belts.** After any action (a move, a turn, `INC`, `MARK`) that leaves the automaton on a belt, it is carried one cell in the belt's direction, unless that cell cannot be entered, in which case it stays and nothing fails. A carry is once per action: it does not chain onto the next belt, and it does not start a slide.
+- **The target.** The run ends the moment the target is entered, in a slide or by a belt. With a crate left it fails with `UNDELIVERED` there.
+- **Guards.** A guard is checked where the step ends: the cell the automaton stands on afterwards, and a swap with the cell it started the step on. The cells passed on the way are not checked.
+- **The trace.** On a level with ice or belts every trace entry has `path`: the cells the step entered, in order (empty for a turn that moved nothing). Its last cell is the entry's `position`. The event is `SLID` for a move that entered more than one cell, `CARRIED` for a turn, `INC` or `MARK` a belt carried, otherwise the usual one; a cell with an effect (`KEY_TAKEN`, `ITEM_TAKEN`, `ITEM_DROPPED`, `SWITCHED`) gives that event, the last such cell of the step winning. Levels without ice or belts have no `path`.
+- **Validation.** Ice and belts lie inside the board and not on a wall; no two ice cells or two belts share a cell, and a belt is not on ice. A belt needs `cell` and a `direction` of north, east, south or west. Neither is allowed with `extraBoards`. They are allowed with the visit-every-cell goal and with every other mechanic. Issue codes `ICE_ON_WALL`, `ICE_CELLS_REPEAT`, `ICE_WITH_BOARDS`, `BELT_ON_WALL`, `BELT_CELLS_REPEAT`, `BELT_ON_ICE` and `BELTS_WITH_BOARDS`.
+- **Display.** Ice is a floor cell with a thin inset outline and two glints; a belt is two chevrons that point the way it carries. The automaton moves through every cell of a step's `path` in turn.
+- **Solver.** Breadth first over the state of the run (cell, facing, keys held, crate carried, delivered, switches flipped) through the same `World` code as the simulator; with guards the layer is the step. Where a level offers loops, the reference solution sets par.
+- **Compatibility.** The mechanics are `ice` and `belts`.
+
+**Level design rules for the Ice and belts world:** the shortest program that ignores the ice, belts and guards must fail (a test checks this), and the limit equals the exact par. Chapter one has ice only, chapter two belts only, the last chapter both and then a guard.
+
 ## 4. Execution model and feedback
 
 ### Controls
@@ -414,7 +430,7 @@ The simulation engine is separate from visual animation. Animations display simu
 
 ## 5. Difficulty progression and campaign structure
 
-> **Planned:** the campaign grows to 20 worlds (Patrol and the item, tile, and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 16 worlds, 36 chapters, 89 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
+> **Planned:** the campaign grows to 20 worlds (Patrol and the item, tile, and recursion worlds, and a capstone); see [README_WORLD_RESTRUCTURE_PLAN.md](README_WORLD_RESTRUCTURE_PLAN.md). The table below is the built campaign: 17 worlds, 39 chapters, 95 levels. Levels are listed by name in the seed (`starter-campaign.data.ts`), and the per-level choices are in [README_LEVEL_AUDIT.md](README_LEVEL_AUDIT.md).
 
 The campaign is a tree: **worlds** (one concept each), **chapters** (small groups within a world), and **levels**. Levels unlock sequentially along the flattened order (world, then chapter, then level). The stages below map onto worlds. Placement is campaign data managed in the dashboard, not part of a level's definition.
 
@@ -436,6 +452,7 @@ Teach concepts progressively rather than making early levels arbitrarily difficu
 | 12  | Sweep         | Covering everything efficiently      | Systematic coverage (the lawnmower sweep) and efficiency: the same job in far fewer steps               | goal type "visit every floor cell"; step budgets that scale with the board | 5      |
 | 13  | Patrol        | Timing and prediction                | Obstacles that move by a fixed pattern: read the pattern, go around, or wait for the right step         | patrols: guards on a route that depends on the step number (built; 3.9)    | 6      |
 | 14  | Keys          | Order of dependencies                | Fetch what you need before you need it: a door stays shut until its key has been taken                  | keys and doors: `locks`, picked up by entering a cell (built; 3.11)        | 6      |
+| 17  | Ice and belts | Predicting side effects              | Work out where each action leaves you: a slide on ice, a carry on a belt, before choosing the next      | ice and belts: `ice`, `belts`, one shared movement code (built; 3.14)      | 6      |
 | 16  | Switches      | State machines, toggled gates        | Count the state: a switch flips its gate every time it is entered, so passing twice undoes it           | switches and gates: `switches`, flipped by entering a cell (built; 3.13)   | 6      |
 | 15  | Delivery      | Carry and drop, sub-goals            | Finish a sub-goal before the main goal: carry a crate to its dock, one at a time, then reach the target | crates and docks: `deliveries`, one carried at a time (built; 3.12)        | 6      |
 

@@ -103,6 +103,8 @@ Sizes are relative. There are no dates; a phase is done when its exit criteria a
 
 **World 16 built 2026-10-31:** `switches` (a switch flips its gate every time it is entered; a gate may start open; `BLOCKED_BY_GATE`, event `SWITCHED`), contract and both simulators with fixtures, the solver with the switches flipped in the state, the `switch` mechanic, drawing on both boards, six levels (`first-switch`, `twice-over`, `two-gates`, `flip-flop`, `gate-and-crate`, `gate-and-guard`).
 
+**World 17 built 2026-10-31:** `ice` and `belts`. Decisions: a slide is one step and goes through every cell it passes (effects fire in each, a target in the middle ends the run); a belt carries once per action, after any action, and neither chains nor slides; guards are checked where the step ends. Because movement now has several cases, the simulator and the solver share one `World` class and the game one `RunWorld`; trace entries gain `path` on levels with ice or belts. Six levels (`first-slide`, `three-ice-cells`, `pushed-aside`, `belt-line`, `ice-and-belts`, `belts-and-a-guard`).
+
 - Build the item and door mechanic once (key, door, pick up, drop) and use it for both worlds. New commands or automatic pickup is a decision for the design step; prefer the smallest change that teaches ordering.
 - Each world ends with its "with patrols" chapter.
 - **Exit:** checklist in section 6; world 14 playable, then world 15 as a data-and-small-rule extension.

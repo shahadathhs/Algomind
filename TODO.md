@@ -16,6 +16,12 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [ ] Procedures (world 6): the palette with up to ten tiles in two rows at 360 px, definition groups at the start of the tape, the CALL highlight while running, scrolling a long program
 - [ ] Playtest the 24 levels of worlds 4 to 6 with real people
 
+## Done 2026-10-31: the Ice and belts world (restructure phase 5, world 17)
+
+- [x] `ice` and `belts` in the contract (types, both validators, both schemas, both simulators, 25 fixtures, trace `path`); the simulator and the solver now share the `World` class (`RunWorld` in the game), which also replaced the solver's separate state code for keys, crates and switches; the API mechanics `ice` and `belts`; ice and belts on both boards with a step-by-cell slide animation; six levels (95 levels, 17 worlds)
+- [ ] A solved playtest of the six Ice and belts levels; look at ice, belts and the slide on a device
+- [ ] The slide is animated cell by cell in one step time; check on a device that it reads (and with reduce motion)
+
 ## Done 2026-10-31: the Switches world (restructure phase 5, world 16)
 
 - [x] `switches` in the contract (types, both validators, both schemas, both simulators, the solver with the switches flipped, 26 fixtures; the pair validator was split into `validate-pairs.ts` and `pair_validator.gd`), the API mechanic `switch`, switches and gates on the flat and depth boards, six levels (89 levels, 16 worlds)
