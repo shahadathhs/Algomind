@@ -70,4 +70,6 @@ static func derived(level: Dictionary) -> Array[String]:
 		out.append("keys")
 	if level.has("deliveries"):
 		out.append("delivery")
+	if level.has("switches"):
+		out.append("switch")
 	return out

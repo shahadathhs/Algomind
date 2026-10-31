@@ -10,7 +10,7 @@ const LOCKS := {
 	"noun": "keys and doors",
 	"min": ContractLimits.LOCKS_MIN,
 	"max": ContractLimits.LOCKS_MAX,
-	"apart": "",
+	"apart": [],
 	"wall": "LOCK_ON_WALL",
 	"start": "LOCK_ON_START",
 	"goal": "LOCK_ON_GOAL",
@@ -25,7 +25,7 @@ const DELIVERIES := {
 	"noun": "deliveries",
 	"min": ContractLimits.DELIVERIES_MIN,
 	"max": ContractLimits.DELIVERIES_MAX,
-	"apart": "locks",
+	"apart": ["locks"],
 	"wall": "DELIVERY_ON_WALL",
 	"start": "DELIVERY_ON_START",
 	"goal": "DELIVERY_ON_GOAL",
@@ -34,10 +34,32 @@ const DELIVERIES := {
 	"sweep": "DELIVERIES_WITH_SWEEP",
 }
 
+const SWITCHES := {
+	"field": "switches",
+	"parts": ["switch", "gate"],
+	"noun": "switches and gates",
+	"min": ContractLimits.SWITCHES_MIN,
+	"max": ContractLimits.SWITCHES_MAX,
+	"apart": ["locks", "deliveries"],
+	"flag": "open",
+	"wall": "SWITCH_ON_WALL",
+	"start": "SWITCH_ON_START",
+	"goal": "SWITCH_ON_GOAL",
+	"repeat": "SWITCH_CELLS_REPEAT",
+	"boards": "SWITCHES_WITH_BOARDS",
+	"sweep": "SWITCHES_WITH_SWEEP",
+}
+
+const PART_NAMES := {
+	"locks": ["key", "door"],
+	"deliveries": ["item", "dock"],
+}
+
 
 static func check_all(issues: Array[Dictionary], root: Dictionary) -> void:
 	check_pairs(issues, root, LOCKS)
 	check_pairs(issues, root, DELIVERIES)
+	check_pairs(issues, root, SWITCHES)
 
 
 static func check_pairs(issues: Array[Dictionary], root: Dictionary, spec: Dictionary) -> void:
@@ -73,13 +95,13 @@ static func check_pairs(issues: Array[Dictionary], root: Dictionary, spec: Dicti
 		)
 	var facts := PatrolValidator.board_facts(root)
 	var seen: Array[Vector2i] = []
-	if spec["apart"] == "locks":
-		seen = _cells_of(root, "locks")
+	for other: String in spec["apart"]:
+		seen.append_array(_cells_of(root, other))
 	for i in entries.size():
 		_check_entry(issues, entries[i], "%s[%d]" % [field, i], spec, facts, seen)
 
 
-## The key and door cells of `locks`, read leniently (an entry that is not a pair is skipped).
+## The cells of `locks` or `deliveries`, read leniently (an entry that is not a pair is skipped).
 static func _cells_of(root: Dictionary, field: String) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	if typeof(root.get(field)) != TYPE_ARRAY:
@@ -87,7 +109,7 @@ static func _cells_of(root: Dictionary, field: String) -> Array[Vector2i]:
 	for entry: Variant in root[field]:
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
-		for part: String in ["key", "door"]:
+		for part: String in PART_NAMES[field]:
 			var cell: Variant = (entry as Dictionary).get(part)
 			if typeof(cell) == TYPE_ARRAY and (cell as Array).size() == 2:
 				var x: Variant = cell[0]
@@ -111,7 +133,16 @@ static func _check_entry(
 	var pair_entry: Dictionary = entry
 	var parts: Array[String] = []
 	parts.assign(spec["parts"])
-	LevelValidator._reject_unknown(issues, pair_entry, path, parts)
+	var allowed := parts.duplicate()
+	var flag: String = spec.get("flag", "")
+	if flag != "":
+		allowed.append(flag)
+	LevelValidator._reject_unknown(issues, pair_entry, path, allowed)
+	if flag != "" and pair_entry.has(flag) and typeof(pair_entry[flag]) != TYPE_BOOL:
+		var flag_path := "%s.%s" % [path, flag]
+		LevelValidator._add(
+			issues, flag_path, "INVALID_TYPE", "%s must be true or false." % flag_path
+		)
 	for part: String in parts:
 		var cell_path := "%s.%s" % [path, part]
 		if not pair_entry.has(part):

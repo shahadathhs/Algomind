@@ -14,7 +14,6 @@ const AUTOMATON_CHAMFER := 0.14
 const LIFT := 0.14
 const GOAL_RISE := 0.12
 ## How high a shut door stands above the floor, in cells.
-const DOOR_HEIGHT := 0.34
 const GOAL_RISE_SECONDS := 0.2
 ## A quarter turn of the wedge takes this long.
 const PIVOT_SECONDS := 0.1
@@ -127,20 +126,7 @@ func _draw() -> void:
 	var at := automaton + nudge
 	_draw_automaton_shadow(view, at)
 	var items: Array[Dictionary] = []
-	var open_doors := {}
-	if level.has("locks"):
-		open_doors = _draw_floor_locks(view)
-		var locks: Array = level["locks"]
-		for i in locks.size():
-			if not open_doors.has(i):
-				var door := LockDraw.cell_of(locks[i], "door")
-				items.append(
-					{"depth": view.depth(door.x + 0.5, door.y + 0.5), "wall": null, "door": i}
-				)
-	if level.has("deliveries"):
-		var flat := func(unit: Vector2) -> Vector2:
-			return view.project(unit.x, unit.y, BoardProjection.Z_FLOOR)
-		ItemDraw.draw_floor(self, level, trail, flat, DepthPalette.FLOOR, DepthPalette.INK)
+	_add_floor_pieces(view, items)
 	for wall: Array in level["board"]["walls"]:
 		var point := Vector2i(int(wall[0]), int(wall[1]))
 		items.append({"depth": view.depth(point.x + 0.5, point.y + 0.5), "wall": point})
@@ -152,13 +138,46 @@ func _draw() -> void:
 	items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["depth"] < b["depth"])
 	for item in items:
 		if item.has("door"):
-			_draw_door_block(view, int(item["door"]))
+			DepthBlocks.door(self, view, level, int(item["door"]))
+		elif item.has("gate"):
+			DepthBlocks.gate(self, view, level, int(item["gate"]))
 		elif item.has("guard"):
 			_draw_guard_block(view, item["guard"])
 		elif item["wall"] == null:
 			_draw_automaton_block(view, at)
 		else:
 			_draw_wall_block(view, item["wall"], hit_wall != null and hit_wall == item["wall"])
+
+
+## Draws what lies on the floor (keys, open doors, crates and docks, switches, open gates) and adds
+## the shut doors and gates, which stand up, to `items` for the depth sort.
+func _add_floor_pieces(view: BoardProjection, items: Array[Dictionary]) -> void:
+	var flat := func(unit: Vector2) -> Vector2:
+		return view.project(unit.x, unit.y, BoardProjection.Z_FLOOR)
+	if level.has("locks"):
+		var open_doors := _draw_floor_locks(view)
+		var locks: Array = level["locks"]
+		for i in locks.size():
+			if not open_doors.has(i):
+				var door := LockDraw.cell_of(locks[i], "door")
+				items.append(
+					{"depth": view.depth(door.x + 0.5, door.y + 0.5), "wall": null, "door": i}
+				)
+	if level.has("deliveries"):
+		ItemDraw.draw_floor(self, level, trail, flat, DepthPalette.FLOOR, DepthPalette.INK)
+	if level.has("switches"):
+		SwitchDraw.draw_switches(self, level, trail, flat, DepthPalette.INK)
+		var open: Dictionary = SwitchDraw.state(level, trail)["open"]
+		var colors := {"block": DepthPalette.INK, "bar": DepthPalette.ON_INK}
+		var pairs: Array = level["switches"]
+		for i in pairs.size():
+			if open.has(i):
+				SwitchDraw.draw_gate(self, level, i, true, flat, false, colors)
+			else:
+				var gate := LockDraw.cell_of(pairs[i], "gate")
+				items.append(
+					{"depth": view.depth(gate.x + 0.5, gate.y + 0.5), "wall": null, "gate": i}
+				)
 
 
 func _draw_wall_block(view: BoardProjection, point: Vector2i, hit: bool) -> void:
@@ -194,21 +213,6 @@ func _draw_floor_locks(view: BoardProjection) -> Dictionary:
 	for i in taken:
 		LockDraw.draw_door(self, level, i, true, place, false)
 	return taken
-
-
-## A shut door: a low raised block with the keyhole on its top.
-func _draw_door_block(view: BoardProjection, index: int) -> void:
-	var colors := {
-		"top": DepthPalette.INK,
-		"front": DepthPalette.INK_FRONT,
-		"side": DepthPalette.INK_SIDE,
-		"edge": DepthPalette.INK_EDGE
-	}
-	var cell := LockDraw.cell_of(level["locks"][index], "door")
-	var top := BoardProjection.Z_FLOOR + DOOR_HEIGHT
-	DepthKit.prism(self, view, LockDraw.door_footprint(cell), BoardProjection.Z_FLOOR, top, colors)
-	var place := func(unit: Vector2) -> Vector2: return view.project(unit.x, unit.y, top + 0.003)
-	LockDraw.draw_door(self, level, index, false, place, false)
 
 
 func _draw_guard_block(view: BoardProjection, guard: Vector2) -> void:

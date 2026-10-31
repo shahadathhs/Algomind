@@ -10,6 +10,7 @@ const REASON_MESSAGES := {
 	"BLOCKED_BY_BOUNDARY": "The automaton tried to move off the board.",
 	"HIT_BY_PATROL": "A guard reached the automaton.",
 	"BLOCKED_BY_DOOR": "The automaton tried to go through a locked door.",
+	"BLOCKED_BY_GATE": "The automaton tried to go through a shut gate.",
 	"UNDELIVERED": "The automaton reached the target before every item was delivered.",
 	"PROGRAM_ENDED": "The program ended before the goal.",
 	"STEP_LIMIT": "The program ran too long and was stopped.",

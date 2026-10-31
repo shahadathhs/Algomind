@@ -27,6 +27,7 @@ const SUPPORTED_MECHANICS: Array[String] = [
 	"patrol",
 	"keys",
 	"delivery",
+	"switch",
 ]
 
 ## [{ id, title, summary, chapters: [{ id, title, entries: [entry] }] }]

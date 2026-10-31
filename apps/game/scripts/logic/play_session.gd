@@ -16,6 +16,7 @@ const FAILING_REASONS := [
 	"BLOCKED_BY_DOOR",
 	"HIT_BY_PATROL",
 	"UNDELIVERED",
+	"BLOCKED_BY_GATE",
 ]
 
 var level: Dictionary

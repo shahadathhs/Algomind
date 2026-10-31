@@ -32,6 +32,7 @@ const _PUBLIC_KEYS: Array[String] = [
 	"patrols",
 	"locks",
 	"deliveries",
+	"switches",
 	"hints",
 ]
 

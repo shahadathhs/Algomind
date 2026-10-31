@@ -116,6 +116,8 @@ func _draw() -> void:
 		ItemDraw.draw_floor(
 			self, level, trail, _unit_to_canvas(geometry), Palette.FLOOR, Palette.INK
 		)
+	if level.has("switches"):
+		_draw_switches(geometry)
 	_draw_automaton(geometry)
 	if level.has("deliveries"):
 		var colors := {"edge": Palette.ON_INK, "fill": Palette.SIGNAL}
@@ -148,6 +150,16 @@ func _draw_locks(geometry: Dictionary) -> void:
 	LockDraw.draw_keys(self, level, trail, place, Palette.FLOOR)
 	for i in (level["locks"] as Array).size():
 		LockDraw.draw_door(self, level, i, taken.has(i), place, true)
+
+
+## Switch plates, and each gate shut or open by how often its switch has been entered.
+func _draw_switches(geometry: Dictionary) -> void:
+	var place := _unit_to_canvas(geometry)
+	SwitchDraw.draw_switches(self, level, trail, place, Palette.INK)
+	var open: Dictionary = SwitchDraw.state(level, trail)["open"]
+	var colors := {"block": Palette.INK, "bar": Palette.ON_INK}
+	for i in (level["switches"] as Array).size():
+		SwitchDraw.draw_gate(self, level, i, open.has(i), place, true, colors)
 
 
 func _draw_wall(rect: Rect2, hit: bool) -> void:

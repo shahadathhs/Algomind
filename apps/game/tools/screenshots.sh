@@ -68,6 +68,10 @@ for size in 390x844 360x640 412x915; do
 		shot play-delivery play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=8
 		shot play-delivery-carry play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=3
 		shot play-delivery-carry-depth play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=3 --look=depth
+		shot play-switch play "$theme" "$size" --level=flip-flop --program=MMMLLMMMMM --steps=4
+		shot play-switch-failed play "$theme" "$size" --level=first-switch --program=MMMM --steps=-1
+		shot play-switch-depth play "$theme" "$size" --level=flip-flop --program=MMMLLMMMMM --steps=4 --look=depth
+		shot play-switch-failed-depth play "$theme" "$size" --level=first-switch --program=MMMM --steps=-1 --look=depth
 		shot play-delivery-failed play "$theme" "$size" --level=first-parcel --program=MMMM --steps=-1
 		shot play-delivery-depth play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=8 --look=depth
 		shot play-delivery-failed-depth play "$theme" "$size" --level=first-parcel --program=MMMM --steps=-1 --look=depth

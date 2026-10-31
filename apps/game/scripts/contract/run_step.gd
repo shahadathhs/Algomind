@@ -51,6 +51,8 @@ static func move(
 		blocked = "BLOCKED_BY_WALL"
 	if blocked == "" and RunLocks.closed_door(run, Vector2i(tx, ty)):
 		blocked = "BLOCKED_BY_DOOR"
+	if blocked == "" and RunGates.shut_gate(run, Vector2i(tx, ty)):
+		blocked = "BLOCKED_BY_GATE"
 	if blocked != "":
 		trace.append(
 			entry(run, index, command, node, call_path, round_number, position, direction, blocked)
@@ -91,6 +93,8 @@ static func move(
 		)
 		return finish("SUCCEEDED", "GOAL_REACHED", null, run)
 	var event := "KEY_TAKEN" if RunLocks.take_key(run, cell) else RunItems.settle(run, cell)
+	if event == "" and RunGates.toggle(run, cell):
+		event = "SWITCHED"
 	if event == "":
 		event = "MOVED"
 	trace.append(
