@@ -20,7 +20,7 @@
   },
   "hints": ["Fewer cells is not always fewer tiles. Turns count as tiles."],
   "title": "Fewer turns",
-  "levelId": "f2d58544-a768-4b3e-936a-cdb5f0f8e704",
+  "levelId": "8a113380-1f3a-4d05-99b9-3f24553c3056",
   "requires": {
     "mechanics": []
   },

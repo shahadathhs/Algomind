@@ -269,6 +269,28 @@
           "levels": ["behind-the-door", "guarded-parcel"]
         }
       ]
+    },
+    {
+      "id": "switches",
+      "title": "Switches",
+      "summary": "A switch flips its gate every time it is entered. Count the passes.",
+      "chapters": [
+        {
+          "id": "first-switches",
+          "title": "First switches",
+          "levels": ["first-switch", "twice-over"]
+        },
+        {
+          "id": "two-gates",
+          "title": "Two gates",
+          "levels": ["two-gates", "flip-flop"]
+        },
+        {
+          "id": "in-the-way",
+          "title": "In the way",
+          "levels": ["gate-and-crate", "gate-and-guard"]
+        }
+      ]
     }
   ],
   "par": {
@@ -603,6 +625,30 @@
     "guarded-parcel": {
       "commands": 15,
       "steps": 15
+    },
+    "first-switch": {
+      "commands": 10,
+      "steps": 10
+    },
+    "twice-over": {
+      "commands": 10,
+      "steps": 10
+    },
+    "two-gates": {
+      "commands": 14,
+      "steps": 14
+    },
+    "flip-flop": {
+      "commands": 16,
+      "steps": 16
+    },
+    "gate-and-crate": {
+      "commands": 16,
+      "steps": 16
+    },
+    "gate-and-guard": {
+      "commands": 16,
+      "steps": 16
     }
   }
 }

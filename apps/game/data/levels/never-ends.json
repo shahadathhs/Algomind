@@ -33,7 +33,7 @@
     "The loop runs until the goal, but nothing moves it there."
   ],
   "title": "Never ends",
-  "levelId": "401b01d0-b543-41cc-8920-9ca9102c8146",
+  "levelId": "ea562939-64b5-47a3-b819-432df139b769",
   "requires": {
     "mechanics": []
   },

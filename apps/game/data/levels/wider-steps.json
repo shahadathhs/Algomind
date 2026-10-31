@@ -85,7 +85,7 @@
     "Count up with Count after each step, and let Repeat read the count."
   ],
   "title": "Wider steps",
-  "levelId": "336302b2-0208-4493-bd72-6a9f1ba3dc0f",
+  "levelId": "71b35464-6546-4da1-a12f-39b33c1c8596",
   "requires": {
     "mechanics": ["nested_loops"]
   },
