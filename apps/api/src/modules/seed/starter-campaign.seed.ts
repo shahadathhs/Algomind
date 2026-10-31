@@ -198,6 +198,7 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
           "multi_board",
           "start_program",
           "patrol",
+          "keys",
         ],
         isMinimum: !hasMinimum,
       },

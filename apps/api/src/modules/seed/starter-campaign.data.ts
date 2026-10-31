@@ -1,4 +1,4 @@
-// The starter campaign: thirteen worlds, twenty-seven chapters, seventy-one levels, in play order.
+// The starter campaign: fourteen worlds, thirty chapters, seventy-seven levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
@@ -19,6 +19,8 @@
 // `rows`): one program must solve them all, and the best program for the first board alone must
 // fail on another board. World 13 (Patrol) gives each level 1 or 2 guards (`patrols`) that walk a fixed route
 // by step number; the limit equals the shortest program found by the exact search over (cell, facing, step).
+// World 14 (Keys) puts keys and doors on the board (`locks`): a door blocks until its key has been entered; the
+// search adds the keys held to the state, and the last chapter adds a guard.
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -4511,6 +4513,284 @@ export const CAMPAIGN = {
                     [
                       4,
                       3
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Keys",
+      "description": "A door stays shut until the automaton has taken its key. Plan the order.",
+      "chapters": [
+        {
+          "title": "First keys",
+          "levels": [
+            {
+              "slug": "first-key",
+              "title": "First key",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 10,
+              "maxSteps": 120,
+              "rows": [
+                "..#..",
+                ">...G",
+                "..#.."
+              ],
+              "hints": [
+                "The door in the gap is shut. Run it and see where it stops.",
+                "Take the key first. Entering its cell picks it up."
+              ],
+              "locks": [
+                {
+                  "key": [
+                    0,
+                    0
+                  ],
+                  "door": [
+                    2,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "side-room",
+              "title": "Side room",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 11,
+              "maxSteps": 120,
+              "rows": [
+                "...#..",
+                ">....G",
+                "...#.."
+              ],
+              "hints": [
+                "A key opens one door and stays held for the rest of the run.",
+                "The key lies off the straight way."
+              ],
+              "locks": [
+                {
+                  "key": [
+                    0,
+                    2
+                  ],
+                  "door": [
+                    3,
+                    1
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Two doors",
+          "levels": [
+            {
+              "slug": "two-doors",
+              "title": "Two doors",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 14,
+              "maxSteps": 120,
+              "rows": [
+                "..#.#.G",
+                ">......",
+                "..#.#.."
+              ],
+              "hints": [
+                "Each key opens only its own door.",
+                "The second key lies between the doors."
+              ],
+              "locks": [
+                {
+                  "key": [
+                    1,
+                    2
+                  ],
+                  "door": [
+                    2,
+                    1
+                  ]
+                },
+                {
+                  "key": [
+                    3,
+                    1
+                  ],
+                  "door": [
+                    4,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "maze-gate",
+              "title": "Maze gate",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 15,
+              "maxSteps": 120,
+              "rows": [
+                "#.#.###",
+                "#.#.#.G",
+                ">.....#",
+                "#...#.."
+              ],
+              "hints": [
+                "The door is in the corridor and the key is in the dead end above it.",
+                "Go in, turn round, and come out with the key."
+              ],
+              "locks": [
+                {
+                  "key": [
+                    1,
+                    0
+                  ],
+                  "door": [
+                    2,
+                    2
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Guarded",
+          "levels": [
+            {
+              "slug": "guarded-key",
+              "title": "Guarded key",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 17,
+              "maxSteps": 120,
+              "rows": [
+                "...#...",
+                ">.....G",
+                "...#..."
+              ],
+              "hints": [
+                "A guard walks the column past the door.",
+                "Take the key, then time the way through."
+              ],
+              "locks": [
+                {
+                  "key": [
+                    1,
+                    2
+                  ],
+                  "door": [
+                    3,
+                    1
+                  ]
+                }
+              ],
+              "patrols": [
+                {
+                  "pattern": "back_and_forth",
+                  "cells": [
+                    [
+                      5,
+                      0
+                    ],
+                    [
+                      5,
+                      1
+                    ],
+                    [
+                      5,
+                      2
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "keys-and-a-guard",
+              "title": "Keys and a guard",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 16,
+              "maxSteps": 140,
+              "rows": [
+                "..#.#.G",
+                ">......",
+                "..#.#.#"
+              ],
+              "hints": [
+                "The guard walks near the first key.",
+                "Count steps: a turn is a step too."
+              ],
+              "locks": [
+                {
+                  "key": [
+                    1,
+                    2
+                  ],
+                  "door": [
+                    2,
+                    1
+                  ]
+                },
+                {
+                  "key": [
+                    3,
+                    1
+                  ],
+                  "door": [
+                    4,
+                    1
+                  ]
+                }
+              ],
+              "patrols": [
+                {
+                  "pattern": "back_and_forth",
+                  "cells": [
+                    [
+                      0,
+                      0
+                    ],
+                    [
+                      1,
+                      0
+                    ],
+                    [
+                      1,
+                      1
                     ]
                   ]
                 }

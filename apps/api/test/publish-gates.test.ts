@@ -113,6 +113,16 @@ describe("publish gates", () => {
     expect(codes(failed)).toContain("REFERENCE_SOLUTION_FAILS");
   });
 
+  it("keys: a level with doors needs the mechanic, and a door that blocks the way needs its key", () => {
+    // The straight way north is shut by a door whose key is one cell to the side.
+    const shut = level({ locks: [{ key: [1, 4], door: [0, 2] }] });
+    const analysis = analyzeLevel(shut, SOLUTION);
+    expect(analysis.requiredMechanics).toContain("keys");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("keys");
+    // The straight program meets the door, so it is not a solution.
+    expect(analysis.errors.map((e) => e.code)).toContain("REFERENCE_SOLUTION_FAILS");
+  });
+
   it("par: refuses a goal that cannot be reached", () => {
     const walled = level({
       board: {

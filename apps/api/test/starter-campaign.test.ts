@@ -25,7 +25,7 @@ const analysisOf = (entry: (typeof built)[number]) => {
 };
 
 describe("the starter campaign", () => {
-  it("has thirteen worlds, twenty-seven chapters, and seventy-one levels in a fixed order", () => {
+  it("has fourteen worlds, thirty chapters, and seventy-seven levels in a fixed order", () => {
     expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual([
       "Basics",
       "Routes",
@@ -40,6 +40,7 @@ describe("the starter campaign", () => {
       "Memory",
       "Sweep",
       "Patrol",
+      "Keys",
     ]);
     expect(CAMPAIGN.worlds.flatMap((w) => w.chapters.map((c) => c.title))).toEqual([
       "Moves",
@@ -69,13 +70,16 @@ describe("the starter campaign", () => {
       "Dodge",
       "Rings",
       "Two guards",
+      "First keys",
+      "Two doors",
+      "Guarded",
     ]);
-    expect(LEVELS).toHaveLength(71);
+    expect(LEVELS).toHaveLength(77);
   });
 
   it("gives every Patrol level guards, and no other level any", () => {
     for (const entry of built) {
-      const patrol = entry.world.title === "Patrol";
+      const patrol = entry.world.title === "Patrol" || entry.chapterTitle === "Guarded";
       expect(entry.def.patrols !== undefined, entry.def.slug).toBe(patrol);
       if (!patrol) continue;
       // The guards matter: the shortest program without them fails, and the limit is the exact par.
@@ -84,6 +88,23 @@ describe("the starter campaign", () => {
         "FAILED",
       );
       expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
+    }
+  });
+
+  it("gives every Keys level a lock, and the shortest program that ignores them fails", () => {
+    for (const entry of built) {
+      const keys = entry.world.title === "Keys";
+      expect(entry.def.locks !== undefined, entry.def.slug).toBe(keys);
+      if (!keys) continue;
+      const bare = solve({ ...entry.level, locks: undefined, patrols: undefined })!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+      expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
+      // Only the last chapter has a guard.
+      expect(entry.def.patrols !== undefined, entry.def.slug).toBe(
+        entry.chapterTitle === "Guarded",
+      );
     }
   });
 

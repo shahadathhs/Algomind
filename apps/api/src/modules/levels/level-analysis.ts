@@ -65,6 +65,7 @@ function offersUnsearched(level: {
   availableCommands: readonly string[];
   extraBoards?: unknown;
   patrols?: unknown;
+  locks?: unknown;
   goal: { type: string };
   requires: { mechanics: readonly string[] };
 }): boolean {
@@ -77,8 +78,10 @@ function offersUnsearched(level: {
     level.requires.mechanics.includes("nested_loops") ||
     level.goal.type !== "reach_tile" ||
     level.extraBoards !== undefined ||
-    // The exact search over patrols covers flat programs only, so with loops on offer the reference counts.
-    (level.patrols !== undefined && (c.includes("REPEAT") || c.includes("REPEAT_UNTIL")))
+    // The exact search over patrols and keys covers flat programs only, so with loops on offer the
+    // reference counts.
+    ((level.patrols !== undefined || level.locks !== undefined) &&
+      (c.includes("REPEAT") || c.includes("REPEAT_UNTIL")))
   );
 }
 
@@ -272,6 +275,7 @@ export function analyzeLevel(content: unknown, referenceSolution: unknown): Anal
   if (level.extraBoards !== undefined) required.add("multi_board");
   if (level.startProgram !== undefined) required.add("start_program");
   if (level.patrols !== undefined) required.add("patrol");
+  if (level.locks !== undefined) required.add("keys");
   // A sweep goal on any board needs the client to draw and count it.
   const goals = [level.goal, ...(level.extraBoards ?? []).map((b) => b.goal)];
   if (goals.some((g) => g.type === "visit_all")) required.add("visit_all");

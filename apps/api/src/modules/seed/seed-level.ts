@@ -58,6 +58,8 @@ export type LevelDef = {
   /** A debug level: the program the tape starts with. It must fail; `solution` is its fix. */
   startProgram?: readonly unknown[];
   /** Guards that walk a fixed route: their cell depends only on the step number. */
+  /** Keys and the doors they open. */
+  locks?: readonly { key: readonly [number, number]; door: readonly [number, number] }[];
   patrols?: readonly {
     pattern: "back_and_forth" | "loop";
     cells: readonly (readonly [number, number])[];
@@ -96,6 +98,11 @@ export function buildLevel(def: LevelDef, id: string): Level {
         }
       : {}),
     ...(def.startProgram ? { startProgram: structuredClone(def.startProgram) as Program } : {}),
+    ...(def.locks
+      ? {
+          locks: def.locks.map((l) => ({ key: [...l.key], door: [...l.door] })) as Level["locks"],
+        }
+      : {}),
     ...(def.patrols
       ? {
           patrols: def.patrols.map((p) => ({
