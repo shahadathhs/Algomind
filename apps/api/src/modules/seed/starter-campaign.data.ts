@@ -1,4 +1,4 @@
-// The starter campaign: fifteen worlds, thirty-three chapters, eighty-three levels, in play order.
+// The starter campaign: sixteen worlds, thirty-six chapters, eighty-nine levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
@@ -24,6 +24,9 @@
 // World 15 (Delivery) puts crates and docks on the board (`deliveries`): the automaton carries one crate at a time,
 // a crate is dropped by entering its dock, and the target counts once every crate is delivered; the search
 // adds what is carried and what is delivered to the state. Its last chapter has a key and a guard.
+// World 16 (Switches) puts switches and gates on the board (`switches`): entering a switch flips its gate every
+// time, a gate may start open (`open`), and the search adds the switches flipped to the state. Its last chapter has a
+// crate and a guard.
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -5060,6 +5063,274 @@ export const CAMPAIGN = {
                     [
                       1,
                       1
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Switches",
+      "description": "A switch flips its gate every time it is entered. Count the passes.",
+      "chapters": [
+        {
+          "title": "First switches",
+          "levels": [
+            {
+              "slug": "first-switch",
+              "title": "First switch",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 10,
+              "maxSteps": 120,
+              "rows": [
+                "#.##.",
+                ">...G",
+                "#.##."
+              ],
+              "hints": [
+                "The gate is shut. Run it and see where it stops.",
+                "Step on the switch to open the gate. Stepping on it again shuts it."
+              ],
+              "switches": [
+                {
+                  "switch": [
+                    1,
+                    0
+                  ],
+                  "gate": [
+                    2,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "twice-over",
+              "title": "Twice over",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 10,
+              "maxSteps": 120,
+              "rows": [
+                ".#...",
+                ">...G",
+                ".#..."
+              ],
+              "hints": [
+                "The gate starts open, and the switch lies on the only way in.",
+                "The switch flips every time it is entered. Enter it twice."
+              ],
+              "switches": [
+                {
+                  "switch": [
+                    1,
+                    1
+                  ],
+                  "gate": [
+                    2,
+                    1
+                  ],
+                  "open": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Two gates",
+          "levels": [
+            {
+              "slug": "two-gates",
+              "title": "Two gates",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 14,
+              "maxSteps": 120,
+              "rows": [
+                "#.#.#",
+                ">...G",
+                "#.#.#"
+              ],
+              "hints": [
+                "Each switch works its own gate.",
+                "One switch lies on the way and flips its gate as you pass."
+              ],
+              "switches": [
+                {
+                  "switch": [
+                    1,
+                    0
+                  ],
+                  "gate": [
+                    3,
+                    1
+                  ]
+                },
+                {
+                  "switch": [
+                    1,
+                    1
+                  ],
+                  "gate": [
+                    2,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "flip-flop",
+              "title": "Flip flop",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 16,
+              "maxSteps": 120,
+              "rows": [
+                ".#.#.",
+                ">...G",
+                ".#.#."
+              ],
+              "hints": [
+                "A switch on the way can shut a gate that was open.",
+                "Count how many times each switch is entered."
+              ],
+              "switches": [
+                {
+                  "switch": [
+                    1,
+                    1
+                  ],
+                  "gate": [
+                    2,
+                    1
+                  ],
+                  "open": true
+                },
+                {
+                  "switch": [
+                    2,
+                    0
+                  ],
+                  "gate": [
+                    3,
+                    1
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "In the way",
+          "levels": [
+            {
+              "slug": "gate-and-crate",
+              "title": "Gate and crate",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 16,
+              "maxSteps": 120,
+              "rows": [
+                "..##.",
+                ">...G",
+                "..##."
+              ],
+              "hints": [
+                "The switch lies on the way there and on the way back.",
+                "Each pass flips the gate. Count the passes."
+              ],
+              "switches": [
+                {
+                  "switch": [
+                    1,
+                    1
+                  ],
+                  "gate": [
+                    2,
+                    1
+                  ]
+                }
+              ],
+              "deliveries": [
+                {
+                  "item": [
+                    3,
+                    1
+                  ],
+                  "dock": [
+                    1,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "gate-and-guard",
+              "title": "Gate and guard",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 16,
+              "maxSteps": 120,
+              "rows": [
+                "#.#...",
+                ">....G",
+                "..#..."
+              ],
+              "hints": [
+                "The guard walks the corridor beyond the gate.",
+                "Open the gate early, then time the last stretch."
+              ],
+              "switches": [
+                {
+                  "switch": [
+                    1,
+                    0
+                  ],
+                  "gate": [
+                    2,
+                    1
+                  ]
+                }
+              ],
+              "patrols": [
+                {
+                  "pattern": "back_and_forth",
+                  "cells": [
+                    [
+                      4,
+                      1
+                    ],
+                    [
+                      4,
+                      2
                     ]
                   ]
                 }

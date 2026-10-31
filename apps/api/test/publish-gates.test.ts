@@ -132,6 +132,14 @@ describe("publish gates", () => {
     expect(analysis.errors.map((e) => e.code)).toContain("REFERENCE_SOLUTION_FAILS");
   });
 
+  it("switch: a level with gates needs the mechanic, and a shut gate on the way blocks the straight program", () => {
+    const shut = level({ switches: [{ switch: [1, 4], gate: [0, 2] }] });
+    const analysis = analyzeLevel(shut, SOLUTION);
+    expect(analysis.requiredMechanics).toContain("switch");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("switch");
+    expect(analysis.errors.map((e) => e.code)).toContain("REFERENCE_SOLUTION_FAILS");
+  });
+
   it("par: refuses a goal that cannot be reached", () => {
     const walled = level({
       board: {

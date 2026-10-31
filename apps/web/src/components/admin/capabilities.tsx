@@ -23,6 +23,7 @@ const MECHANICS = [
   "patrol",
   "keys",
   "delivery",
+  "switch",
 ];
 
 /** Which mechanics each released app version supports. Publishing checks the minimum version. */

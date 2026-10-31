@@ -61,6 +61,12 @@ export type LevelDef = {
   locks?: readonly { key: readonly [number, number]; door: readonly [number, number] }[];
   /** Items and the docks they belong on: the target counts once every item is delivered. */
   deliveries?: readonly { item: readonly [number, number]; dock: readonly [number, number] }[];
+  /** Switches and the gates they toggle; `open` makes the gate start open. */
+  switches?: readonly {
+    switch: readonly [number, number];
+    gate: readonly [number, number];
+    open?: boolean;
+  }[];
   /** Guards that walk a fixed route: their cell depends only on the step number. */
   patrols?: readonly {
     pattern: "back_and_forth" | "loop";
@@ -111,6 +117,15 @@ export function buildLevel(def: LevelDef, id: string): Level {
             item: [...d.item],
             dock: [...d.dock],
           })) as Level["deliveries"],
+        }
+      : {}),
+    ...(def.switches
+      ? {
+          switches: def.switches.map((s) => ({
+            switch: [...s.switch],
+            gate: [...s.gate],
+            ...(s.open !== undefined ? { open: s.open } : {}),
+          })) as Level["switches"],
         }
       : {}),
     ...(def.patrols
