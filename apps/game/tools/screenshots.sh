@@ -38,6 +38,9 @@ for size in 390x844 360x640 412x915; do
 	for theme in light dark; do
 		shot home home "$theme" "$size"
 		shot depth-kit depth_kit "$theme" "$size"
+		shot world-tiles world "$theme" "$size" --done=91 --world=16
+		shot world-tiles-depth world "$theme" "$size" --done=91 --world=16 --look=depth
+		shot world-big-boards world "$theme" "$size" --done=30 --world=10
 		shot worlds worlds "$theme" "$size" --done=4
 		shot world world "$theme" "$size" --done=4 --world=1
 		shot world-stars world "$theme" "$size" --done=6 --world=0

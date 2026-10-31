@@ -10,7 +10,7 @@ Individual screens (390 × 844, 2x): `screens/light/` and `screens/dark/`.
 |---|---|---|
 | 01 | Menu | Wordmark, hero board, Play (primary), Levels, Settings, Account |
 | 02 | Worlds | List of worlds: solved, current, locked, and not-downloaded states; continue button |
-| 03 | World | One world: its chapters, each with level tiles (solved, current, locked) |
+| 03 | World | One world: its chapters, each with level tiles that carry a picture of the level's board, its number and its state (solved with stars, current, locked and faint); three tiles to a row. Concept renders: `screens/world-boards/` |
 | 04 | Tutorial | Level 1 with a coach callout teaching the first command |
 | 05 | Game, ready | Editing a program: tape, command palette, Step / Run / Reset |
 | 06 | Game, running | Tape slides under the read-head; Continue, Step, Reset |
