@@ -25,7 +25,7 @@ const analysisOf = (entry: (typeof built)[number]) => {
 };
 
 describe("the starter campaign", () => {
-  it("has nineteen worlds, forty-five chapters, and one hundred five levels in a fixed order", () => {
+  it("has twenty worlds, forty-eight chapters, and one hundred thirteen levels in a fixed order", () => {
     expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual([
       "Basics",
       "Routes",
@@ -46,6 +46,7 @@ describe("the starter campaign", () => {
       "Ice and belts",
       "Teleporters",
       "Recursion",
+      "Capstone",
     ]);
     expect(CAMPAIGN.worlds.flatMap((w) => w.chapters.map((c) => c.title))).toEqual([
       "Moves",
@@ -93,12 +94,17 @@ describe("the starter campaign", () => {
       "Calling itself",
       "Conditions",
       "After the call",
+      "Two ideas",
+      "Guarded",
+      "All together",
     ]);
-    expect(LEVELS).toHaveLength(105);
+    expect(LEVELS).toHaveLength(113);
   });
 
   it("gives every Patrol level guards, and no other level any", () => {
     for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
       const patrol =
         entry.world.title === "Patrol" ||
         entry.chapterTitle === "Guarded" ||
@@ -119,6 +125,8 @@ describe("the starter campaign", () => {
 
   it("gives every Keys level a lock, and the shortest program that ignores them fails", () => {
     for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
       const keys = entry.world.title === "Keys" || entry.def.slug === "behind-the-door";
       expect(entry.def.locks !== undefined, entry.def.slug).toBe(keys);
       if (!keys) continue;
@@ -136,6 +144,8 @@ describe("the starter campaign", () => {
 
   it("gives every Delivery level a crate, and the shortest program that ignores them fails", () => {
     for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
       const delivery = entry.world.title === "Delivery" || entry.def.slug === "gate-and-crate";
       expect(entry.def.deliveries !== undefined, entry.def.slug).toBe(delivery);
       if (!delivery) continue;
@@ -155,6 +165,8 @@ describe("the starter campaign", () => {
 
   it("gives every Switches level a switch, and the shortest program that ignores them fails", () => {
     for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
       const switches = entry.world.title === "Switches";
       expect(entry.def.switches !== undefined, entry.def.slug).toBe(switches);
       if (!switches) continue;
@@ -173,6 +185,8 @@ describe("the starter campaign", () => {
 
   it("gives every Ice and belts level ice or belts, and the shortest program that ignores them fails", () => {
     for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
       const floor = entry.world.title === "Ice and belts";
       expect((entry.def.ice ?? entry.def.belts) !== undefined, entry.def.slug).toBe(floor);
       if (!floor) continue;
@@ -186,6 +200,8 @@ describe("the starter campaign", () => {
 
   it("gives every Teleporters level a pair, and the shortest program that ignores them fails", () => {
     for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
       const portals = entry.world.title === "Teleporters";
       expect(entry.def.teleports !== undefined, entry.def.slug).toBe(portals);
       if (!portals) continue;
@@ -208,6 +224,43 @@ describe("the starter campaign", () => {
         inner.some((n) => n.when !== undefined),
         entry.def.slug,
       ).toBe(true);
+    }
+  });
+
+  it("makes every Capstone level a mix: at least two board tools, each one needed, and a guard on five", () => {
+    const fields = [
+      "locks",
+      "deliveries",
+      "switches",
+      "ice",
+      "belts",
+      "teleports",
+      "patrols",
+    ] as const;
+    const capstone = built.filter((b) => b.world.title === "Capstone");
+    expect(capstone).toHaveLength(8);
+    expect(capstone.filter((b) => b.def.patrols !== undefined)).toHaveLength(5);
+    for (const entry of capstone) {
+      const present = fields.filter((f) => entry.def[f] !== undefined);
+      expect(present.length, entry.def.slug).toBeGreaterThanOrEqual(2);
+      const par = analysisOf(entry).par!.commands;
+      expect(entry.def.maxCommands, entry.def.slug).toBe(par);
+      // Leaving any one tool out gives a shorter way: each is needed.
+      for (const field of present) {
+        const without = solve({ ...entry.level, [field]: undefined });
+        expect(
+          without !== null && without.commands < par,
+          `${entry.def.slug} without ${field}`,
+        ).toBe(true);
+      }
+      const bare = solve(
+        Object.fromEntries(
+          Object.entries(entry.level).filter(([k]) => !(fields as readonly string[]).includes(k)),
+        ) as typeof entry.level,
+      )!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
     }
   });
 

@@ -80,6 +80,8 @@ for size in 390x844 360x640 412x915; do
 		shot play-teleport-depth play "$theme" "$size" --level=two-pairs --program=MMMLMMRMM --steps=4 --look=depth
 		shot play-recursion play "$theme" "$size" --level=hall-and-turn --program=P{M@A?}@A --steps=0
 		shot play-recursion-depth play "$theme" "$size" --level=hall-and-turn --program=P{M@A?}@A --steps=0 --look=depth
+		shot play-capstone play "$theme" "$size" --level=everything --program=MM --steps=2
+		shot play-capstone-depth play "$theme" "$size" --level=everything --program=MM --steps=2 --look=depth
 		shot play-delivery-failed play "$theme" "$size" --level=first-parcel --program=MMMM --steps=-1
 		shot play-delivery-depth play "$theme" "$size" --level=full-hands --program=MMMMRMRM --steps=8 --look=depth
 		shot play-delivery-failed-depth play "$theme" "$size" --level=first-parcel --program=MMMM --steps=-1 --look=depth

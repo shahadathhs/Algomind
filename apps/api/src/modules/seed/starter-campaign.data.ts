@@ -1,4 +1,4 @@
-// The starter campaign: nineteen worlds, forty-five chapters, one hundred five levels, in play order.
+// The starter campaign: twenty worlds, forty-eight chapters, one hundred thirteen levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
@@ -35,6 +35,9 @@
 // World 19 (Recursion) lists the mechanic `recursion`: a procedure may CALL (itself or another procedure), and a CALL
 // may carry a sensor (`when`), which is the base case. Levels carry the reference `solution`; the limit is its slots, and
 // the best program without PROC is at least 1.3 times the limit.
+// World 20 (Capstone) adds no mechanic: each level puts two to four tiles of worlds 13 to 18 on one board (five have a
+// guard), offers movement only, and its limit is the exact par from the search; every tile must matter (a test
+// removes each one and the par must drop).
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -6172,6 +6175,499 @@ export const CAMPAIGN = {
                 {
                   "op": "CALL",
                   "name": "A"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Capstone",
+      "description": "Every tool of the earlier worlds, two or more at a time.",
+      "chapters": [
+        {
+          "title": "Two ideas",
+          "levels": [
+            {
+              "slug": "frozen-key",
+              "title": "Frozen key",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 14,
+              "maxSteps": 120,
+              "rows": [
+                ">.#.....",
+                "........",
+                "....##..",
+                ".......G",
+                "..#....."
+              ],
+              "hints": [
+                "The key is across the ice, and the door is shut until you have it.",
+                "A slide ends past the ice. Plan the turn from where it stops."
+              ],
+              "locks": [
+                {
+                  "key": [
+                    5,
+                    4
+                  ],
+                  "door": [
+                    6,
+                    1
+                  ]
+                }
+              ],
+              "ice": [
+                [
+                  0,
+                  3
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  2,
+                  3
+                ]
+              ]
+            },
+            {
+              "slug": "gate-by-belt",
+              "title": "Gate by belt",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 19,
+              "maxSteps": 120,
+              "rows": [
+                ".....#..",
+                ">#....#G",
+                "#.......",
+                "#.#.....",
+                "......#."
+              ],
+              "hints": [
+                "The belt carries you after each action, and the gate waits for its switch.",
+                "Find where the belt leaves you before you step on it."
+              ],
+              "switches": [
+                {
+                  "switch": [
+                    4,
+                    4
+                  ],
+                  "gate": [
+                    7,
+                    3
+                  ]
+                }
+              ],
+              "belts": [
+                {
+                  "cell": [
+                    5,
+                    2
+                  ],
+                  "direction": "south"
+                }
+              ]
+            },
+            {
+              "slug": "portal-freight",
+              "title": "Portal freight",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 19,
+              "maxSteps": 120,
+              "rows": [
+                ".#....G#",
+                ">......#",
+                "..#.....",
+                "........",
+                "........"
+              ],
+              "hints": [
+                "Deliver the crate to its dock before the target counts.",
+                "The pair of teleporters saves a long walk. Use it once."
+              ],
+              "deliveries": [
+                {
+                  "item": [
+                    1,
+                    4
+                  ],
+                  "dock": [
+                    3,
+                    2
+                  ]
+                }
+              ],
+              "teleports": [
+                {
+                  "a": [
+                    3,
+                    4
+                  ],
+                  "b": [
+                    6,
+                    1
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Guarded",
+          "levels": [
+            {
+              "slug": "key-gate-guard",
+              "title": "Key, gate, guard",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 19,
+              "maxSteps": 120,
+              "rows": [
+                ">...#...",
+                "....#...",
+                "#...#..#",
+                ".......G",
+                "........"
+              ],
+              "hints": [
+                "The guard walks beside the way to the target.",
+                "The key opens the door and the switch opens the gate. Take both."
+              ],
+              "locks": [
+                {
+                  "key": [
+                    1,
+                    4
+                  ],
+                  "door": [
+                    5,
+                    4
+                  ]
+                }
+              ],
+              "switches": [
+                {
+                  "switch": [
+                    2,
+                    3
+                  ],
+                  "gate": [
+                    2,
+                    4
+                  ]
+                }
+              ],
+              "patrols": [
+                {
+                  "pattern": "back_and_forth",
+                  "cells": [
+                    [
+                      6,
+                      2
+                    ],
+                    [
+                      6,
+                      3
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "slip-and-jump",
+              "title": "Slip and jump",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 18,
+              "maxSteps": 120,
+              "rows": [
+                "........",
+                ".....#G#",
+                ">.......",
+                "#...#...",
+                ".#...#.."
+              ],
+              "hints": [
+                "Ice slides, a pair of teleporters jumps, and a guard watches the end.",
+                "A slide that ends on a teleporter goes on through it."
+              ],
+              "ice": [
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ]
+              ],
+              "teleports": [
+                {
+                  "a": [
+                    6,
+                    4
+                  ],
+                  "b": [
+                    6,
+                    2
+                  ]
+                }
+              ],
+              "patrols": [
+                {
+                  "pattern": "back_and_forth",
+                  "cells": [
+                    [
+                      2,
+                      2
+                    ],
+                    [
+                      2,
+                      3
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "belt-freight",
+              "title": "Belt freight",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 19,
+              "maxSteps": 120,
+              "rows": [
+                ">.....G#",
+                ".......#",
+                "........",
+                "........",
+                ".......#"
+              ],
+              "hints": [
+                "The belt carries you off the way to the dock.",
+                "The guard crosses the cells below the crate."
+              ],
+              "belts": [
+                {
+                  "cell": [
+                    1,
+                    0
+                  ],
+                  "direction": "west"
+                }
+              ],
+              "deliveries": [
+                {
+                  "item": [
+                    3,
+                    0
+                  ],
+                  "dock": [
+                    2,
+                    0
+                  ]
+                }
+              ],
+              "patrols": [
+                {
+                  "pattern": "back_and_forth",
+                  "cells": [
+                    [
+                      2,
+                      1
+                    ],
+                    [
+                      3,
+                      1
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "All together",
+          "levels": [
+            {
+              "slug": "four-tools",
+              "title": "Four tools",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 18,
+              "maxSteps": 120,
+              "rows": [
+                ">.......",
+                ".#..#..#",
+                ".......#",
+                "..#.....",
+                ".......G"
+              ],
+              "hints": [
+                "A key, a belt, a pair of teleporters and a guard share this board.",
+                "Take the key first, then work out the belt."
+              ],
+              "locks": [
+                {
+                  "key": [
+                    6,
+                    1
+                  ],
+                  "door": [
+                    1,
+                    0
+                  ]
+                }
+              ],
+              "belts": [
+                {
+                  "cell": [
+                    3,
+                    2
+                  ],
+                  "direction": "north"
+                }
+              ],
+              "teleports": [
+                {
+                  "a": [
+                    4,
+                    3
+                  ],
+                  "b": [
+                    4,
+                    4
+                  ]
+                }
+              ],
+              "patrols": [
+                {
+                  "pattern": "back_and_forth",
+                  "cells": [
+                    [
+                      6,
+                      3
+                    ],
+                    [
+                      6,
+                      4
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "everything",
+              "title": "Everything",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 19,
+              "maxSteps": 120,
+              "rows": [
+                "...#..G.",
+                ".#......",
+                "........",
+                ">.......",
+                "......#."
+              ],
+              "hints": [
+                "Crate, switch, ice and guard together.",
+                "The ice is in the way of the gate. The guard waits at the top."
+              ],
+              "deliveries": [
+                {
+                  "item": [
+                    0,
+                    0
+                  ],
+                  "dock": [
+                    1,
+                    0
+                  ]
+                }
+              ],
+              "switches": [
+                {
+                  "switch": [
+                    1,
+                    2
+                  ],
+                  "gate": [
+                    4,
+                    2
+                  ]
+                }
+              ],
+              "ice": [
+                [
+                  3,
+                  1
+                ],
+                [
+                  3,
+                  2
+                ],
+                [
+                  3,
+                  3
+                ]
+              ],
+              "patrols": [
+                {
+                  "pattern": "back_and_forth",
+                  "cells": [
+                    [
+                      4,
+                      0
+                    ],
+                    [
+                      4,
+                      1
+                    ]
+                  ]
                 }
               ]
             }
