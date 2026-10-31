@@ -153,6 +153,7 @@ test("explainResult has plain-language text for every reason", () => {
     "HIT_BY_PATROL",
     "BLOCKED_BY_DOOR",
     "UNDELIVERED",
+    "BLOCKED_BY_GATE",
     "INVALID_INSTRUCTION",
   ];
   assert.deepEqual(Object.keys(REASON_MESSAGES).sort(), [...reasons].sort());

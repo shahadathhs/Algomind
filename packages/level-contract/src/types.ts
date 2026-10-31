@@ -128,6 +128,17 @@ export interface Delivery {
   dock: Position;
 }
 
+/**
+ * A switch and the gate it toggles. Entering the switch's cell flips the gate (shut to open, open to
+ * shut), every time. A shut gate blocks like a wall (`BLOCKED_BY_GATE`). The gate starts shut unless
+ * `open` is true.
+ */
+export interface Switch {
+  switch: Position;
+  gate: Position;
+  open?: boolean;
+}
+
 export interface Level {
   schemaVersion: 1;
   levelId: string;
@@ -168,6 +179,11 @@ export interface Level {
    * The run succeeds on entering the target with every item delivered.
    */
   deliveries?: Delivery[];
+  /**
+   * Switches and the gates they toggle on the level's own board (not with `extraBoards` or the sweep
+   * goal). The state of a gate depends only on how often its switch cell has been entered.
+   */
+  switches?: Switch[];
   hints: string[];
 }
 
@@ -213,6 +229,12 @@ export type IssueCode =
   | "DELIVERY_CELLS_REPEAT"
   | "DELIVERIES_WITH_BOARDS"
   | "DELIVERIES_WITH_SWEEP"
+  | "SWITCH_ON_WALL"
+  | "SWITCH_ON_START"
+  | "SWITCH_ON_GOAL"
+  | "SWITCH_CELLS_REPEAT"
+  | "SWITCHES_WITH_BOARDS"
+  | "SWITCHES_WITH_SWEEP"
   | "PATROL_ON_WALL"
   | "PATROL_ON_START"
   | "PATROL_CELLS_REPEAT"
@@ -248,6 +270,7 @@ export type RunReason =
   | "HIT_BY_PATROL"
   | "BLOCKED_BY_DOOR"
   | "UNDELIVERED"
+  | "BLOCKED_BY_GATE"
   | "INVALID_INSTRUCTION";
 
 export type TraceEvent =
@@ -263,7 +286,9 @@ export type TraceEvent =
   | "KEY_TAKEN"
   | "ITEM_TAKEN"
   | "ITEM_DROPPED"
-  | "UNDELIVERED";
+  | "UNDELIVERED"
+  | "BLOCKED_BY_GATE"
+  | "SWITCHED";
 
 export interface TraceEntry {
   /** 0-based index of the executed step. */

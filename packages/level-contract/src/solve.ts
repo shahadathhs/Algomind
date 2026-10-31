@@ -13,6 +13,7 @@ interface Node {
   held?: number; // bit i is set when the key of lock i is held (levels with keys)
   carry?: number; // the item being carried plus one, 0 for empty hands (levels with deliveries)
   done?: number; // bit i is set when delivery i is delivered
+  flips?: number; // bit i is set when switch i has been entered an odd number of times
 }
 
 /**
@@ -35,7 +36,8 @@ export function solve(level: Level): SolveResult | null {
   if (level.goal.type !== "reach_tile") return null;
   // Patrols make the state depend on the step number, so the search is over (x, y, facing, step).
   // Keys add the keys held to the state, so the same layered search serves them.
-  if (hasPatrols(level) || hasLocks(level) || hasDeliveries(level)) return solveWithPatrols(level);
+  if (hasPatrols(level) || hasLocks(level) || hasDeliveries(level) || hasSwitches(level))
+    return solveWithPatrols(level);
   if (
     level.availableCommands.includes(REPEAT_OP) ||
     level.availableCommands.includes(REPEAT_UNTIL_OP)
@@ -104,6 +106,7 @@ export function solve(level: Level): SolveResult | null {
 const samePosition = (a: Position, b: Position): boolean => a[0] === b[0] && a[1] === b[1];
 const hasPatrols = (level: Level): boolean => (level.patrols ?? []).length > 0;
 const hasLocks = (level: Level): boolean => (level.locks ?? []).length > 0;
+const hasSwitches = (level: Level): boolean => (level.switches ?? []).length > 0;
 const hasDeliveries = (level: Level): boolean => (level.deliveries ?? []).length > 0;
 
 function key(x: number, y: number, dir: number, width: number, height: number): number {
@@ -126,6 +129,7 @@ function solveWithPatrols(level: Level): SolveResult | null {
   const { width, height } = level.board;
   const locks = level.locks ?? [];
   const deliveries = level.deliveries ?? [];
+  const switches = level.switches ?? [];
   const everything = (1 << deliveries.length) - 1;
   const nodes: Node[] = [
     {
@@ -164,6 +168,7 @@ function solveWithPatrols(level: Level): SolveResult | null {
         let held = cur.held ?? 0;
         let carry = cur.carry ?? 0;
         let done = cur.done ?? 0;
+        let flips = cur.flips ?? 0;
         if (op === "MOVE_FORWARD") {
           const target: Position = cellAhead([x, y], DIRECTIONS[dir] as Direction);
           if (!isInsideBoard(level, target) || isWall(level, target)) continue;
@@ -171,6 +176,11 @@ function solveWithPatrols(level: Level): SolveResult | null {
           if (door >= 0 && (held & (1 << door)) === 0) continue;
           x = target[0];
           y = target[1];
+          const gate = switches.findIndex((s) => samePosition(s.gate, target));
+          if (gate >= 0 && (switches[gate]!.open === true) === ((flips & (1 << gate)) !== 0))
+            continue;
+          const toggled = switches.findIndex((s) => samePosition(s.switch, target));
+          if (toggled >= 0) flips ^= 1 << toggled;
           const picked = locks.findIndex((lock) => samePosition(lock.key, target));
           if (picked >= 0) held |= 1 << picked;
           const dock = deliveries.findIndex((d) => samePosition(d.dock, target));
@@ -190,11 +200,11 @@ function solveWithPatrols(level: Level): SolveResult | null {
         const atGoal = x === goal[0] && y === goal[1];
         // Entering the target with an item left ends the run in failure, so it is no move to search.
         if (atGoal && done !== everything) continue;
-        const extra = held | (done << 3) | (carry << 6);
+        const extra = held | (done << 3) | (carry << 6) | (flips << 8);
         const k = key(x, y, dir, width, height) + extra * width * height * 4;
         if (seen.has(k)) continue;
         seen.add(k);
-        nodes.push({ x, y, dir, parent: head, op, held, carry, done });
+        nodes.push({ x, y, dir, parent: head, op, held, carry, done, flips });
         if (atGoal) return finish(nodes.length - 1);
         next.push(nodes.length - 1);
       }

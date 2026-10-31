@@ -84,7 +84,15 @@ test("the schema requires every field of the Level type, and the authoring schem
   // boards, keys, patrols or a starting program leaves them out.
   assert.deepEqual(
     Object.keys(props).sort(),
-    [...body.required, "deliveries", "extraBoards", "locks", "patrols", "startProgram"].sort(),
+    [
+      ...body.required,
+      "deliveries",
+      "extraBoards",
+      "locks",
+      "patrols",
+      "startProgram",
+      "switches",
+    ].sort(),
   );
   assert.equal(pub.unevaluatedProperties, false);
   assert.equal(authoring.unevaluatedProperties, false);
