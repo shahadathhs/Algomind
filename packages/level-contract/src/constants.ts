@@ -123,6 +123,8 @@ export const LIMITS = {
   patrolLoopCells: { min: 4, max: 12 },
   /** Key and door pairs on a level. */
   locks: { min: 1, max: 3 },
+  /** Items to deliver on a level. */
+  deliveries: { min: 1, max: 3 },
   levelVersion: { min: 1, max: 1_000_000 },
   /** Lengths are counted in Unicode code points. */
   levelId: { min: 1, max: 64 },

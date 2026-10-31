@@ -270,6 +270,14 @@
           "items": {
             "$ref": "#/$defs/lock"
           }
+        },
+        "deliveries": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/delivery"
+          }
         }
       }
     },
@@ -509,6 +517,19 @@
               }
             ]
           }
+        }
+      }
+    },
+    "delivery": {
+      "type": "object",
+      "required": ["item", "dock"],
+      "additionalProperties": false,
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/position"
+        },
+        "dock": {
+          "$ref": "#/$defs/position"
         }
       }
     },

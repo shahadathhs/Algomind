@@ -118,6 +118,16 @@ export interface Lock {
   door: Position;
 }
 
+/**
+ * An item and the dock it belongs on. The automaton picks the item up by entering its cell (only with
+ * empty hands: it carries one item at a time) and delivers it by entering the dock. The target counts
+ * only once every item is delivered (`UNDELIVERED` otherwise).
+ */
+export interface Delivery {
+  item: Position;
+  dock: Position;
+}
+
 export interface Level {
   schemaVersion: 1;
   levelId: string;
@@ -153,6 +163,11 @@ export interface Level {
    * picked up by entering their cell and kept for the rest of the run.
    */
   locks?: Lock[];
+  /**
+   * Items to carry to their docks on the level's own board (not with `extraBoards` or the sweep goal).
+   * The run succeeds on entering the target with every item delivered.
+   */
+  deliveries?: Delivery[];
   hints: string[];
 }
 
@@ -192,6 +207,12 @@ export type IssueCode =
   | "LOCK_CELLS_REPEAT"
   | "LOCKS_WITH_BOARDS"
   | "LOCKS_WITH_SWEEP"
+  | "DELIVERY_ON_WALL"
+  | "DELIVERY_ON_START"
+  | "DELIVERY_ON_GOAL"
+  | "DELIVERY_CELLS_REPEAT"
+  | "DELIVERIES_WITH_BOARDS"
+  | "DELIVERIES_WITH_SWEEP"
   | "PATROL_ON_WALL"
   | "PATROL_ON_START"
   | "PATROL_CELLS_REPEAT"
@@ -226,6 +247,7 @@ export type RunReason =
   | "STEP_LIMIT"
   | "HIT_BY_PATROL"
   | "BLOCKED_BY_DOOR"
+  | "UNDELIVERED"
   | "INVALID_INSTRUCTION";
 
 export type TraceEvent =
@@ -238,7 +260,10 @@ export type TraceEvent =
   | "BLOCKED_BY_BOUNDARY"
   | "HIT_BY_PATROL"
   | "BLOCKED_BY_DOOR"
-  | "KEY_TAKEN";
+  | "KEY_TAKEN"
+  | "ITEM_TAKEN"
+  | "ITEM_DROPPED"
+  | "UNDELIVERED";
 
 export interface TraceEntry {
   /** 0-based index of the executed step. */

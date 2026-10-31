@@ -233,6 +233,12 @@ export function simulate(level: Level, program: Program): RunResult {
     const lock = doorAt.get(cellKey(cell));
     return lock !== undefined && !held.has(lock);
   };
+  // Deliveries: `itemAt` and `dockAt` map a cell to the index of its delivery; the automaton carries at
+  // most one item (`carrying`, an index or -1) and `delivered` holds the dropped ones.
+  const itemAt = new Map((level.deliveries ?? []).map((d, i) => [cellKey(d.item), i]));
+  const dockAt = new Map((level.deliveries ?? []).map((d, i) => [cellKey(d.dock), i]));
+  const delivered = new Set<number>();
+  let carrying = -1;
   const isFloor = (cell: Position): boolean =>
     onBoard(cell) && !walls.has(cellKey(cell)) && !isClosedDoor(cell);
 
@@ -308,6 +314,10 @@ export function simulate(level: Level, program: Program): RunResult {
     const reached = target
       ? position[0] === target[0] && position[1] === target[1]
       : visited.size === floorCells;
+    if (reached && delivered.size < itemAt.size) {
+      trace.push(entry("UNDELIVERED"));
+      return finish("FAILED", "UNDELIVERED", null);
+    }
     if (reached) {
       trace.push(entry("GOAL_REACHED"));
       return finish("SUCCEEDED", "GOAL_REACHED", null);
@@ -316,6 +326,20 @@ export function simulate(level: Level, program: Program): RunResult {
     if (key !== undefined && !held.has(key)) {
       held.add(key);
       trace.push(entry("KEY_TAKEN"));
+      return null;
+    }
+    const here = cellKey(position);
+    const dock = dockAt.get(here);
+    if (dock !== undefined && dock === carrying) {
+      delivered.add(dock);
+      carrying = -1;
+      trace.push(entry("ITEM_DROPPED"));
+      return null;
+    }
+    const item = itemAt.get(here);
+    if (item !== undefined && carrying < 0 && !delivered.has(item)) {
+      carrying = item;
+      trace.push(entry("ITEM_TAKEN"));
       return null;
     }
     trace.push(entry("MOVED"));

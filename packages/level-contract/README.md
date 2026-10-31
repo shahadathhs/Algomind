@@ -89,6 +89,8 @@ A level may also carry `patrols`, one to three guards `{ pattern, cells }` (`bac
 
 A level may also carry `locks`, one to three `{ key, door }` pairs (`docs/README_GAME_RULES.md` section 3.11): entering a key's cell picks it up, and a door blocks with `BLOCKED_BY_DOOR` until its key is held. The validator reports `LOCK_ON_WALL`, `LOCK_ON_START`, `LOCK_ON_GOAL`, `LOCK_CELLS_REPEAT`, `LOCKS_WITH_BOARDS` and `LOCKS_WITH_SWEEP`, and `solve` adds the keys held to its state.
 
+A level may also carry `deliveries`, one to three `{ item, dock }` pairs (`docs/README_GAME_RULES.md` section 3.12): entering an item's cell with empty hands picks it up (`ITEM_TAKEN`), entering its dock drops it (`ITEM_DROPPED`), and entering the target with an item left fails with `UNDELIVERED`. The validator reports `DELIVERY_ON_WALL`, `DELIVERY_ON_START`, `DELIVERY_ON_GOAL`, `DELIVERY_CELLS_REPEAT` (also against the cells of `locks`), `DELIVERIES_WITH_BOARDS` and `DELIVERIES_WITH_SWEEP`, and `solve` adds what is carried and delivered to its state.
+
 The solver does not search `IF` programs. With `IF` offered it still finds the best program without one (loops included); par for such a level is the author's reference solution, which the publish gate runs.
 
 **Slots.** The command limit counts slots: a primitive is 1, a `REPEAT` is 1 plus the number of instructions in its body. `REPEAT 6 { MOVE_FORWARD, TURN_RIGHT, MOVE_FORWARD, TURN_LEFT }` is 5 slots. `programSlots(program)` computes it.

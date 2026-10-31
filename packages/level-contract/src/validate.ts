@@ -47,6 +47,7 @@ const PUBLIC_KEYS = [
   "startProgram",
   "patrols",
   "locks",
+  "deliveries",
   "hints",
 ];
 
@@ -472,42 +473,92 @@ function validatePatrols(c: Collector, root: Obj): void {
   });
 }
 
-function validateLocks(c: Collector, root: Obj): void {
-  if (!has(root, "locks")) return;
-  const raw = root["locks"];
+/** What differs between the two kinds of paired cells on a board: keys and doors, items and docks. */
+interface PairSpec {
+  field: "locks" | "deliveries";
+  parts: [string, string];
+  noun: string;
+  limits: { min: number; max: number };
+  codes: Record<"wall" | "start" | "goal" | "repeat" | "boards" | "sweep", IssueCode>;
+  /** The field whose cells these may not share. */
+  apart?: "locks";
+}
+
+const LOCK_SPEC: PairSpec = {
+  field: "locks",
+  parts: ["key", "door"],
+  noun: "keys and doors",
+  limits: LIMITS.locks,
+  codes: {
+    wall: "LOCK_ON_WALL",
+    start: "LOCK_ON_START",
+    goal: "LOCK_ON_GOAL",
+    repeat: "LOCK_CELLS_REPEAT",
+    boards: "LOCKS_WITH_BOARDS",
+    sweep: "LOCKS_WITH_SWEEP",
+  },
+};
+
+const DELIVERY_SPEC: PairSpec = {
+  field: "deliveries",
+  parts: ["item", "dock"],
+  noun: "deliveries",
+  limits: LIMITS.deliveries,
+  apart: "locks",
+  codes: {
+    wall: "DELIVERY_ON_WALL",
+    start: "DELIVERY_ON_START",
+    goal: "DELIVERY_ON_GOAL",
+    repeat: "DELIVERY_CELLS_REPEAT",
+    boards: "DELIVERIES_WITH_BOARDS",
+    sweep: "DELIVERIES_WITH_SWEEP",
+  },
+};
+
+/** Validates `locks` or `deliveries`: pairs of cells on the level's own board, all different. */
+function validatePairs(c: Collector, root: Obj, spec: PairSpec): void {
+  const { field, parts, noun, limits, codes } = spec;
+  if (!has(root, field)) return;
+  const raw = root[field];
   if (!Array.isArray(raw)) {
-    c.add("locks", "INVALID_TYPE", "locks must be an array.");
+    c.add(field, "INVALID_TYPE", `${field} must be an array.`);
     return;
   }
-  const lim = LIMITS.locks;
-  if (raw.length < lim.min || raw.length > lim.max) {
+  if (raw.length < limits.min || raw.length > limits.max) {
     c.add(
-      "locks",
+      field,
       "LENGTH_OUT_OF_RANGE",
-      `locks must have ${lim.min} to ${lim.max} entries, or be left out.`,
+      `${field} must have ${limits.min} to ${limits.max} entries, or be left out.`,
     );
   }
   if (has(root, "extraBoards")) {
-    c.add("locks", "LOCKS_WITH_BOARDS", "A level with test boards cannot have keys and doors.");
+    c.add(field, codes.boards, `A level with test boards cannot have ${noun}.`);
   }
   const goalType = isObject(root["goal"]) ? root["goal"]["type"] : undefined;
   if (goalType === "visit_all") {
-    c.add(
-      "locks",
-      "LOCKS_WITH_SWEEP",
-      "A level that sweeps every cell cannot have keys and doors.",
-    );
+    c.add(field, codes.sweep, `A level that sweeps every cell cannot have ${noun}.`);
   }
   const facts = boardFacts(root);
   const seen: [number, number][] = [];
+  const apart = spec.apart ? root[spec.apart] : undefined;
+  if (spec.apart && Array.isArray(apart)) {
+    for (const other of apart) {
+      for (const part of LOCK_SPEC.parts) {
+        const cell = isObject(other) ? other[part] : undefined;
+        if (Array.isArray(cell) && cell.length === 2 && isInt(cell[0]) && isInt(cell[1])) {
+          seen.push([cell[0], cell[1]]);
+        }
+      }
+    }
+  }
   raw.forEach((entry, i) => {
-    const path = `locks[${i}]`;
+    const path = `${field}[${i}]`;
     if (!isObject(entry)) {
       c.add(path, "INVALID_TYPE", `${path} must be an object.`);
       return;
     }
-    rejectUnknown(c, entry, path, ["key", "door"]);
-    for (const part of ["key", "door"] as const) {
+    rejectUnknown(c, entry, path, parts);
+    for (const part of parts) {
       const cellPath = `${path}.${part}`;
       if (!has(entry, part)) {
         c.add(cellPath, "REQUIRED", `${cellPath} is required.`);
@@ -516,16 +567,16 @@ function validateLocks(c: Collector, root: Obj): void {
       const pair = checkPair(c, entry[part], cellPath, facts.size);
       if (!pair) continue;
       if (facts.walls.some((w) => samePair(w, pair))) {
-        c.add(cellPath, "LOCK_ON_WALL", `${cellPath} must not be a wall.`);
+        c.add(cellPath, codes.wall, `${cellPath} must not be a wall.`);
       }
       if (facts.start && samePair(facts.start, pair)) {
-        c.add(cellPath, "LOCK_ON_START", `${cellPath} must not be the automaton's cell.`);
+        c.add(cellPath, codes.start, `${cellPath} must not be the automaton's cell.`);
       }
       if (facts.goal && samePair(facts.goal, pair)) {
-        c.add(cellPath, "LOCK_ON_GOAL", `${cellPath} must not be the target.`);
+        c.add(cellPath, codes.goal, `${cellPath} must not be the target.`);
       }
       if (seen.some((s) => samePair(s, pair))) {
-        c.add(cellPath, "LOCK_CELLS_REPEAT", `${cellPath} repeats an earlier key or door.`);
+        c.add(cellPath, codes.repeat, `${cellPath} repeats an earlier cell of ${noun}.`);
       } else {
         seen.push(pair);
       }
@@ -701,7 +752,8 @@ function run(c: Collector, input: unknown, authoring: boolean): void {
   validateBoardAndCells(c, input);
   validateExtraBoards(c, input);
   validatePatrols(c, input);
-  validateLocks(c, input);
+  validatePairs(c, input, LOCK_SPEC);
+  validatePairs(c, input, DELIVERY_SPEC);
   validateCommands(c, input);
   validateConstraints(c, input);
   validateHints(c, input);
