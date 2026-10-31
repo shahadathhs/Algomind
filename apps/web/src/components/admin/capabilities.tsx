@@ -22,6 +22,7 @@ const MECHANICS = [
   "start_program",
   "patrol",
   "keys",
+  "delivery",
 ];
 
 /** Which mechanics each released app version supports. Publishing checks the minimum version. */

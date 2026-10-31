@@ -57,9 +57,11 @@ export type LevelDef = {
   extraBoards?: readonly (readonly string[])[];
   /** A debug level: the program the tape starts with. It must fail; `solution` is its fix. */
   startProgram?: readonly unknown[];
-  /** Guards that walk a fixed route: their cell depends only on the step number. */
   /** Keys and the doors they open. */
   locks?: readonly { key: readonly [number, number]; door: readonly [number, number] }[];
+  /** Items and the docks they belong on: the target counts once every item is delivered. */
+  deliveries?: readonly { item: readonly [number, number]; dock: readonly [number, number] }[];
+  /** Guards that walk a fixed route: their cell depends only on the step number. */
   patrols?: readonly {
     pattern: "back_and_forth" | "loop";
     cells: readonly (readonly [number, number])[];
@@ -101,6 +103,14 @@ export function buildLevel(def: LevelDef, id: string): Level {
     ...(def.locks
       ? {
           locks: def.locks.map((l) => ({ key: [...l.key], door: [...l.door] })) as Level["locks"],
+        }
+      : {}),
+    ...(def.deliveries
+      ? {
+          deliveries: def.deliveries.map((d) => ({
+            item: [...d.item],
+            dock: [...d.dock],
+          })) as Level["deliveries"],
         }
       : {}),
     ...(def.patrols

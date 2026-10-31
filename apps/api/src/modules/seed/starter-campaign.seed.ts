@@ -199,6 +199,7 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
           "start_program",
           "patrol",
           "keys",
+          "delivery",
         ],
         isMinimum: !hasMinimum,
       },

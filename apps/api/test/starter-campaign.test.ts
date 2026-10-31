@@ -25,7 +25,7 @@ const analysisOf = (entry: (typeof built)[number]) => {
 };
 
 describe("the starter campaign", () => {
-  it("has fourteen worlds, thirty chapters, and seventy-seven levels in a fixed order", () => {
+  it("has fifteen worlds, thirty-three chapters, and eighty-three levels in a fixed order", () => {
     expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual([
       "Basics",
       "Routes",
@@ -41,6 +41,7 @@ describe("the starter campaign", () => {
       "Sweep",
       "Patrol",
       "Keys",
+      "Delivery",
     ]);
     expect(CAMPAIGN.worlds.flatMap((w) => w.chapters.map((c) => c.title))).toEqual([
       "Moves",
@@ -73,13 +74,19 @@ describe("the starter campaign", () => {
       "First keys",
       "Two doors",
       "Guarded",
+      "First parcels",
+      "Two parcels",
+      "In the way",
     ]);
-    expect(LEVELS).toHaveLength(77);
+    expect(LEVELS).toHaveLength(83);
   });
 
   it("gives every Patrol level guards, and no other level any", () => {
     for (const entry of built) {
-      const patrol = entry.world.title === "Patrol" || entry.chapterTitle === "Guarded";
+      const patrol =
+        entry.world.title === "Patrol" ||
+        entry.chapterTitle === "Guarded" ||
+        entry.def.slug === "guarded-parcel";
       expect(entry.def.patrols !== undefined, entry.def.slug).toBe(patrol);
       if (!patrol) continue;
       // The guards matter: the shortest program without them fails, and the limit is the exact par.
@@ -93,7 +100,7 @@ describe("the starter campaign", () => {
 
   it("gives every Keys level a lock, and the shortest program that ignores them fails", () => {
     for (const entry of built) {
-      const keys = entry.world.title === "Keys";
+      const keys = entry.world.title === "Keys" || entry.def.slug === "behind-the-door";
       expect(entry.def.locks !== undefined, entry.def.slug).toBe(keys);
       if (!keys) continue;
       const bare = solve({ ...entry.level, locks: undefined, patrols: undefined })!;
@@ -105,6 +112,24 @@ describe("the starter campaign", () => {
       expect(entry.def.patrols !== undefined, entry.def.slug).toBe(
         entry.chapterTitle === "Guarded",
       );
+    }
+  });
+
+  it("gives every Delivery level a crate, and the shortest program that ignores them fails", () => {
+    for (const entry of built) {
+      const delivery = entry.world.title === "Delivery";
+      expect(entry.def.deliveries !== undefined, entry.def.slug).toBe(delivery);
+      if (!delivery) continue;
+      const bare = solve({
+        ...entry.level,
+        deliveries: undefined,
+        locks: undefined,
+        patrols: undefined,
+      })!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+      expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
     }
   });
 

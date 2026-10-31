@@ -1,4 +1,4 @@
-// The starter campaign: fourteen worlds, thirty chapters, seventy-seven levels, in play order.
+// The starter campaign: fifteen worlds, thirty-three chapters, eighty-three levels, in play order.
 // Source of truth for the seed. Boards are text rows: `.` floor, `#` wall, `G` target, and `^ > v <`
 // for the automaton and its facing. The JSON below is read by scripts/level-lab/cli.mjs (check), so
 // it stays plain JSON: prettier must not reformat it.
@@ -21,6 +21,9 @@
 // by step number; the limit equals the shortest program found by the exact search over (cell, facing, step).
 // World 14 (Keys) puts keys and doors on the board (`locks`): a door blocks until its key has been entered; the
 // search adds the keys held to the state, and the last chapter adds a guard.
+// World 15 (Delivery) puts crates and docks on the board (`deliveries`): the automaton carries one crate at a time,
+// a crate is dropped by entering its dock, and the target counts once every crate is delivered; the search
+// adds what is carried and what is delivered to the state. Its last chapter has a key and a guard.
 
 // prettier-ignore
 export const CAMPAIGN = {
@@ -4784,6 +4787,272 @@ export const CAMPAIGN = {
                       0,
                       0
                     ],
+                    [
+                      1,
+                      0
+                    ],
+                    [
+                      1,
+                      1
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Delivery",
+      "description": "Pick up a crate by walking onto it, then drop it on the corner marks. The target counts only after every delivery.",
+      "chapters": [
+        {
+          "title": "First parcels",
+          "levels": [
+            {
+              "slug": "first-parcel",
+              "title": "First parcel",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 9,
+              "maxSteps": 120,
+              "rows": [
+                "#.#..",
+                ">...G",
+                "..#.."
+              ],
+              "hints": [
+                "Walk onto the crate to pick it up. It rides with the automaton.",
+                "Drop it by walking onto the corner marks. Then the target counts."
+              ],
+              "deliveries": [
+                {
+                  "item": [
+                    1,
+                    1
+                  ],
+                  "dock": [
+                    3,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "behind-the-start",
+              "title": "Behind the start",
+              "difficulty": "easy",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 10,
+              "maxSteps": 120,
+              "rows": [
+                "...#.",
+                ">...G",
+                "...#."
+              ],
+              "hints": [
+                "Reaching the target with the crate undelivered ends the run.",
+                "The crate is behind the automaton."
+              ],
+              "deliveries": [
+                {
+                  "item": [
+                    0,
+                    0
+                  ],
+                  "dock": [
+                    3,
+                    1
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Two parcels",
+          "levels": [
+            {
+              "slug": "two-parcels",
+              "title": "Two parcels",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 14,
+              "maxSteps": 120,
+              "rows": [
+                "#..#.",
+                ">...G",
+                "#...."
+              ],
+              "hints": [
+                "Each crate goes to its own corner marks.",
+                "Hands hold one crate: drop the first before taking the second."
+              ],
+              "deliveries": [
+                {
+                  "item": [
+                    1,
+                    0
+                  ],
+                  "dock": [
+                    1,
+                    2
+                  ]
+                },
+                {
+                  "item": [
+                    2,
+                    2
+                  ],
+                  "dock": [
+                    2,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "full-hands",
+              "title": "Full hands",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 16,
+              "maxSteps": 120,
+              "rows": [
+                "..#...",
+                ">....G",
+                "..#..."
+              ],
+              "hints": [
+                "A crate walked over while carrying another stays where it lies.",
+                "Deliver one, then come back for the other."
+              ],
+              "deliveries": [
+                {
+                  "item": [
+                    1,
+                    1
+                  ],
+                  "dock": [
+                    4,
+                    2
+                  ]
+                },
+                {
+                  "item": [
+                    3,
+                    1
+                  ],
+                  "dock": [
+                    4,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "In the way",
+          "levels": [
+            {
+              "slug": "behind-the-door",
+              "title": "Behind the door",
+              "difficulty": "medium",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 15,
+              "maxSteps": 120,
+              "rows": [
+                "#.#..",
+                ">...G",
+                "#.#.."
+              ],
+              "hints": [
+                "The crate lies behind the door, and the key is off the straight way.",
+                "Take the key, open the door, then drop the crate on the corner marks before the target."
+              ],
+              "deliveries": [
+                {
+                  "item": [
+                    3,
+                    1
+                  ],
+                  "dock": [
+                    3,
+                    0
+                  ]
+                }
+              ],
+              "locks": [
+                {
+                  "key": [
+                    1,
+                    0
+                  ],
+                  "door": [
+                    2,
+                    1
+                  ]
+                }
+              ]
+            },
+            {
+              "slug": "guarded-parcel",
+              "title": "Guarded parcel",
+              "difficulty": "hard",
+              "commands": [
+                "MOVE_FORWARD",
+                "TURN_LEFT",
+                "TURN_RIGHT"
+              ],
+              "maxCommands": 15,
+              "maxSteps": 120,
+              "rows": [
+                "...#..",
+                ">....G",
+                "...#.#"
+              ],
+              "hints": [
+                "The guard walks the column next to the crate.",
+                "Count the guard's steps. A turn in place also takes a step."
+              ],
+              "deliveries": [
+                {
+                  "item": [
+                    0,
+                    0
+                  ],
+                  "dock": [
+                    2,
+                    1
+                  ]
+                }
+              ],
+              "patrols": [
+                {
+                  "pattern": "back_and_forth",
+                  "cells": [
                     [
                       1,
                       0

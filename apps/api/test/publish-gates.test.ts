@@ -123,6 +123,15 @@ describe("publish gates", () => {
     expect(analysis.errors.map((e) => e.code)).toContain("REFERENCE_SOLUTION_FAILS");
   });
 
+  it("delivery: a level with crates needs the mechanic, and the straight way is not a solution", () => {
+    const parcel = level({ deliveries: [{ item: [1, 4], dock: [2, 3] }] });
+    const analysis = analyzeLevel(parcel, SOLUTION);
+    expect(analysis.requiredMechanics).toContain("delivery");
+    expect(analyzeLevel(level(), SOLUTION).requiredMechanics).not.toContain("delivery");
+    // The straight program reaches the target with the crate undelivered.
+    expect(analysis.errors.map((e) => e.code)).toContain("REFERENCE_SOLUTION_FAILS");
+  });
+
   it("par: refuses a goal that cannot be reached", () => {
     const walled = level({
       board: {
