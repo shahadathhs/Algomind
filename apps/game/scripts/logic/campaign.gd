@@ -28,6 +28,8 @@ const SUPPORTED_MECHANICS: Array[String] = [
 	"keys",
 	"delivery",
 	"switch",
+	"teleport",
+	"recursion",
 	"ice",
 	"belts",
 ]

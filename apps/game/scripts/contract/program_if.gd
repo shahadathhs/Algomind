@@ -11,7 +11,9 @@ static func check_if(
 ) -> void:
 	var issues: Array[Dictionary] = ctx["issues"]
 	_check_when(ctx, node, path)
-	var branch := ProgramShape.place_of(false, place["proc"], int(place["loops"]), true)
+	var branch := ProgramShape.place_of(
+		false, place["proc"], int(place["loops"]), true, place["recursion"]
+	)
 	var then_list: Variant = ProgramFields.check_list(
 		issues, node, "then", path, ContractLimits.IF_THEN_MIN, ContractLimits.IF_THEN_MAX, true
 	)

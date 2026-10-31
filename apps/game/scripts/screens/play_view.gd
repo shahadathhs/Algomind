@@ -99,7 +99,10 @@ static func refresh_palette(p: PlayScreen, solved: bool, running: bool) -> void:
 	for button: TileButton in p._call_buttons:
 		var name: String = button.get_meta("name")
 		button.visible = (
-			not solved and tape.open_proc() < 0 and not if_open and tape.defined_names().has(name)
+			not solved
+			and (tape.open_proc() < 0 or tape.recursion)
+			and not if_open
+			and tape.defined_names().has(name)
 		)
 		button.set_disabled(running or not tape.can_call(name))
 		button.queue_redraw()
@@ -122,7 +125,11 @@ static func refresh_palette(p: PlayScreen, solved: bool, running: bool) -> void:
 ## True when the selected cell is one whose tap changes its sensor or condition.
 static func can_cycle(tape: TapeModel) -> bool:
 	var kind := tape.selected_kind()
-	return kind == "if" or (kind == "until" and tape.available.has("IF"))
+	return (
+		kind == "if"
+		or (kind == "until" and tape.available.has("IF"))
+		or (kind == "call" and tape.recursion)
+	)
 
 
 ## The trace paths (see TapeCells.key_of) of the commands the run has shown so far.
@@ -157,11 +164,14 @@ static func refresh_tools(p: PlayScreen) -> void:
 	tools[1].set_disabled(at >= values.size() - 1)
 	if tools[5].visible:
 		var node := tape.node_of(cell)
-		tools[5].icon = (
-			TapeIfCells.icon(node["when"])
-			if cell["kind"] == "if"
-			else ("goal" if node["until"] == "GOAL" else "until")
-		)
+		if cell["kind"] == "call":
+			tools[5].icon = TapeIfCells.icon(node["when"]) if node.has("when") else "call"
+		else:
+			tools[5].icon = (
+				TapeIfCells.icon(node["when"])
+				if cell["kind"] == "if"
+				else ("goal" if node["until"] == "GOAL" else "until")
+			)
 		tools[5].queue_redraw()
 
 

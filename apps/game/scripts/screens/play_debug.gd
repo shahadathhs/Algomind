@@ -47,7 +47,8 @@ static func overlay(p: PlayScreen, kind: String) -> void:
 
 ## Letters are commands (I is INC and K is MARK); "3{MRML}" is a loop of three rounds over that
 ## body and "U{M}" a loop that runs its body until the way ahead is blocked. "P{MR}" defines the
-## next procedure over that body (no closing brace leaves it open) and "@A" calls procedure A.
+## next procedure over that body (no closing brace leaves it open) and "@A" calls procedure A; in a
+## procedure body "@A?" calls A while the way ahead is clear (a recursion).
 static func _fill_tape(tape: TapeModel, program_text: String) -> void:
 	var i := 0
 	while i < program_text.length():
@@ -58,8 +59,7 @@ static func _fill_tape(tape: TapeModel, program_text: String) -> void:
 			if proc_open_end:
 				proc_close = program_text.length()
 			tape.append(TapeModel.PROC)
-			for inner in program_text.substr(i + 2, proc_close - i - 2):
-				tape.append(LETTERS.get(inner, "MOVE_FORWARD"))
+			_fill_proc_body(tape, program_text.substr(i + 2, proc_close - i - 2))
 			if not proc_open_end:
 				tape.end_proc()
 			i = proc_close + 1
@@ -102,3 +102,20 @@ static func _fill_tape(tape: TapeModel, program_text: String) -> void:
 			continue
 		tape.append(LETTERS.get(letter, "MOVE_FORWARD"))
 		i += 1
+
+
+## The body of a procedure: letters, "@A" for a CALL of A and "@A?" for a CALL that looks ahead.
+static func _fill_proc_body(tape: TapeModel, body_text: String) -> void:
+	var j := 0
+	while j < body_text.length():
+		if body_text[j] != "@":
+			tape.append(LETTERS.get(body_text[j], "MOVE_FORWARD"))
+			j += 1
+			continue
+		tape.append_call(body_text.substr(j + 1, 1))
+		j += 2
+		if j < body_text.length() and body_text[j] == "?":
+			tape.selected = tape.cells().size() - 1
+			tape.cycle_condition()
+			tape.selected = -1
+			j += 1

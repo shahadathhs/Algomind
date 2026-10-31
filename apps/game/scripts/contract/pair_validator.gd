@@ -53,6 +53,23 @@ const SWITCHES := {
 const PART_NAMES := {
 	"locks": ["key", "door"],
 	"deliveries": ["item", "dock"],
+	"switches": ["switch", "gate"],
+	"teleports": ["a", "b"],
+}
+
+const TELEPORTS := {
+	"field": "teleports",
+	"parts": ["a", "b"],
+	"noun": "teleporters",
+	"min": ContractLimits.TELEPORTS_MIN,
+	"max": ContractLimits.TELEPORTS_MAX,
+	"apart": ["locks", "deliveries", "switches", "ice", "belts"],
+	"wall": "TELEPORT_ON_WALL",
+	"start": "TELEPORT_ON_START",
+	"goal": "TELEPORT_ON_GOAL",
+	"repeat": "TELEPORT_CELLS_REPEAT",
+	"boards": "TELEPORTS_WITH_BOARDS",
+	"sweep": "TELEPORTS_WITH_SWEEP",
 }
 
 
@@ -60,6 +77,7 @@ static func check_all(issues: Array[Dictionary], root: Dictionary) -> void:
 	check_pairs(issues, root, LOCKS)
 	check_pairs(issues, root, DELIVERIES)
 	check_pairs(issues, root, SWITCHES)
+	check_pairs(issues, root, TELEPORTS)
 
 
 static func check_pairs(issues: Array[Dictionary], root: Dictionary, spec: Dictionary) -> void:
@@ -101,21 +119,33 @@ static func check_pairs(issues: Array[Dictionary], root: Dictionary, spec: Dicti
 		_check_entry(issues, entries[i], "%s[%d]" % [field, i], spec, facts, seen)
 
 
-## The cells of `locks` or `deliveries`, read leniently (an entry that is not a pair is skipped).
+## One cell read leniently from a value that may be a pair of integers, or null.
+static func _as_cell(value: Variant) -> Variant:
+	if typeof(value) == TYPE_ARRAY and (value as Array).size() == 2:
+		var x: Variant = value[0]
+		var y: Variant = value[1]
+		if LevelValidator._is_int(x) and LevelValidator._is_int(y):
+			return Vector2i(int(x), int(y))
+	return null
+
+
+## The cells named by a field of the level (`locks`, `deliveries`, `switches`, `ice` or `belts`),
+## read leniently: an entry that is not a cell is skipped.
 static func _cells_of(root: Dictionary, field: String) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	if typeof(root.get(field)) != TYPE_ARRAY:
 		return cells
 	for entry: Variant in root[field]:
-		if typeof(entry) != TYPE_DICTIONARY:
-			continue
-		for part: String in PART_NAMES[field]:
-			var cell: Variant = (entry as Dictionary).get(part)
-			if typeof(cell) == TYPE_ARRAY and (cell as Array).size() == 2:
-				var x: Variant = cell[0]
-				var y: Variant = cell[1]
-				if LevelValidator._is_int(x) and LevelValidator._is_int(y):
-					cells.append(Vector2i(int(x), int(y)))
+		var found: Array = []
+		if field == "ice":
+			found.append(_as_cell(entry))
+		elif typeof(entry) == TYPE_DICTIONARY:
+			var names: Array = ["cell"] if field == "belts" else PART_NAMES[field]
+			for part: String in names:
+				found.append(_as_cell((entry as Dictionary).get(part)))
+		for cell: Variant in found:
+			if cell != null:
+				cells.append(cell)
 	return cells
 
 

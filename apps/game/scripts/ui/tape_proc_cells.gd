@@ -29,10 +29,12 @@ static func draw(canvas: CanvasItem, cell: Dictionary, rect: Rect2, fill: Fill) 
 			tone = TileDraw.Tone.SOLID
 			color = Palette.ON_INK
 	rect = TileDraw.tile(canvas, rect, tone)
-	var word := "PROC" if is_header(cell) else "CALL"
+	var word := "PROC" if is_header(cell) else ("CALL IF" if cell.has("when") else "CALL")
 	var tall := rect.size.y >= 48.0
 	if tall:
 		var kind := "proc" if is_header(cell) else "call"
+		if cell.has("when"):
+			kind = TapeIfCells.icon(cell["when"])
 		var center := Vector2(rect.get_center().x, rect.position.y + rect.size.y * 0.24)
 		UiKit.icon(canvas, kind, center, rect.size.x * 0.4, color)
 	var area := Rect2(

@@ -116,6 +116,8 @@ func _draw() -> void:
 				draw_rect(rect, Palette.FLOOR)
 	if level.has("ice") or level.has("belts"):
 		FloorDraw.draw(self, level, _unit_to_canvas(geometry), Palette.WALL_HATCH, Palette.INK)
+	if level.has("teleports"):
+		TeleportDraw.draw(self, level, _unit_to_canvas(geometry), Palette.INK)
 	if level.has("locks"):
 		_draw_locks(geometry)
 	if level.has("deliveries"):

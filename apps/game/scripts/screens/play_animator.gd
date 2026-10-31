@@ -35,7 +35,16 @@ static func show_step(p: PlayScreen, id: int, entry: Dictionary) -> bool:
 		var chain := p.create_tween()
 		if UiLook.depth:
 			chain.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		if cells.size() > 1:
+		if entry["event"] == "TELEPORTED":
+			# Walk to the teleporter (through any ice before it), then appear on its other end.
+			var walk := cells.size() - 1
+			for i in walk:
+				var cell_on_way: Array = cells[i]
+				var on_way := Vector2(int(cell_on_way[0]), int(cell_on_way[1]))
+				chain.tween_property(p._board, "automaton", on_way, slide / 2.0 / float(walk))
+			chain.tween_callback(func() -> void: p._board.automaton = target)
+			chain.tween_interval(slide / 2.0)
+		elif cells.size() > 1:
 			for cell_on_path: Array in cells:
 				var at := Vector2(int(cell_on_path[0]), int(cell_on_path[1]))
 				chain.tween_property(p._board, "automaton", at, slide / float(cells.size()))

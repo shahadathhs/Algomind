@@ -105,7 +105,7 @@ func test_missing_level_file_does_not_crash() -> void:
 
 func test_level_that_needs_a_mechanic_is_blocked_not_playable() -> void:
 	var levels := _all_four()
-	levels["d"]["requires"]["mechanics"] = ["teleport"]
+	levels["d"]["requires"]["mechanics"] = ["wormhole"]
 	var campaign := Campaign.from_data(_placement(), _loader(levels))
 	assert_eq(campaign.entries.size(), 3, "it cannot be played")
 	assert_eq(campaign.worlds.size(), 2, "its world stays, so the player can see why")
@@ -151,12 +151,12 @@ func test_malformed_placement_gives_an_empty_campaign() -> void:
 func test_bundled_campaign_loads_cleanly() -> void:
 	var campaign := Campaign.load_bundled()
 	assert_eq(campaign.errors, [] as Array[String])
-	assert_eq(campaign.entries.size(), 95, "the bundled campaign is the published starter set")
-	assert_eq(campaign.worlds.size(), 17)
+	assert_eq(campaign.entries.size(), 105, "the bundled campaign is the published starter set")
+	assert_eq(campaign.worlds.size(), 19)
 	var chapters := 0
 	for world in campaign.worlds:
 		chapters += world["chapters"].size()
-	assert_eq(chapters, 39)
+	assert_eq(chapters, 45)
 
 
 func test_every_bundled_level_is_solvable_within_its_limit() -> void:
@@ -174,9 +174,14 @@ func test_every_bundled_level_is_solvable_within_its_limit() -> void:
 			# about the limit; the server checks the reference solution on all of them. A debug
 			# level's limit fits its broken program and the fix, not the need for a loop.
 			continue
-		if level.has("ice"):
-			# A move onto ice slides, so walking cell by cell can be longer than the limit; the
-			# server's solver moves through the same rules as the simulator and checks the par.
+		if LevelMechanics.recursion(level):
+			# A procedure that calls itself repeats without a loop, so this plain search measures
+			# a program no shorter than the limit; the server checks the reference solution.
+			continue
+		if level.has("ice") or level.has("teleports"):
+			# Ice slides and a teleporter jumps, so walking cell by cell can be longer than the
+			# limit; the server's solver moves through the same rules as the simulator and checks
+			# the par.
 			continue
 		if (
 			level["availableCommands"].has("REPEAT")

@@ -157,6 +157,8 @@ func _add_floor_pieces(view: BoardProjection, items: Array[Dictionary]) -> void:
 		return view.project(unit.x, unit.y, BoardProjection.Z_FLOOR)
 	if level.has("ice") or level.has("belts"):
 		FloorDraw.draw(self, level, flat, DepthPalette.WALL_HATCH, DepthPalette.INK)
+	if level.has("teleports"):
+		TeleportDraw.draw(self, level, flat, DepthPalette.INK)
 	if level.has("locks"):
 		var open_doors := _draw_floor_locks(view)
 		var locks: Array = level["locks"]

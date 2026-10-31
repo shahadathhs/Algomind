@@ -11,19 +11,23 @@ extends TapeOpen
 ## a divider between them (the divider is not a slot); see TapeCells. `selected` is the index of
 ## a cell. A loop or IF being built takes the commands that are appended until `end_loop` or
 ## `end_if`; an IF can be open inside an open loop, and the loop closes last. A definition is
-## built the same way (`end_proc`) and takes loops and IFs of its own; no CALL goes into one
-## (docs/README_GAME_RULES.md sections 3.1 to 3.4).
+## built the same way (`end_proc`) and takes loops and IFs of its own; a CALL goes into one only
+## on a level with the mechanic recursion (docs/README_GAME_RULES.md sections 3.1 to 3.4 and 3.16).
 ##
 ## Which loop or IF is open is a flag inside its node ("_open", and "_branch" on an IF), so it
 ## follows the node when the tape is edited. `program()` leaves the flags out.
 
 
 func _init(
-	max_commands: int = 0, available_commands: Array[String] = [], allow_nested_loops: bool = false
+	max_commands: int = 0,
+	available_commands: Array[String] = [],
+	allow_nested_loops: bool = false,
+	allow_recursion: bool = false
 ) -> void:
 	limit = max_commands
 	available = available_commands
 	nested_loops = allow_nested_loops
+	recursion = allow_recursion
 
 
 ## Puts a copy of `program` on the tape, closed and with nothing selected: the start program of a
@@ -68,12 +72,15 @@ func _can_open_loop() -> bool:
 
 
 ## Whether `append_call(name)` would be accepted: the level offers PROC, the name is defined, and
-## the call has a place (the main program or an open loop of it, never a definition or an IF).
+## the call has a place: the main program or an open loop of it, or, with the mechanic recursion,
+## the body of the open definition (never inside one of its loops, and never in an IF).
 func can_call(name: String) -> bool:
 	if not available.has(PROC) or is_full() or not defined_names().has(name):
 		return false
-	if open_proc() >= 0 or not open_if().is_empty():
+	if not open_if().is_empty():
 		return false
+	if open_proc() >= 0:
+		return recursion and open_loop_path().is_empty() and not open_loop_is_full()
 	return not open_loop_is_full()
 
 

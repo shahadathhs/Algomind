@@ -50,6 +50,8 @@ static func move(run: Dictionary) -> Dictionary:
 		var next := Vector2i(int(ahead[0]), int(ahead[1]))
 		if _enter(run, next, motion):
 			return motion
+		if motion["event"] == "TELEPORTED":
+			break
 		var after := LevelSimulator.cell_ahead(run["position"], run["direction"])
 		if not (run["ice"] as Dictionary).has(next):
 			break
@@ -91,6 +93,14 @@ static func _enter(run: Dictionary, cell: Vector2i, motion: Dictionary) -> bool:
 	if reached:
 		motion["goal"] = "undelivered" if RunItems.pending(run) else "reached"
 		return true
+	var portals: Dictionary = run["portals"]
+	if portals.has(cell):
+		var far: Vector2i = portals[cell]
+		run["position"] = [far.x, far.y]
+		(run["visited"] as Dictionary)[far] = true
+		(motion["path"] as Array).append([far.x, far.y])
+		motion["event"] = "TELEPORTED"
+		return false
 	var event := "KEY_TAKEN" if RunLocks.take_key(run, cell) else RunItems.settle(run, cell)
 	if event == "" and RunGates.toggle(run, cell):
 		event = "SWITCHED"
