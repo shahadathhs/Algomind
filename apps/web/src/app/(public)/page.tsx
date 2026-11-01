@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { connection } from "next/server";
 import { JsonLd } from "@/components/public/json-ld";
 import { DownloadBand } from "@/components/public/download-band";
 import { Hero } from "@/components/public/hero";
+import { LoadingBlock } from "@/components/public/loading-block";
 import { HowItWorks } from "@/components/public/how-it-works";
 import { LevelsStrip } from "@/components/public/levels-strip";
 import { ScreensSection } from "@/components/public/screens-section";
@@ -23,20 +25,35 @@ export const metadata: Metadata = pageMetadata({
   path: "/",
 });
 
-export default async function LandingPage() {
-  await connection();
+/** The hero with the latest release (a call to GitHub), streamed in after the rest of the page. */
+async function HeroWithRelease() {
   const release = await getLatestRelease();
   return (
     <>
-      <JsonLd data={websiteJsonLd()} />
       <JsonLd
         data={mobileApplicationJsonLd(release.status === "available" ? release.release : undefined)}
       />
       <Hero release={release} />
+    </>
+  );
+}
+
+export default async function LandingPage() {
+  await connection();
+  return (
+    <>
+      <JsonLd data={websiteJsonLd()} />
+      <Suspense fallback={<Hero release={null} />}>
+        <HeroWithRelease />
+      </Suspense>
       <HowItWorks />
       <ScreensSection />
-      <LevelsStrip />
-      <WorldsSection />
+      <Suspense fallback={<LoadingBlock label="levels" tall />}>
+        <LevelsStrip />
+      </Suspense>
+      <Suspense fallback={<LoadingBlock label="worlds" tiles={6} />}>
+        <WorldsSection />
+      </Suspense>
       <ShortList />
       <DownloadBand />
     </>

@@ -7,13 +7,15 @@ import { TextLink } from "@/components/ui/text-link";
 import { releaseMeta, type ReleaseState } from "@/lib/releases";
 
 /** Facts under the button: version and size from the latest release, or a plain notice. */
-function metaLine(state: ReleaseState): string {
+function metaLine(state: ReleaseState | null): string {
+  if (state === null) return "Checking the latest version";
   return state.status === "available"
     ? releaseMeta(state.release).join(" · ")
     : "No release available yet";
 }
 
-export function Hero({ release }: { release: ReleaseState }) {
+/** `release` is null while the latest release is still being read. */
+export function Hero({ release }: { release: ReleaseState | null }) {
   return (
     <section>
       <Container className="grid items-start gap-10 pt-6 pb-14 lg:grid-cols-[1fr_300px] lg:gap-16 lg:pt-8 lg:pb-[72px]">

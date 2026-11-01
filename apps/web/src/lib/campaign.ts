@@ -94,8 +94,71 @@ function difficultyOf(value: unknown): Difficulty {
   return value === "medium" || value === "hard" ? value : "easy";
 }
 
-/** The campaign shown on the site. Never throws; `unavailable` covers any failure or bad data. */
+type Boards = { boards: Map<string, BoardData>; boardCounts: Map<string, number> };
+
+function addBoard(into: Boards, slug: string, content: unknown, boardCount: number): void {
+  const board = boardFromContent(content);
+  if (!board) throw new Error(`Level ${slug} has no readable board`);
+  into.boards.set(slug, board);
+  into.boardCounts.set(slug, boardCount);
+}
+
+/**
+ * The board of every level. They come in one request (`/campaign/boards`). An API that does not have
+ * that route yet (the site can be deployed before it) is read level by level instead, twelve at a time.
+ */
+async function readBoards(slugs: string[]): Promise<Boards> {
+  const out: Boards = { boards: new Map(), boardCounts: new Map() };
+  try {
+    const drawn = await getJson("/campaign/boards");
+    if (!isObject(drawn) || !Array.isArray(drawn.items)) throw new Error("no boards");
+    for (const item of drawn.items as unknown[]) {
+      if (!isObject(item) || typeof item.slug !== "string") throw new Error("bad boards");
+      addBoard(out, item.slug, item.content, Number(item.boardCount) || 1);
+    }
+    return out;
+  } catch {
+    // fall through to the slower way
+  }
+  let next = 0;
+  const runners = Array.from({ length: Math.min(12, slugs.length) }, async () => {
+    while (next < slugs.length) {
+      const slug = slugs[next++]!;
+      const detail = await getJson(`/levels/${encodeURIComponent(slug)}`);
+      const content = isObject(detail) ? detail.content : null;
+      const extra = isObject(content) ? content.extraBoards : null;
+      addBoard(out, slug, content, 1 + (Array.isArray(extra) ? extra.length : 0));
+    }
+  });
+  await Promise.all(runners);
+  return out;
+}
+
+const MEMORY_MS = 60_000;
+let remembered: { at: number; state: CampaignState } | null = null;
+let loading: Promise<CampaignState> | null = null;
+
+/**
+ * The campaign shown on the site. Reading it takes one request for the tree and one for every level's
+ * board, so it is kept in memory for a minute and shared by the pages that ask at the same time. When it
+ * is older than that, the page that asks gets the last good copy at once while a fresh one is read, so
+ * only the very first visit after a start waits for the API (which may be asleep). Never throws.
+ */
 export async function getCampaign(): Promise<CampaignState> {
+  if (remembered && Date.now() - remembered.at < MEMORY_MS) return remembered.state;
+  loading ??= loadCampaign()
+    .then((state) => {
+      if (state.status === "available") remembered = { at: Date.now(), state };
+      return state;
+    })
+    .finally(() => {
+      loading = null;
+    });
+  return remembered ? remembered.state : loading;
+}
+
+/** Reads the campaign from the API. `unavailable` covers any failure or bad data. */
+async function loadCampaign(): Promise<CampaignState> {
   try {
     const catalog = await getJson("/campaign");
     if (!isObject(catalog) || !Array.isArray(catalog.worlds)) return { status: "unavailable" };
@@ -124,19 +187,7 @@ export async function getCampaign(): Promise<CampaignState> {
       }
     }
 
-    const boards = new Map<string, BoardData>();
-    const boardCounts = new Map<string, number>();
-    await Promise.all(
-      entries.map(async (entry) => {
-        const detail = await getJson(`/levels/${encodeURIComponent(entry.slug)}`);
-        const board = isObject(detail) ? boardFromContent(detail.content) : null;
-        if (!board) throw new Error(`Level ${entry.slug} has no readable board`);
-        boards.set(entry.slug, board);
-        const extra =
-          isObject(detail) && isObject(detail.content) ? detail.content.extraBoards : null;
-        boardCounts.set(entry.slug, 1 + (Array.isArray(extra) ? extra.length : 0));
-      }),
-    );
+    const { boards, boardCounts } = await readBoards(entries.map((e) => e.slug));
 
     const byNumber = new Map(entries.map((e) => [e.slug, e]));
     const worlds: World[] = (catalog.worlds as Json[]).map((world, wi) => ({

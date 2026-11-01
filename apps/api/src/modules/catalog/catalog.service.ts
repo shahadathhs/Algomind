@@ -3,7 +3,13 @@ import { notFound } from "../../core/http/errors.js";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
 import { asPar } from "../levels/level-views.js";
 import type { Par } from "../levels/levels.schemas.js";
-import type { Campaign, CatalogLevel, LevelList, PublicLevel } from "./catalog.schemas.js";
+import type {
+  Campaign,
+  CampaignBoards,
+  CatalogLevel,
+  LevelList,
+  PublicLevel,
+} from "./catalog.schemas.js";
 
 /** Only levels with a live version AND a chapter reach players. */
 const PLAYABLE = {
@@ -91,6 +97,32 @@ export class CatalogService {
       c.levels.push(item);
     }
     return { worlds };
+  }
+
+  /**
+   * The boards of every campaign level in one answer, so a page that draws them all (the public levels
+   * page) does not need a request for each level. Only the fields that draw a board are sent.
+   */
+  async boards(): Promise<CampaignBoards> {
+    const drawn = [
+      "board",
+      "initialState",
+      "goal",
+      "patrols",
+      "locks",
+      "deliveries",
+      "switches",
+      "teleports",
+      "ice",
+      "belts",
+    ];
+    const items = (await this.playable()).map(({ row }) => {
+      const full = row.currentPublishedVersion!.content as Record<string, unknown>;
+      const content = Object.fromEntries(drawn.filter((k) => k in full).map((k) => [k, full[k]]));
+      const extra = full.extraBoards;
+      return { slug: row.slug, boardCount: 1 + (Array.isArray(extra) ? extra.length : 0), content };
+    });
+    return { items };
   }
 
   async levels(): Promise<LevelList> {

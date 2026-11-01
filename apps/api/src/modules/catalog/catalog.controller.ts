@@ -4,10 +4,12 @@ import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
 import { ErrorOf, ResponseOf } from "../../core/http/api-docs.js";
 import {
+  campaignBoardsSchema,
   campaignSchema,
   levelListSchema,
   publicLevelSchema,
   type Campaign,
+  type CampaignBoards,
   type LevelList,
   type PublicLevel,
 } from "./catalog.schemas.js";
@@ -42,6 +44,21 @@ export class CatalogController {
   async campaignTree(@Res({ passthrough: true }) res: Response): Promise<Campaign> {
     const body = await this.catalog.campaign();
     cached(res, `c-${digest(body)}`);
+    return body;
+  }
+
+  @Get("campaign/boards")
+  @ApiOperation({
+    summary: "The boards of every campaign level in one answer.",
+    description:
+      "No authentication. For a page that draws every level (the public levels page): only the " +
+      "fields that draw a board, never the reference solution. Same visibility, ETag and caching as " +
+      "/campaign.",
+  })
+  @ResponseOf(200, campaignBoardsSchema, "The boards, in campaign order.")
+  async campaignBoards(@Res({ passthrough: true }) res: Response): Promise<CampaignBoards> {
+    const body = await this.catalog.boards();
+    cached(res, `b-${digest(body)}`);
     return body;
   }
 
