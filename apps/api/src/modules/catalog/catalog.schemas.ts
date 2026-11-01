@@ -39,6 +39,21 @@ export const campaignSchema = z.object({
 });
 export type Campaign = z.infer<typeof campaignSchema>;
 
+export const campaignBoardsSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        slug: z.string(),
+        boardCount: z.number().int().describe("1, or more when the level has test boards."),
+        content: z
+          .record(z.string(), z.unknown())
+          .describe("Only what draws the board: its size, walls, start, goal and tiles."),
+      }),
+    )
+    .describe("Every level of the campaign, in campaign order."),
+});
+export type CampaignBoards = z.infer<typeof campaignBoardsSchema>;
+
 export const levelListSchema = z.object({
   items: z.array(catalogLevelSchema).describe("Flattened campaign order."),
 });

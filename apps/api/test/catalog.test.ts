@@ -54,6 +54,22 @@ describe("public catalog", () => {
     expect(tree.worlds[0]?.chapters[0]?.levels).toHaveLength(1);
   });
 
+  it("gives the boards of every level in one answer, only what draws them", async () => {
+    const withExtra = row("b", { commands: 4, steps: 4 });
+    (withExtra.currentPublishedVersion.content as Record<string, unknown>).extraBoards = [
+      { board: {}, initialState: {}, goal: {} },
+    ];
+    const { items } = await service([row("a", { commands: 3, steps: 3 }), withExtra]).boards();
+    expect(items.map((i) => [i.slug, i.boardCount])).toEqual([
+      ["a", 1],
+      ["b", 2],
+    ]);
+    const keys = Object.keys(items[0]!.content);
+    expect(keys).toEqual(expect.arrayContaining(["board", "initialState", "goal"]));
+    expect(keys).not.toContain("hints");
+    expect(keys).not.toContain("availableCommands");
+  });
+
   it("numbers the remaining levels without gaps", async () => {
     const { items } = await service([
       row("broken", null),
