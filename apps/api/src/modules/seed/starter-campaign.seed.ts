@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common";
 import { AppConfig } from "../../core/config/app-config.js";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
+import type { Prisma } from "../../generated/prisma/client.js";
 import { DEFAULT_ACHIEVEMENTS } from "../achievements/default-achievements.js";
 import { DAILY_POOL } from "./daily-pool.data.js";
 import {
@@ -50,6 +51,19 @@ async function prepareChecked(def: LevelDef): Promise<ReturnType<typeof prepareL
   await new Promise<void>((resolve) => setImmediate(resolve));
   return prepareLevel(def);
 }
+
+/**
+ * Takes the seed lock for the rest of the transaction and says whether the level is already there.
+ * A deploy can start a new instance while the old one is still seeding (or restart a crashed one), and
+ * two seeds that write the same level at once would collide on its slug or, worse, create a world
+ * twice. The lock makes them take turns; the second finds the level and moves on.
+ */
+async function alreadySeeded(tx: Prisma.TransactionClient, slug: string): Promise<boolean> {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(${SEED_LOCK})`;
+  return (await tx.level.findUnique({ where: { slug }, select: { id: true } })) !== null;
+}
+
+const SEED_LOCK = 4_260_117;
 
 /** A level takes a handful of queries; allow a slow, far-away database plenty of time for them. */
 const SEED_TRANSACTION = { maxWait: 15_000, timeout: 60_000 } as const;
@@ -129,6 +143,7 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
     for (const entry of missing) {
       const item = await prepareChecked(entry.def);
       await this.prisma.$transaction(async (tx) => {
+        if (await alreadySeeded(tx, entry.def.slug)) return;
         const worldId = async (title: string, description: string): Promise<string> => {
           const known = worlds.get(title);
           if (known) return known;
@@ -184,6 +199,7 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
     for (const def of missing) {
       const item = await prepareChecked(def);
       await this.prisma.$transaction(async (tx) => {
+        if (await alreadySeeded(tx, def.slug)) return;
         await createPublishedLevel(
           tx,
           item,
@@ -206,6 +222,8 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
         rule: badge.rule as unknown as object,
         position,
       })),
+      // Another instance may be seeding at the same moment.
+      skipDuplicates: true,
     });
     this.logger.log(`Created ${DEFAULT_ACHIEVEMENTS.length} default badges.`);
   }
@@ -214,34 +232,40 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
   private async seedClientVersion(): Promise<void> {
     if (await this.prisma.clientVersion.findUnique({ where: { version: APP_VERSION } })) return;
     const hasMinimum = await this.prisma.clientVersion.findFirst({ where: { isMinimum: true } });
-    await this.prisma.clientVersion.create({
-      data: {
-        version: APP_VERSION,
-        supportedMechanics: [
-          "move",
-          "turn",
-          "repeat",
-          "repeat_until",
-          "if",
-          "procedures",
-          "counter",
-          "markers",
-          "nested_loops",
-          "visit_all",
-          "multi_board",
-          "start_program",
-          "patrol",
-          "keys",
-          "delivery",
-          "switch",
-          "teleport",
-          "recursion",
-          "ice",
-          "belts",
-        ],
-        isMinimum: !hasMinimum,
-      },
-    });
+    try {
+      await this.prisma.clientVersion.create({
+        data: {
+          version: APP_VERSION,
+          supportedMechanics: [
+            "move",
+            "turn",
+            "repeat",
+            "repeat_until",
+            "if",
+            "procedures",
+            "counter",
+            "markers",
+            "nested_loops",
+            "visit_all",
+            "multi_board",
+            "start_program",
+            "patrol",
+            "keys",
+            "delivery",
+            "switch",
+            "teleport",
+            "recursion",
+            "ice",
+            "belts",
+          ],
+          isMinimum: !hasMinimum,
+        },
+      });
+    } catch (error) {
+      // Another instance registered it first.
+      if ((error as { code?: string }).code !== "P2002") throw error;
+      return;
+    }
     this.logger.log(`Registered app version ${APP_VERSION} in the client registry.`);
   }
 }
