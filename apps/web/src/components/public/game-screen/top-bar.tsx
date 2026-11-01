@@ -7,7 +7,7 @@ import { TEXT } from "./svg-text";
 export function TopBar({ data }: { data: ScreenData }) {
   return (
     <g>
-      <TileGraphic x={20} y={22} w={40} h={40} variant="ghost" chamfer={8}>
+      <TileGraphic look="depth" x={20} y={22} w={40} h={40} variant="ghost" chamfer={8}>
         <CommandIcon kind="back" cx={40} cy={42} size={18} tone={TILE_TONE.ghost} />
       </TileGraphic>
       <text

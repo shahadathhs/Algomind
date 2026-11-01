@@ -53,7 +53,10 @@ func _inset(top: bool) -> float:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Palette.GROUND)
+	if UiLook.depth:
+		DepthKit.ground(self, Rect2(Vector2.ZERO, size))
+	else:
+		draw_rect(Rect2(Vector2.ZERO, size), Palette.GROUND)
 
 
 func _build() -> void:

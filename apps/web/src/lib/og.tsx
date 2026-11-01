@@ -1,63 +1,76 @@
 import { ImageResponse } from "next/og";
+import { DEPTH_COLORS } from "@/lib/depth-colors.generated";
 import { chamferPath } from "@/lib/geometry";
 import { SITE_DESCRIPTION } from "@/lib/seo";
-import { TOKEN_COLORS } from "@/lib/token-colors.generated";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
 
-const LIGHT = TOKEN_COLORS.light;
+const C = DEPTH_COLORS.light;
 const LETTERS = ["A", "L", "G", "O", "M", "I", "N", "D"];
+const SHADOW_LAYERS = 5;
 
-function Tile({
+type Tone = "tile" | "signal" | "ink";
+const KEY_COLORS = {
+  tile: { face: C.tile, lip: C.tileLip, label: C.ink },
+  signal: { face: C.signal, lip: C.signalLip, label: C.onSignal },
+  ink: { face: C.ink, lip: C.inkLip, label: C.onInk },
+} as const;
+
+/**
+ * A key as the game draws it: a soft shadow, a lip, and a chamfered face with its label. The
+ * element takes `size` by `size` plus the lip, and the shadow spills past its box.
+ */
+function Key({
   size,
-  fill,
-  stroke,
+  tone,
   label,
-  labelColor,
+  lip = Math.round(size * 0.07),
 }: {
   size: number;
-  fill?: string;
-  stroke?: string;
+  tone: Tone;
   label?: string;
-  labelColor?: string;
+  lip?: number;
 }) {
-  const chamfer = size * 0.25;
+  const colors = KEY_COLORS[tone];
+  const pad = Math.round(size * 0.3);
+  const cut = size * 0.25;
   return (
-    <div
-      style={{
-        position: "relative",
-        display: "flex",
-        width: size,
-        height: size,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
+    <div style={{ position: "relative", display: "flex", width: size, height: size + lip }}>
       <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        style={{ position: "absolute", left: 0, top: 0 }}
+        width={size + 2 * pad}
+        height={size + lip + 2 * pad}
+        viewBox={`${-pad} ${-pad} ${size + 2 * pad} ${size + lip + 2 * pad}`}
+        style={{ position: "absolute", left: -pad, top: -pad }}
       >
-        <path
-          d={
-            stroke
-              ? chamferPath(3, 3, size - 6, size - 6, chamfer)
-              : chamferPath(0, 0, size, size, chamfer)
-          }
-          fill={fill ?? "none"}
-          stroke={stroke}
-          strokeWidth={stroke ? 6 : 0}
-        />
+        {Array.from({ length: SHADOW_LAYERS }, (_, i) => {
+          const grow = ((SHADOW_LAYERS - i) * size * 0.16) / SHADOW_LAYERS;
+          return (
+            <path
+              key={i}
+              d={chamferPath(-grow, lip * 2 - grow, size + 2 * grow, size + 2 * grow, cut)}
+              fill={C.shadow}
+              fillOpacity={0.3 / SHADOW_LAYERS}
+            />
+          );
+        })}
+        <path d={chamferPath(0, lip, size, size, cut)} fill={colors.lip} />
+        <path d={chamferPath(0, 0, size, size, cut)} fill={colors.face} />
       </svg>
       {label && (
         <div
           style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
             display: "flex",
+            width: size,
+            height: size,
+            alignItems: "center",
+            justifyContent: "center",
             fontSize: size * 0.62,
-            color: labelColor,
-            WebkitTextStroke: `${Math.max(1, size * 0.04)}px ${labelColor}`,
+            color: colors.label,
+            WebkitTextStroke: `${Math.max(1, size * 0.04)}px ${colors.label}`,
           }}
         >
           {label}
@@ -67,9 +80,41 @@ function Tile({
   );
 }
 
+/** The recessed tape: a strip with a soft shadow along its top edge (stacked bands), holding the keys. */
+function Trough({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        display: "flex",
+        gap: 16,
+        padding: "26px 28px 30px",
+        background: C.strip,
+      }}
+    >
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: i * 5,
+            width: "100%",
+            height: 5,
+            background: C.shadow,
+            opacity: 0.3 * (1 - i / 5),
+          }}
+        />
+      ))}
+      {children}
+    </div>
+  );
+}
+
 /**
- * The 1200 by 630 share image: the tile wordmark, the page title, and a short tape with one
- * yellow tile. Flat fills only, light theme, colors from the design tokens.
+ * The 1200 by 630 share image in the depth look: a soft gradient ground, the wordmark as keys,
+ * the page title, and a short program on the recessed tape with one yellow key. Light theme;
+ * colors are the depth tokens.
  */
 export function renderShareImage({ title, subtitle }: { title: string; subtitle?: string }) {
   return new ImageResponse(
@@ -81,19 +126,13 @@ export function renderShareImage({ title, subtitle }: { title: string; subtitle?
         width: "100%",
         height: "100%",
         padding: 72,
-        background: LIGHT.ground,
-        color: LIGHT.ink,
+        backgroundImage: `linear-gradient(to bottom, ${C.groundTop}, ${C.groundBottom})`,
+        color: C.ink,
       }}
     >
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 10 }}>
         {LETTERS.map((letter, i) => (
-          <Tile
-            key={letter + i}
-            size={64}
-            fill={i === 0 ? LIGHT.signal : LIGHT.ink}
-            label={letter}
-            labelColor={i === 0 ? LIGHT.onSignal : LIGHT.onInk}
-          />
+          <Key key={letter + i} size={64} tone={i === 0 ? "signal" : "ink"} label={letter} />
         ))}
       </div>
       <div style={{ display: "flex", flexDirection: "column" }}>
@@ -108,16 +147,18 @@ export function renderShareImage({ title, subtitle }: { title: string; subtitle?
         >
           {title}
         </div>
-        <div style={{ display: "flex", marginTop: 28, fontSize: 36, color: LIGHT.mute }}>
+        <div style={{ display: "flex", marginTop: 28, fontSize: 36, color: C.mute }}>
           {subtitle ?? SITE_DESCRIPTION}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 12 }}>
-        <Tile size={72} fill={LIGHT.ink} />
-        <Tile size={72} fill={LIGHT.ink} />
-        <Tile size={72} fill={LIGHT.signal} />
-        <Tile size={72} stroke={LIGHT.ink} />
-        <Tile size={72} stroke={LIGHT.ink} />
+      <div style={{ display: "flex" }}>
+        <Trough>
+          <Key size={72} tone="ink" />
+          <Key size={72} tone="ink" />
+          <Key size={72} tone="signal" />
+          <Key size={72} tone="tile" />
+          <Key size={72} tone="tile" />
+        </Trough>
       </div>
     </div>,
     { ...OG_SIZE },

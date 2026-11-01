@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { Key } from "@/components/ui/key";
 import {
   isTheme,
   otherTheme,
@@ -54,21 +55,17 @@ export function ThemeToggle() {
   return (
     <span className="inline-block h-11 w-11">
       {theme && (
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={`Theme: ${theme}. Switch to ${otherTheme(theme)}.`}
-          className="tile relative h-11 w-11 bg-ink"
-          style={{ ["--chamfer" as string]: "10px" }}
-        >
-          <span
-            aria-hidden="true"
-            className="tile absolute inset-[2px] flex items-center justify-center bg-ground text-[13px] tracking-[1px] text-ink"
-            style={{ ["--chamfer" as string]: "8.8px" }}
+        <Key lip={3}>
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={`Theme: ${theme}. Switch to ${otherTheme(theme)}.`}
+            className="tile flex h-11 w-11 items-center justify-center bg-tile text-[13px] tracking-[1px] text-ink"
+            style={{ ["--chamfer" as string]: "10px" }}
           >
-            {theme === "dark" ? "DK" : "LT"}
-          </span>
-        </button>
+            <span aria-hidden="true">{theme === "dark" ? "DK" : "LT"}</span>
+          </button>
+        </Key>
       )}
     </span>
   );

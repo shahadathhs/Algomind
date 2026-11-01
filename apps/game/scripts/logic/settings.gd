@@ -6,6 +6,11 @@ extends RefCounted
 ## merged across devices. The first-run coach flag is local only.
 
 const THEMES: Array[String] = ["system", "light", "dark"]
+const LOOK_FLAT := "flat"
+const LOOK_DEPTH := "depth"
+const LOOKS: Array[String] = [LOOK_FLAT, LOOK_DEPTH]
+## What a player who never chose gets, including a save made before the setting existed.
+const LOOK_DEFAULT := LOOK_DEPTH
 const RUN_SPEEDS: Array[String] = ["slow", "normal", "fast"]
 
 var _store: ProgressStore
@@ -22,6 +27,18 @@ func theme() -> String:
 func set_theme(value: String) -> void:
 	if THEMES.has(value):
 		_set_setting("theme", value)
+
+
+## The look of the game on this device: depth (the default) or flat. It is not synced, because what
+## a device can draw smoothly differs from device to device.
+func look() -> String:
+	var value: Variant = _s().get("look", LOOK_DEFAULT)
+	return value if typeof(value) == TYPE_STRING and LOOKS.has(value) else LOOK_DEFAULT
+
+
+func set_look(value: String) -> void:
+	if LOOKS.has(value):
+		_s()["look"] = value
 
 
 func reduce_motion() -> bool:

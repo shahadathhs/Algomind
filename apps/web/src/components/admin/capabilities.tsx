@@ -19,6 +19,15 @@ const MECHANICS = [
   "nested_loops",
   "markers",
   "visit_all",
+  "start_program",
+  "patrol",
+  "keys",
+  "delivery",
+  "switch",
+  "teleport",
+  "recursion",
+  "ice",
+  "belts",
 ];
 
 /** Which mechanics each released app version supports. Publishing checks the minimum version. */

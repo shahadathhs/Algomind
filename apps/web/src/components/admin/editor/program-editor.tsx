@@ -14,6 +14,7 @@ import {
 import { moveItem } from "@/lib/admin/list-ops";
 import { AddCommands } from "./add-commands";
 import { CallName } from "./call-name";
+import { CallWhen } from "./call-when";
 import { IfBranches } from "./if-branches";
 import { ItemRow } from "./item-row";
 import { LoopBody } from "./loop-body";
@@ -24,6 +25,7 @@ export function ProgramEditor({
   onChange,
   available,
   nested = false,
+  recursion = false,
   idPrefix,
 }: {
   program: Instruction[];
@@ -31,6 +33,8 @@ export function ProgramEditor({
   available: string[];
   /** The level lists nested_loops: a loop body may hold one loop. */
   nested?: boolean;
+  /** The level lists the mechanic recursion: calls may stand in procedures and carry a sensor. */
+  recursion?: boolean;
   idPrefix: string;
 }) {
   const slots = slotsOf(program);
@@ -91,6 +95,8 @@ export function ProgramEditor({
                   node={p}
                   available={available}
                   nested={nested}
+                  names={names}
+                  recursion={recursion}
                   idPrefix={`${idPrefix}-proc-${i}`}
                   onBody={(body) => setNode(i, { body })}
                 />
@@ -102,6 +108,23 @@ export function ProgramEditor({
                   id={`${idPrefix}-call-${i}`}
                   where={`step ${i + 1}`}
                   onChange={(name) => setNode(i, { name })}
+                />
+              )}
+              {isCall(p) && recursion && (
+                <CallWhen
+                  value={p.when}
+                  id={`${idPrefix}-when-${i}`}
+                  where={`step ${i + 1}`}
+                  marks={available.includes("MARK")}
+                  onChange={(when) =>
+                    onChange(
+                      program.map((node, j) => {
+                        if (j !== i) return node;
+                        const { when: _drop, ...rest } = node;
+                        return when === undefined ? rest : { ...rest, when };
+                      }),
+                    )
+                  }
                 />
               )}
               {isIf(p) && (

@@ -48,11 +48,7 @@ static func icon(sensor: Variant) -> String:
 ## (selected, or already passed by the read-head). A tall tile reads head, icon and side; a short
 ## one reads head, cell kind (for NEW and BACK) and side, because it has no room for the icon.
 static func draw_header(canvas: CanvasItem, cell: Dictionary, rect: Rect2, solid: bool) -> void:
-	if solid:
-		UiKit.fill_chamfer(canvas, rect, Palette.INK)
-	else:
-		UiKit.fill_chamfer(canvas, rect, Palette.FLOOR)
-		UiKit.outline_chamfer(canvas, rect, Palette.INK)
+	rect = TileDraw.tile(canvas, rect, TileDraw.Tone.SOLID if solid else TileDraw.Tone.PLAIN)
 	var color := Palette.ON_INK if solid else Palette.INK
 	var head := "ELSE IF" if cell.get("elseif", false) else "IF"
 	var label := word(cell["when"])

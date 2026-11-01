@@ -32,9 +32,14 @@ static func apply(p: PlayScreen) -> void:
 	var cursor := _tape_area(p, m, tape_bottom, width, compact)
 	y = PlayBoards.place(p, m, y, width)
 	var board_h := cursor - y
-	var side := minf(width, board_h)
-	p._board.size = Vector2(side, side)
-	p._board.position = Vector2((p.size.x - side) / 2.0, y + (board_h - side) / 2.0)
+	if UiLook.depth:
+		# The tilted board is wider than it is tall: it gets all the free width and height.
+		p._board.size = Vector2(width, board_h)
+		p._board.position = Vector2(m, y)
+	else:
+		var side := minf(width, board_h)
+		p._board.size = Vector2(side, side)
+		p._board.position = Vector2((p.size.x - side) / 2.0, y + (board_h - side) / 2.0)
 
 	PlayTape.sync_scroll(p)
 	_place_palette(palette, palette_rows, row_y, palette_h, width, m)

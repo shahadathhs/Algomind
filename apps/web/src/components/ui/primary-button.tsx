@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Key } from "@/components/ui/key";
 
 /** The one primary action on a screen: a signal-yellow tile link, full width on phones. */
 export function PrimaryButton({
@@ -19,11 +20,11 @@ export function PrimaryButton({
   className?: string;
 }) {
   // Smaller type and padding on phones so the label stays on one line; full size from sm up.
-  const classes = `tile inline-flex transition-transform duration-100 active:translate-y-px items-center justify-center gap-2.5 bg-signal tracking-[1.5px] text-on-signal sm:tracking-[2px] ${
+  const classes = `tile inline-flex w-full items-center justify-center gap-2.5 bg-signal tracking-[1.5px] text-on-signal sm:tracking-[2px] ${
     size === "lg"
       ? "h-16 px-4 text-[18px] sm:px-8 sm:text-[22px]"
       : "h-14 px-4 text-base sm:px-6 sm:text-lg"
-  } ${className}`;
+  }`;
   const style = { ["--chamfer" as string]: size === "lg" ? "14px" : "12px" };
   const content = (
     <>
@@ -31,13 +32,17 @@ export function PrimaryButton({
       <span className="uppercase">{children}</span>
     </>
   );
-  return external ? (
-    <a href={href} className={classes} style={style} rel="noopener">
-      {content}
-    </a>
-  ) : (
-    <Link href={href} className={classes} style={style}>
-      {content}
-    </Link>
+  return (
+    <Key tone="signal" className={className}>
+      {external ? (
+        <a href={href} className={classes} style={style} rel="noopener">
+          {content}
+        </a>
+      ) : (
+        <Link href={href} className={classes} style={style}>
+          {content}
+        </Link>
+      )}
+    </Key>
   );
 }

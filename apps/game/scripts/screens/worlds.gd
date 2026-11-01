@@ -4,10 +4,15 @@ extends ScreenBase
 ## icon). A line under the list says where the levels came from, with Retry when offline.
 
 const ROW_HEIGHT := 72.0
+## In the depth look a world is a plate with a picture of its first level.
+const PLATE_HEIGHT := 100.0
+const THUMB_MAX := 112.0
+const THUMB_MIN := 84.0
 
 var _back: TileButton
 var _caption: Label
 var _title: Label
+var _count: Label
 var _status: Label
 var _retry: TileButton
 var _scroll: ScrollContainer
@@ -24,6 +29,10 @@ func _build() -> void:
 	add_child(_caption)
 	_title = UiKit.label("WORLDS", 34, Palette.INK, 1)
 	add_child(_title)
+	_count = UiKit.label("", 14, Palette.MUTE, 3)
+	_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_count.visible = UiLook.depth
+	add_child(_count)
 
 	_status = UiKit.label("", 14, Palette.MUTE, 1)
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -37,7 +46,7 @@ func _build() -> void:
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	add_child(_scroll)
 	_list = VBoxContainer.new()
-	_list.add_theme_constant_override("separation", 8)
+	_list.add_theme_constant_override("separation", 16 if UiLook.depth else 8)
 	_scroll.add_child(_list)
 
 	_continue = TileButton.make(TileButton.Kind.PRIMARY, "", "", 24)
@@ -69,6 +78,8 @@ func _layout() -> void:
 	_caption.size = Vector2(width, 18.0)
 	_title.position = Vector2(m, top + 70.0)
 	_title.size = Vector2(width, 40.0)
+	_count.position = Vector2(m, top + 86.0)
+	_count.size = Vector2(width, 18.0)
 	var play_h := 64.0 if size.y >= 700.0 else 52.0
 	_continue.size = Vector2(width, play_h)
 	_continue.position = Vector2(m, size.y - inset_bottom() - m - play_h)
@@ -91,7 +102,12 @@ func _on_content_changed() -> void:
 	_layout()
 
 
+func _row_height() -> float:
+	return PLATE_HEIGHT if UiLook.depth else ROW_HEIGHT
+
+
 func _fill() -> void:
+	_count.text = "%d WORLDS" % app.campaign.worlds.size()
 	var current_world := _current_world()
 	for world_index in app.campaign.worlds.size():
 		var world: Dictionary = app.campaign.worlds[world_index]
@@ -116,10 +132,12 @@ func _fill() -> void:
 			row.subtitle = "LOCKED · %02d LEVELS" % entries.size()
 		else:
 			row.state = "current"
+		if UiLook.depth and not entries.is_empty():
+			row.show_picture(entries[0]["level"])
 		row.accessibility_name = "World %d, %s, %s" % [row.number, world["title"], row.subtitle]
 		if row.state == "locked":
 			row.accessibility_name += ", opens a preview of its levels"
-		row.custom_minimum_size = Vector2(0, ROW_HEIGHT)
+		row.custom_minimum_size = Vector2(0, _row_height())
 		if row.state == "update":
 			row.pressed.connect(
 				func() -> void: navigate.emit("update_required", {"title": world["title"]})
@@ -136,7 +154,7 @@ func _fill() -> void:
 		row.subtitle = "NOT DOWNLOADED"
 		row.state = "pending"
 		row.accessibility_name = "%s, not downloaded" % pending["title"]
-		row.custom_minimum_size = Vector2(0, ROW_HEIGHT)
+		row.custom_minimum_size = Vector2(0, _row_height())
 		row.pressed.connect(
 			func() -> void:
 				navigate.emit("load_error", {"title": pending["title"], "back": "worlds"})
@@ -207,9 +225,34 @@ class _WorldRow:
 	var state := "locked"
 	var _down := false
 	var _press_at := Vector2.ZERO
+	var _picture: BoardView
 
 	func _init() -> void:
 		mouse_filter = Control.MOUSE_FILTER_PASS
+
+	## Shows the first level of the world, as the depth board, at the right of the plate.
+	func show_picture(level: Dictionary) -> void:
+		_picture = BoardViews.make(Settings.LOOK_DEPTH)
+		add_child(_picture)
+		_picture.set_level(level)
+
+	## The picture is a third of the plate on a wide phone and smaller on a narrow one.
+	func _thumb() -> Vector2:
+		var width := clampf(size.x * 0.3, THUMB_MIN, THUMB_MAX)
+		return Vector2(width, width * 0.75)
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_RESIZED and _picture != null:
+			var thumb := _thumb()
+			_picture.size = thumb
+			_picture.position = Vector2(size.x - thumb.x - 12.0, (size.y - thumb.y) / 2.0 - 3.0)
+
+	## The largest font size, down to `least`, at which `value` fits in `width`.
+	func _fit(value: String, width: float, start: int, least: int, spacing: int) -> int:
+		var px := start
+		while px > least and UiKit.text_width(value, px, spacing) > width:
+			px -= 1
+		return px
 
 	func _gui_input(event: InputEvent) -> void:
 		var click := event as InputEventMouseButton
@@ -232,7 +275,52 @@ class _WorldRow:
 			_down = false
 			queue_redraw()
 
+	func _draw_plate() -> void:
+		var dim := state == "locked" or state == "pending"
+		# A locked or not-downloaded world dims with its picture; its words and icon still say which.
+		modulate.a = 0.6 if dim else 1.0
+		var tone := TileDraw.Tone.ACTIVE if state == "current" else TileDraw.Tone.PLAIN
+		var face := TileDraw.tile(self, Rect2(Vector2.ZERO, size), tone)
+		var on := Palette.ON_SIGNAL if state == "current" else Palette.INK
+		var quiet := Palette.ON_SIGNAL if state == "current" else Palette.MUTE
+		var middle := Rect2(0.0, 0.0, 64.0, face.size.y)
+		if state == "pending":
+			UiKit.icon(self, "download", middle.get_center() + Vector2(8.0, 0.0), 30.0, on)
+		elif state == "update":
+			UiKit.icon(self, "up", middle.get_center() + Vector2(8.0, 0.0), 30.0, on)
+		else:
+			UiKit.text(self, "%02d" % number, middle, 38, quiet if dim else on, 0)
+		var left := 76.0
+		var text_w := size.x - left - _thumb().x - 24.0
+		var title_color := Palette.MUTE if dim else on
+		var title_px := _fit(title, text_w - (26.0 if state == "locked" else 0.0), 28, 18, 1)
+		UiKit.text(
+			self,
+			title,
+			Rect2(left, face.size.y * 0.22, text_w, 32.0),
+			title_px,
+			title_color,
+			1,
+			HORIZONTAL_ALIGNMENT_LEFT
+		)
+		if state == "locked":
+			var after := left + UiKit.text_width(title, title_px, 1) + 10.0
+			UiKit.icon(self, "lock", Vector2(after + 8.0, face.size.y * 0.22 + 16.0), 18.0, quiet)
+		UiKit.text(
+			self,
+			subtitle,
+			Rect2(left, face.size.y * 0.22 + 38.0, text_w, 20.0),
+			_fit(subtitle, text_w, 13, 9, 2),
+			quiet,
+			2,
+			HORIZONTAL_ALIGNMENT_LEFT
+		)
+
 	func _draw() -> void:
+		if UiLook.depth:
+			_draw_plate()
+			return
+		modulate.a = 1.0
 		var tile := Rect2(Vector2(0, (size.y - 56.0) / 2.0), Vector2(56.0, 56.0))
 		var dim := state == "locked" or state == "pending"
 		var ink := Palette.FAINT if dim else Palette.INK

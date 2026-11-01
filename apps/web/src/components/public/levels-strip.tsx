@@ -37,8 +37,12 @@ export async function LevelsStrip() {
       </p>
       <ul className="mt-10 grid grid-cols-2 gap-x-5 gap-y-6 sm:grid-cols-5">
         {shown.map((level, i) => (
-          <li key={level.id} className={i === shown.length - 1 ? "hidden sm:block" : ""}>
+          <li
+            key={level.id}
+            className={`view-pop lift lift-board ${i === shown.length - 1 ? "hidden sm:block" : ""}`}
+          >
             <BoardView
+              look="depth"
               board={level.board}
               label={`${level.real ? "Level" : "Sample level"} ${level.title}. Move the automaton to the target.`}
             />

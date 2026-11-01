@@ -18,7 +18,7 @@ const SECONDARY: readonly NavItem[] = [
 
 export function SiteHeader() {
   return (
-    <header>
+    <header className="site-header">
       <Container className="flex h-[84px] items-center justify-between">
         <Link href="/" aria-label="Algomind home" className="inline-flex min-h-11 items-center">
           <Wordmark />
@@ -29,7 +29,7 @@ export function SiteHeader() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="inline-flex min-h-11 items-center text-sm tracking-[2px] whitespace-nowrap uppercase"
+                className="sweep inline-flex min-h-11 items-center text-sm tracking-[2px] whitespace-nowrap uppercase"
               >
                 {item.label}
               </Link>

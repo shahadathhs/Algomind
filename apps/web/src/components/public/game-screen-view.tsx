@@ -51,11 +51,11 @@ export function GameScreenView({
     >
       <TopBar data={data} />
       <StatusRow state={state} count={count} budget={data.budget} />
-      <BoardGraphic board={frame.board} x={20} y={136} size={350} />
+      <BoardGraphic look="depth" board={frame.board} x={20} y={136} size={350} />
       <SvgCaption x={20} y={516}>
         PROGRAM
       </SvgCaption>
-      <TapeGraphic tiles={frame.tiles} x={20} y={526} width={350} head={frame.head} />
+      <TapeGraphic look="depth" tiles={frame.tiles} x={20} y={526} width={350} head={frame.head} />
       {state === "solved" ? <Stats data={data} /> : <Commands />}
       <Controls state={state} />
     </svg>

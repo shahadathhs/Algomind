@@ -4,7 +4,7 @@
 // The drawings (sample-screens.ts) are computed from it with the contract's solver and simulator.
 
 export const LANDING_LEVEL = {
-  number: 9,
+  number: 6,
   level: {
     schemaVersion: 1,
     levelId: "around-the-wall",
@@ -47,15 +47,15 @@ export const LANDING_WORLD = {
   number: 2,
   title: "Routes",
   summary: "Look at the whole board, then choose a route.",
-  first: 9,
+  first: 6,
   chapters: [
     {
       title: "Detours",
-      levels: 5,
+      levels: 3,
     },
     {
       title: "Budgets",
-      levels: 5,
+      levels: 2,
     },
   ],
 } as const;

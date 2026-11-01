@@ -64,7 +64,11 @@ func grab_edit_focus() -> void:
 
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
-	UiKit.fill_chamfer(self, rect, Palette.GROUND)
-	UiKit.outline_chamfer(self, rect, Palette.INK)
+	if UiLook.depth:
+		# A field is recessed into the screen, like the tape trough.
+		DepthKit.trough(self, rect)
+	else:
+		UiKit.fill_chamfer(self, rect, Palette.GROUND)
+		UiKit.outline_chamfer(self, rect, Palette.INK)
 	if _edit != null and _edit.has_focus():
 		UiKit.outline_chamfer(self, rect.grow(-3.0), Palette.INK)

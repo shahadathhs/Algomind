@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Key } from "@/components/ui/key";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
@@ -44,32 +45,34 @@ export function MobileNav({
         className="inline-flex h-11 w-11 list-none items-center justify-center [&::-webkit-details-marker]:hidden"
       >
         {/* Above the panel (z-60 vs 50) so the same button shows a close icon while open. */}
-        <span
-          aria-hidden="true"
-          className="tile relative z-[60] flex h-11 w-11 items-center justify-center bg-ink text-on-ink"
-          style={{ ["--chamfer" as string]: "10px" }}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="22"
-            height="22"
-            fill="none"
-            stroke="currentColor"
-            className="group-open:hidden"
+        <Key tone="ink" lip={3} className="relative z-[60]">
+          <span
+            aria-hidden="true"
+            className="tile flex h-11 w-11 items-center justify-center bg-ink text-on-ink"
+            style={{ ["--chamfer" as string]: "10px" }}
           >
-            <path d="M4 7h16M4 12h16M4 17h16" strokeWidth="2.8" strokeLinecap="square" />
-          </svg>
-          <svg
-            viewBox="0 0 24 24"
-            width="22"
-            height="22"
-            fill="none"
-            stroke="currentColor"
-            className="hidden group-open:block"
-          >
-            <path d="M5 5l14 14M19 5L5 19" strokeWidth="2.8" strokeLinecap="square" />
-          </svg>
-        </span>
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              className="group-open:hidden"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" strokeWidth="2.8" strokeLinecap="square" />
+            </svg>
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              className="hidden group-open:block"
+            >
+              <path d="M5 5l14 14M19 5L5 19" strokeWidth="2.8" strokeLinecap="square" />
+            </svg>
+          </span>
+        </Key>
       </summary>
       <div className="fixed inset-y-0 right-0 z-50 flex w-[min(20rem,85vw)] flex-col border-l-2 border-ink bg-ground px-6 pt-6 pb-8">
         <p className="mb-12 text-xs tracking-[2px] text-mute uppercase">Menu</p>

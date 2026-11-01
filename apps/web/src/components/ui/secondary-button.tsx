@@ -1,20 +1,18 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Key } from "@/components/ui/key";
 
-/** A secondary action: an outlined tile with the top-right corner cut. */
+/** A secondary action: a light key with the top-right corner cut. */
 export function SecondaryButton({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link
-      href={href}
-      className="tile inline-flex bg-ink p-[2px] tracking-[2px] uppercase transition-transform duration-100 active:translate-y-px"
-      style={{ ["--chamfer" as string]: "12px" }}
-    >
-      <span
-        className="tile flex h-14 items-center bg-ground px-6 text-base"
-        style={{ ["--chamfer" as string]: "10.6px" }}
+    <Key>
+      <Link
+        href={href}
+        className="tile flex h-14 w-full items-center bg-tile px-6 text-base tracking-[2px] uppercase"
+        style={{ ["--chamfer" as string]: "12px" }}
       >
         {children}
-      </span>
-    </Link>
+      </Link>
+    </Key>
   );
 }

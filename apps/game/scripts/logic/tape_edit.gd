@@ -6,6 +6,9 @@ extends RefCounted
 var nodes: Array = []
 ## The commands the level offers.
 var available: Array[String] = []
+## True when the level lists the mechanic recursion: a CALL may go into a definition and carry a
+## sensor.
+var recursion := false
 ## Index of the selected cell, or -1.
 var selected := -1
 
@@ -87,6 +90,8 @@ func sensor_options() -> Array[String]:
 ## BACK when MARK is offered) or the selected REPEAT_UNTIL to its next condition (BLOCKED, GOAL).
 func cycle_condition() -> bool:
 	var kind := selected_kind()
+	if kind == "call" and recursion:
+		return _cycle_call_sensor()
 	if kind != "if" and kind != "until":
 		return false
 	var node := node_of(cells()[selected])
@@ -95,6 +100,20 @@ func cycle_condition() -> bool:
 		sensor_options() if kind == "if" else ContractLimits.UNTIL_CONDITIONS
 	)
 	node[key] = options[(options.find(node[key]) + 1) % options.size()]
+	return true
+
+
+## Moves the selected CALL to its next sensor (none, then the sensors an IF can look at): the
+## procedure then runs only while the sensor is true.
+func _cycle_call_sensor() -> bool:
+	var node := node_of(cells()[selected])
+	var options: Array = [""]
+	options.append_array(sensor_options())
+	var next := (options.find(node.get("when", "")) + 1) % options.size()
+	if next == 0:
+		node.erase("when")
+	else:
+		node["when"] = options[next]
 	return true
 
 

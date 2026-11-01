@@ -13,7 +13,7 @@ export function TextLink({
   external?: boolean;
   className?: string;
 }) {
-  const classes = `inline-flex min-h-11 items-center text-[13px] font-bold tracking-[2px] uppercase underline decoration-2 underline-offset-[6px] ${className}`;
+  const classes = `thicken inline-flex min-h-11 items-center text-[13px] font-bold tracking-[2px] uppercase underline decoration-2 underline-offset-[6px] ${className}`;
   if (external) {
     return (
       <a href={href} className={classes} rel="noopener">

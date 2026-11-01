@@ -18,11 +18,12 @@ func _build() -> void:
 	_wordmark = Wordmark.new()
 	add_child(_wordmark)
 
-	_board = BoardView.new()
-	_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_board = BoardViews.make(app.progress.settings.look())
 	add_child(_board)
 	if not app.campaign.entries.is_empty():
-		_board.set_level(app.campaign.entries[0]["level"])
+		# The board is the puzzle the player would play next.
+		var next := maxi(app.progress.level_to_play(app.campaign), 0)
+		_board.set_level(app.campaign.entries[next]["level"])
 
 	_play = TileButton.make(TileButton.Kind.PRIMARY, "PLAY", "", 28)
 	_play.pressed.connect(_on_play)
@@ -93,11 +94,16 @@ func _layout() -> void:
 
 	var free_top := _wordmark.position.y + _wordmark.size.y + 24.0
 	var free_bottom := _play.position.y - 24.0
-	var side := minf(minf(width * 0.8, free_bottom - free_top), 320.0)
-	_board.size = Vector2(side, side)
-	_board.position = Vector2(
-		(size.x - side) / 2.0, free_top + (free_bottom - free_top - side) / 2.0
-	)
+	if UiLook.depth:
+		# The tilted board is wider than tall: it takes the free width and height.
+		_board.size = Vector2(width, free_bottom - free_top)
+		_board.position = Vector2(m, free_top)
+	else:
+		var side := minf(minf(width * 0.8, free_bottom - free_top), 320.0)
+		_board.size = Vector2(side, side)
+		_board.position = Vector2(
+			(size.x - side) / 2.0, free_top + (free_bottom - free_top - side) / 2.0
+		)
 	if _notice != null:
 		_notice.position = Vector2(m, _play.position.y - 40.0)
 		_notice.size = Vector2(width, 24.0)

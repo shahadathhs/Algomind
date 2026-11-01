@@ -18,11 +18,7 @@ static func is_header(cell: Dictionary) -> bool:
 static func draw(
 	canvas: CanvasItem, cell: Dictionary, rect: Rect2, solid: bool, round_number: int
 ) -> void:
-	if solid:
-		UiKit.fill_chamfer(canvas, rect, Palette.INK)
-	else:
-		UiKit.fill_chamfer(canvas, rect, Palette.FLOOR)
-		UiKit.outline_chamfer(canvas, rect, Palette.INK)
+	rect = TileDraw.tile(canvas, rect, TileDraw.Tone.SOLID if solid else TileDraw.Tone.PLAIN)
 	var color := Palette.ON_INK if solid else Palette.INK
 	if cell["kind"] == "until":
 		_draw_until(canvas, rect, color, maxi(round_number, 0), cell["until"] == "GOAL")

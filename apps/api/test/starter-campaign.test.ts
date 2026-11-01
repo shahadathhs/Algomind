@@ -25,18 +25,28 @@ const analysisOf = (entry: (typeof built)[number]) => {
 };
 
 describe("the starter campaign", () => {
-  it("has ten worlds, twenty chapters, and eighty-two levels in a fixed order", () => {
+  it("has twenty worlds, forty-eight chapters, and one hundred thirteen levels in a fixed order", () => {
     expect(CAMPAIGN.worlds.map((w) => w.title)).toEqual([
       "Basics",
       "Routes",
       "Loops",
       "Until",
       "Decisions",
+      "Wall follower",
       "Procedures",
+      "Debug",
       "Generalize",
       "Counters",
       "Memory",
       "Sweep",
+      "Patrol",
+      "Keys",
+      "Delivery",
+      "Switches",
+      "Ice and belts",
+      "Teleporters",
+      "Recursion",
+      "Capstone",
     ]);
     expect(CAMPAIGN.worlds.flatMap((w) => w.chapters.map((c) => c.title))).toEqual([
       "Moves",
@@ -48,9 +58,13 @@ describe("the starter campaign", () => {
       "Run to the wall",
       "Corridors",
       "Look",
-      "Follow the wall",
+      "Both sides",
+      "Right hand",
+      "Other ways",
       "Name it",
       "Parts",
+      "Counts and ends",
+      "Branches and parts",
       "Sizes",
       "Shapes",
       "Growing",
@@ -59,8 +73,195 @@ describe("the starter campaign", () => {
       "Dead ends",
       "Rooms",
       "Halls",
+      "Dodge",
+      "Rings",
+      "Two guards",
+      "First keys",
+      "Two doors",
+      "Guarded",
+      "First parcels",
+      "Two parcels",
+      "In the way",
+      "First switches",
+      "Two gates",
+      "In the way",
+      "Ice",
+      "Belts",
+      "Together",
+      "First pairs",
+      "Two pairs",
+      "With a guard",
+      "Calling itself",
+      "Conditions",
+      "After the call",
+      "Two ideas",
+      "Guarded",
+      "All together",
     ]);
-    expect(LEVELS).toHaveLength(82);
+    expect(LEVELS).toHaveLength(113);
+  });
+
+  it("gives every Patrol level guards, and no other level any", () => {
+    for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
+      const patrol =
+        entry.world.title === "Patrol" ||
+        entry.chapterTitle === "Guarded" ||
+        entry.def.slug === "guarded-parcel" ||
+        entry.def.slug === "gate-and-guard" ||
+        entry.def.slug === "belts-and-a-guard" ||
+        entry.def.slug === "guarded-portal";
+      expect(entry.def.patrols !== undefined, entry.def.slug).toBe(patrol);
+      if (!patrol) continue;
+      // The guards matter: the shortest program without them fails, and the limit is the exact par.
+      const bare = solve({ ...entry.level, patrols: undefined })!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+      expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
+    }
+  });
+
+  it("gives every Keys level a lock, and the shortest program that ignores them fails", () => {
+    for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
+      const keys = entry.world.title === "Keys" || entry.def.slug === "behind-the-door";
+      expect(entry.def.locks !== undefined, entry.def.slug).toBe(keys);
+      if (!keys) continue;
+      const bare = solve({ ...entry.level, locks: undefined, patrols: undefined })!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+      expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
+      // Only the last chapter has a guard.
+      expect(entry.def.patrols !== undefined, entry.def.slug).toBe(
+        entry.chapterTitle === "Guarded",
+      );
+    }
+  });
+
+  it("gives every Delivery level a crate, and the shortest program that ignores them fails", () => {
+    for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
+      const delivery = entry.world.title === "Delivery" || entry.def.slug === "gate-and-crate";
+      expect(entry.def.deliveries !== undefined, entry.def.slug).toBe(delivery);
+      if (!delivery) continue;
+      const bare = solve({
+        ...entry.level,
+        deliveries: undefined,
+        locks: undefined,
+        switches: undefined,
+        patrols: undefined,
+      })!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+      expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
+    }
+  });
+
+  it("gives every Switches level a switch, and the shortest program that ignores them fails", () => {
+    for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
+      const switches = entry.world.title === "Switches";
+      expect(entry.def.switches !== undefined, entry.def.slug).toBe(switches);
+      if (!switches) continue;
+      const bare = solve({
+        ...entry.level,
+        switches: undefined,
+        deliveries: undefined,
+        patrols: undefined,
+      })!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+      expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
+    }
+  });
+
+  it("gives every Ice and belts level ice or belts, and the shortest program that ignores them fails", () => {
+    for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
+      const floor = entry.world.title === "Ice and belts";
+      expect((entry.def.ice ?? entry.def.belts) !== undefined, entry.def.slug).toBe(floor);
+      if (!floor) continue;
+      const bare = solve({ ...entry.level, ice: undefined, belts: undefined, patrols: undefined })!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+      expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
+    }
+  });
+
+  it("gives every Teleporters level a pair, and the shortest program that ignores them fails", () => {
+    for (const entry of built) {
+      // The Capstone mixes these tools on purpose; its own test checks it.
+      if (entry.world.title === "Capstone") continue;
+      const portals = entry.world.title === "Teleporters";
+      expect(entry.def.teleports !== undefined, entry.def.slug).toBe(portals);
+      if (!portals) continue;
+      const bare = solve({ ...entry.level, teleports: undefined, patrols: undefined })!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+      expect(entry.def.maxCommands, entry.def.slug).toBe(analysisOf(entry).par!.commands);
+    }
+  });
+
+  it("makes every Recursion level call a procedure from its own body, with a sensor as the base case", () => {
+    for (const entry of built.filter((b) => b.world.title === "Recursion")) {
+      expect(entry.def.requires, entry.def.slug).toEqual(["recursion"]);
+      const proc = (referenceOf(entry) as Program).find((n) => n.op === "PROC") as
+        { body: { op: string; when?: string }[] } | undefined;
+      const inner = (proc?.body ?? []).filter((n) => n.op === "CALL");
+      expect(inner.length, entry.def.slug).toBeGreaterThan(0);
+      expect(
+        inner.some((n) => n.when !== undefined),
+        entry.def.slug,
+      ).toBe(true);
+    }
+  });
+
+  it("makes every Capstone level a mix: at least two board tools, each one needed, and a guard on five", () => {
+    const fields = [
+      "locks",
+      "deliveries",
+      "switches",
+      "ice",
+      "belts",
+      "teleports",
+      "patrols",
+    ] as const;
+    const capstone = built.filter((b) => b.world.title === "Capstone");
+    expect(capstone).toHaveLength(8);
+    expect(capstone.filter((b) => b.def.patrols !== undefined)).toHaveLength(5);
+    for (const entry of capstone) {
+      const present = fields.filter((f) => entry.def[f] !== undefined);
+      expect(present.length, entry.def.slug).toBeGreaterThanOrEqual(2);
+      const par = analysisOf(entry).par!.commands;
+      expect(entry.def.maxCommands, entry.def.slug).toBe(par);
+      // Leaving any one tool out gives a shorter way: each is needed.
+      for (const field of present) {
+        const without = solve({ ...entry.level, [field]: undefined });
+        expect(
+          without !== null && without.commands < par,
+          `${entry.def.slug} without ${field}`,
+        ).toBe(true);
+      }
+      const bare = solve(
+        Object.fromEntries(
+          Object.entries(entry.level).filter(([k]) => !(fields as readonly string[]).includes(k)),
+        ) as typeof entry.level,
+      )!;
+      expect(simulateAll(entry.level, bare.program as Program).status, entry.def.slug).toBe(
+        "FAILED",
+      );
+    }
   });
 
   it("uses each slug, title, and board once", () => {
@@ -99,20 +300,23 @@ describe("the starter campaign", () => {
       // Each loop and decision belongs to its world: Repeat to world 3, Repeat until to worlds 4 and 5,
       // If to world 5, none of them earlier.
       const world = entry.world.title;
-      const all = world === "Generalize";
+      const all = world === "Generalize" || world === "Debug";
+      const decide = world === "Decisions" || world === "Wall follower";
       const later = ["Counters", "Memory", "Sweep"].includes(world);
       expect(entry.def.commands.includes("REPEAT")).toBe(
         world === "Loops" || world === "Procedures" || world === "Counters" || all,
       );
       expect(entry.def.commands.includes("REPEAT_UNTIL")).toBe(
-        world === "Until" || world === "Decisions" || later || all,
+        world === "Until" || decide || later || all,
       );
       expect(entry.def.commands.includes("IF")).toBe(
-        world === "Decisions" || world === "Memory" || world === "Sweep" || all,
+        decide || world === "Memory" || world === "Sweep" || all,
       );
       expect(entry.def.commands.includes("INC")).toBe(world === "Counters");
       expect(entry.def.commands.includes("MARK")).toBe(world === "Memory");
-      expect(entry.def.commands.includes("PROC")).toBe(world === "Procedures" || all);
+      expect(entry.def.commands.includes("PROC")).toBe(
+        world === "Procedures" || world === "Recursion" || all,
+      );
       expect(entry.def.hints?.length ?? 0).toBeGreaterThanOrEqual(1);
       expect(entry.def.hints?.length ?? 0).toBeLessThanOrEqual(3);
       for (const hint of entry.def.hints ?? []) expect(hint.length).toBeLessThanOrEqual(140);
@@ -125,7 +329,10 @@ describe("the starter campaign", () => {
       Loops: ["REPEAT"],
       Until: ["REPEAT_UNTIL"],
       Decisions: ["REPEAT_UNTIL", "IF"],
+      "Wall follower": ["REPEAT_UNTIL", "IF"],
       Procedures: ["REPEAT", "PROC"],
+      Recursion: ["PROC"],
+      Debug: ["REPEAT", "REPEAT_UNTIL", "IF", "PROC"],
       Generalize: ["REPEAT", "REPEAT_UNTIL", "IF", "PROC"],
       Counters: ["REPEAT", "REPEAT_UNTIL", "INC"],
       Memory: ["REPEAT_UNTIL", "IF", "MARK"],
@@ -142,7 +349,10 @@ describe("the starter campaign", () => {
       const par = analysisOf(entry).par!.commands;
       const world = entry.world.title;
       const chapter = entry.chapterTitle;
-      if (chapter === "Budgets" || !["Routes"].includes(world)) {
+      if (world === "Debug") {
+        // The limit fits the broken program and its fix; par is the best program there is.
+        expect(entry.def.maxCommands, entry.def.slug).toBeGreaterThanOrEqual(par);
+      } else if (chapter === "Budgets" || !["Routes"].includes(world)) {
         expect(entry.def.maxCommands, entry.def.slug).toBe(par);
       } else {
         expect(entry.def.maxCommands, entry.def.slug).toBeGreaterThan(par);
@@ -164,7 +374,9 @@ describe("the starter campaign", () => {
     { world: "Loops", ratio: 2, strip: ["REPEAT", "REPEAT_UNTIL"], uses: "REPEAT" },
     { world: "Until", ratio: 1.5, strip: ["REPEAT", "REPEAT_UNTIL"], uses: "REPEAT_UNTIL" },
     { world: "Decisions", ratio: 1.5, strip: ["IF"], uses: "IF" },
+    { world: "Wall follower", ratio: 1.5, strip: ["IF"], uses: "IF" },
     { world: "Procedures", ratio: 1.3, strip: ["PROC"], uses: "PROC" },
+    { world: "Recursion", ratio: 1.3, strip: ["PROC"], uses: "PROC" },
     { world: "Counters", ratio: 2, strip: ["INC"], uses: "INC" },
   ];
 

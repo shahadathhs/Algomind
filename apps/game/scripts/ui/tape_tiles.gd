@@ -36,21 +36,21 @@ static func _draw_command(
 	view: TapeView, index: int, rect: Rect2, passed: bool, chosen: bool
 ) -> void:
 	var kind := _icon_for(view.cells[index]["op"])
-	var center := rect.get_center()
 	var icon_size := rect.size.x * 0.5
+	var tone := TileDraw.Tone.PLAIN
+	var color := Palette.INK
 	if index == view.failed_index and view.running:
-		UiKit.fill_chamfer(view, rect, Palette.SIGNAL)
-		UiKit.icon(view, "x", center, icon_size, Palette.ON_SIGNAL)
+		tone = TileDraw.Tone.ACTIVE
+		kind = "x"
+		color = Palette.ON_SIGNAL
 	elif view.running and index == view.current:
-		UiKit.fill_chamfer(view, rect, Palette.SIGNAL)
-		UiKit.icon(view, kind, center, icon_size, Palette.ON_SIGNAL)
+		tone = TileDraw.Tone.ACTIVE
+		color = Palette.ON_SIGNAL
 	elif passed or chosen:
-		UiKit.fill_chamfer(view, rect, Palette.INK)
-		UiKit.icon(view, kind, center, icon_size, Palette.ON_INK)
-	else:
-		UiKit.fill_chamfer(view, rect, Palette.FLOOR)
-		UiKit.outline_chamfer(view, rect, Palette.INK)
-		UiKit.icon(view, kind, center, icon_size, Palette.INK)
+		tone = TileDraw.Tone.SOLID
+		color = Palette.ON_INK
+	var face := TileDraw.tile(view, rect, tone)
+	UiKit.icon(view, kind, face.get_center(), icon_size, color)
 
 
 ## The round a loop header shows: the read-head's round when it is inside the loop, 0 (the count

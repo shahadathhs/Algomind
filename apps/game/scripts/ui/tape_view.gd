@@ -168,7 +168,10 @@ func _index_at(point: Vector2) -> int:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), Palette.STRIP)
+	if UiLook.depth:
+		DepthKit.trough(self, Rect2(Vector2.ZERO, size))
+	else:
+		draw_rect(Rect2(Vector2.ZERO, size), Palette.STRIP)
 	for g in _groups.size():
 		var group := _groups[g]
 		group.position.x -= scroll

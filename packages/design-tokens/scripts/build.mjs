@@ -6,8 +6,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import {
   generateCss,
+  generateDepthCss,
+  generateDepthGdscript,
+  generateDepthTypescript,
   generateGdscript,
   generateTypescript,
+  loadDepthTokens,
   loadTokens,
   outputs,
   repoRoot,
@@ -15,9 +19,12 @@ import {
 
 const tokens = loadTokens();
 const files = [
-  { path: outputs.gd, content: generateGdscript(tokens) },
+  { path: outputs.gd, content: generateGdscript(tokens, loadDepthTokens()) },
   { path: outputs.css, content: generateCss(tokens) },
   { path: outputs.ts, content: generateTypescript(tokens) },
+  { path: outputs.gdDepth, content: generateDepthGdscript(loadDepthTokens()) },
+  { path: outputs.cssDepth, content: generateDepthCss(tokens, loadDepthTokens()) },
+  { path: outputs.tsDepth, content: generateDepthTypescript(loadDepthTokens()) },
 ];
 
 const checkOnly = process.argv.includes("--check");

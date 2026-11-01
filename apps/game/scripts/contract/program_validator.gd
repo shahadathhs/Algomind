@@ -14,7 +14,7 @@ extends RefCounted
 ## Best-effort read of availableCommands and maxCommands from a level that may have other
 ## problems. "available" and "max" are null when unreadable.
 static func limits_of(level: Variant) -> Dictionary:
-	var limits := {"available": null, "max": null, "nested": false}
+	var limits := {"available": null, "max": null, "nested": false, "recursion": false}
 	if typeof(level) != TYPE_DICTIONARY:
 		return limits
 	var root: Dictionary = level
@@ -34,6 +34,9 @@ static func limits_of(level: Variant) -> Dictionary:
 	if typeof(requires) == TYPE_DICTIONARY and typeof(requires.get("mechanics")) == TYPE_ARRAY:
 		limits["nested"] = (requires["mechanics"] as Array).has(
 			ContractLimits.NESTED_LOOPS_MECHANIC
+		)
+		limits["recursion"] = (requires["mechanics"] as Array).has(
+			ContractLimits.RECURSION_MECHANIC
 		)
 	return limits
 
@@ -59,12 +62,13 @@ static func check_program(
 		"issues": issues,
 		"available": limits["available"],
 		"nested": limits["nested"],
+		"recursion": limits["recursion"],
 		"proc_names": proc_names,
 		"defined": {},
 		"slots": 0,
 	}
 	for i in nodes.size():
-		check_item(ctx, nodes[i], "%s[%d]" % [base, i], ProgramShape.TOP)
+		check_item(ctx, nodes[i], "%s[%d]" % [base, i], ProgramShape.top_place(limits["recursion"]))
 	var max_commands: Variant = limits["max"]
 	if max_commands != null and int(ctx["slots"]) > int(max_commands):
 		LevelValidator._add(
@@ -88,10 +92,14 @@ static func check_item(ctx: Dictionary, item: Variant, path: String, place: Dict
 	var checked := _check_op(issues, node, path, ctx, place)
 	# A node the place does not allow is reported once, not field by field.
 	if not checked["nested"]:
-		LevelValidator._reject_unknown(issues, node, path, allowed_keys(checked["op"]))
+		LevelValidator._reject_unknown(
+			issues, node, path, allowed_keys(checked["op"], ctx["recursion"])
+		)
 	var op: Variant = checked["op"]
 	if ContractLimits.is_loop(op):
-		var inner := ProgramShape.place_of(false, place["proc"], int(place["loops"]) + 1, false)
+		var inner := ProgramShape.place_of(
+			false, place["proc"], int(place["loops"]) + 1, false, place["recursion"]
+		)
 		_check_loop(ctx, node, path, op, inner)
 	elif ContractLimits.is_if(op):
 		ProgramIf.check_if(ctx, node, path, place, 1)
@@ -106,9 +114,19 @@ static func check_item(ctx: Dictionary, item: Variant, path: String, place: Dict
 				"UNDEFINED_PROCEDURE",
 				"%s.name: no procedure %s is defined." % [path, name]
 			)
+		if ctx["recursion"] and node.has("when"):
+			var when_path := path + ".when"
+			if typeof(node["when"]) != TYPE_STRING:
+				LevelValidator._add(
+					issues, when_path, "INVALID_TYPE", "%s must be a string." % when_path
+				)
+			elif not ContractLimits.SENSORS.has(node["when"]):
+				LevelValidator._add(
+					issues, when_path, "INVALID_VALUE", "%s must be one of the sensors." % when_path
+				)
 
 
-static func allowed_keys(op: Variant) -> Array[String]:
+static func allowed_keys(op: Variant, recursion: bool = false) -> Array[String]:
 	if ContractLimits.is_repeat(op):
 		return ["op", "count", "body"]
 	if ContractLimits.is_repeat_until(op):
@@ -118,6 +136,8 @@ static func allowed_keys(op: Variant) -> Array[String]:
 	if ContractLimits.is_proc(op):
 		return ["op", "name", "body"]
 	if ContractLimits.is_call(op):
+		if recursion:
+			return ["op", "name", "when"]
 		return ["op", "name"]
 	return ["op"]
 
@@ -161,12 +181,16 @@ static func _check_op(
 			"%s: a procedure can only be defined at the top level." % op_path
 		)
 		return {"op": null, "nested": true}
-	if (place["proc"] or place["branch"]) and ContractLimits.is_call(op):
+	var in_proc_body: bool = place["proc"] and int(place["loops"]) == 0 and not place["branch"]
+	if (
+		ContractLimits.is_call(op)
+		and (place["branch"] or (place["proc"] and not (ctx["recursion"] and in_proc_body)))
+	):
 		LevelValidator._add(
 			issues,
 			op_path,
 			"CALL_NOT_ALLOWED",
-			"%s: a CALL stands at the top level or in a loop of the main program." % op_path
+			"%s: a CALL stands in the main program or, with recursion, a procedure body." % op_path
 		)
 		return {"op": null, "nested": true}
 	var needed: String = ContractLimits.PROC_OP if ContractLimits.is_call(op) else op
@@ -201,7 +225,7 @@ static func _check_proc(ctx: Dictionary, node: Dictionary, path: String) -> void
 				ctx,
 				items[j],
 				"%s.body[%d]" % [path, j],
-				ProgramShape.place_of(false, true, 0, false)
+				ProgramShape.place_of(false, true, 0, false, ctx["recursion"])
 			)
 
 

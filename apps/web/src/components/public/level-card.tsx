@@ -5,8 +5,9 @@ import { type CampaignLevel, DIFFICULTY_LABEL } from "@/lib/campaign";
 export function LevelCard({ level }: { level: CampaignLevel }) {
   const number = String(level.number).padStart(2, "0");
   return (
-    <li>
+    <li className="view-pop lift lift-board">
       <BoardView
+        look="depth"
         board={level.board}
         label={`Level ${level.number}, ${level.title}. Move the automaton to the target.`}
       />

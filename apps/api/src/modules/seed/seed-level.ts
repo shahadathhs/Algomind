@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { solve, type CommandName, type Direction, type Level } from "@algomind/level-contract";
+import {
+  solve,
+  type CommandName,
+  type Direction,
+  type Level,
+  type Program,
+} from "@algomind/level-contract";
 import type { Prisma } from "../../generated/prisma/client.js";
 import { analyzeLevel, contentHash } from "../levels/level-analysis.js";
 import type { ValidationSummary } from "../levels/levels.schemas.js";
@@ -49,6 +55,32 @@ export type LevelDef = {
   requires?: readonly string[];
   /** More test boards as text rows (the same alphabet as `rows`): one program must solve them all. */
   extraBoards?: readonly (readonly string[])[];
+  /** A debug level: the program the tape starts with. It must fail; `solution` is its fix. */
+  startProgram?: readonly unknown[];
+  /** Keys and the doors they open. */
+  locks?: readonly { key: readonly [number, number]; door: readonly [number, number] }[];
+  /** Items and the docks they belong on: the target counts once every item is delivered. */
+  deliveries?: readonly { item: readonly [number, number]; dock: readonly [number, number] }[];
+  /** Switches and the gates they toggle; `open` makes the gate start open. */
+  switches?: readonly {
+    switch: readonly [number, number];
+    gate: readonly [number, number];
+    open?: boolean;
+  }[];
+  /** Teleporter pairs: entering one end puts the automaton on the other. */
+  teleports?: readonly { a: readonly [number, number]; b: readonly [number, number] }[];
+  /** Ice cells: a move onto ice slides on while the way is free. */
+  ice?: readonly (readonly [number, number])[];
+  /** Belts: after an action that leaves the automaton on one, it is carried a cell. */
+  belts?: readonly {
+    cell: readonly [number, number];
+    direction: "north" | "east" | "south" | "west";
+  }[];
+  /** Guards that walk a fixed route: their cell depends only on the step number. */
+  patrols?: readonly {
+    pattern: "back_and_forth" | "loop";
+    cells: readonly (readonly [number, number])[];
+  }[];
 };
 
 /** The seed content failed the validator or solver: a bug in the data, never a runtime problem. */
@@ -80,6 +112,51 @@ export function buildLevel(def: LevelDef, id: string): Level {
               goal: goalOf(extra.goal),
             };
           }),
+        }
+      : {}),
+    ...(def.startProgram ? { startProgram: structuredClone(def.startProgram) as Program } : {}),
+    ...(def.locks
+      ? {
+          locks: def.locks.map((l) => ({ key: [...l.key], door: [...l.door] })) as Level["locks"],
+        }
+      : {}),
+    ...(def.deliveries
+      ? {
+          deliveries: def.deliveries.map((d) => ({
+            item: [...d.item],
+            dock: [...d.dock],
+          })) as Level["deliveries"],
+        }
+      : {}),
+    ...(def.switches
+      ? {
+          switches: def.switches.map((s) => ({
+            switch: [...s.switch],
+            gate: [...s.gate],
+            ...(s.open !== undefined ? { open: s.open } : {}),
+          })) as Level["switches"],
+        }
+      : {}),
+    ...(def.teleports
+      ? {
+          teleports: def.teleports.map((t) => ({ a: [...t.a], b: [...t.b] })) as Level["teleports"],
+        }
+      : {}),
+    ...(def.ice ? { ice: def.ice.map((c) => [...c]) as Level["ice"] } : {}),
+    ...(def.belts
+      ? {
+          belts: def.belts.map((b) => ({
+            cell: [...b.cell],
+            direction: b.direction,
+          })) as Level["belts"],
+        }
+      : {}),
+    ...(def.patrols
+      ? {
+          patrols: def.patrols.map((p) => ({
+            pattern: p.pattern,
+            cells: p.cells.map((c) => [...c]),
+          })) as Level["patrols"],
         }
       : {}),
     hints: [...(def.hints ?? [])],

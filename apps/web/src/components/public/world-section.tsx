@@ -1,3 +1,4 @@
+import { Key } from "@/components/ui/key";
 import { LevelCard } from "@/components/public/level-card";
 import { Caption } from "@/components/ui/caption";
 import { levelCount, type World } from "@/lib/campaign";
@@ -9,12 +10,14 @@ export function WorldSection({ world }: { world: World }) {
   return (
     <>
       <div className="flex items-start gap-5">
-        <span
-          aria-hidden="true"
-          className="tile flex h-14 w-14 flex-none items-center justify-center bg-ink text-2xl text-on-ink tabular-nums"
-        >
-          {String(world.number).padStart(2, "0")}
-        </span>
+        <Key tone="ink" className="flex-none">
+          <span
+            aria-hidden="true"
+            className="tile flex h-14 w-14 items-center justify-center bg-ink text-2xl text-on-ink tabular-nums"
+          >
+            {String(world.number).padStart(2, "0")}
+          </span>
+        </Key>
         <div>
           <Caption>{`World ${world.number}`}</Caption>
           <h2

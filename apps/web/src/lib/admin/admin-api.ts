@@ -84,6 +84,28 @@ export type LevelContent = {
   hints: string[];
   /** Test boards the same program must also solve (1 to 5). */
   extraBoards?: Pick<LevelContent, "board" | "initialState" | "goal">[];
+  /** The program the tape starts with, for a level about fixing a program (a debug level). */
+  startProgram?: Instruction[];
+} & LevelTiles;
+
+type Cell = [number, number];
+
+/** The tiles of the later worlds, on the level's own board only. */
+export type LevelTiles = {
+  /** Guards that walk a fixed route. */
+  patrols?: { pattern: "back_and_forth" | "loop"; cells: Cell[] }[];
+  /** Keys and the doors they open. */
+  locks?: { key: Cell; door: Cell }[];
+  /** Crates and the docks they belong on. */
+  deliveries?: { item: Cell; dock: Cell }[];
+  /** Switches and the gates they flip; `open` is a gate that starts open. */
+  switches?: { switch: Cell; gate: Cell; open?: boolean }[];
+  /** Teleporter pairs. */
+  teleports?: { a: Cell; b: Cell }[];
+  /** Ice cells. */
+  ice?: Cell[];
+  /** Belts and the way each carries. */
+  belts?: { cell: Cell; direction: "north" | "east" | "south" | "west" }[];
 };
 
 export type VersionView = {

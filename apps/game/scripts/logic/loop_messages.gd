@@ -80,7 +80,7 @@ static func _blocked_ahead(level: Dictionary, result: Dictionary) -> bool:
 
 
 ## The objective text while the program is being built: what is missing, else the goal.
-static func building_text(tape: TapeModel, sweep: bool = false) -> String:
+static func building_text(tape: TapeModel, sweep: bool = false, fix: bool = false) -> String:
 	if TapeCells.has_empty_loop(tape.nodes):
 		return "ADD A COMMAND TO THE LOOP"
 	if TapeCells.has_empty_if(tape.nodes):
@@ -90,4 +90,7 @@ static func building_text(tape: TapeModel, sweep: bool = false) -> String:
 	var missing := tape.undefined_calls()
 	if not missing.is_empty():
 		return "PROCEDURE %s IS NOT DEFINED" % " AND ".join(missing)
+	if fix:
+		# A debug level: the program is already on the tape and the job is to correct it.
+		return "FIX THE PROGRAM"
 	return "VISIT EVERY CELL" if sweep else "REACH THE TARGET"

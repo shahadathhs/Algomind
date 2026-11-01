@@ -7,7 +7,7 @@ import { TILE_TONE } from "@/lib/tile-variants";
 export function CommandTile({ command, size = 56 }: { command: Command; size?: number }) {
   return (
     <svg viewBox="0 0 56 56" width={size} height={size} aria-hidden="true" className="shrink-0">
-      <TileGraphic x={0} y={0} w={56} h={56} variant="outline" chamfer={12}>
+      <TileGraphic look="depth" x={0} y={0} w={56} h={56} variant="outline" chamfer={12}>
         <CommandIcon kind={command} cx={28} cy={28} size={28} tone={TILE_TONE.outline} />
       </TileGraphic>
     </svg>

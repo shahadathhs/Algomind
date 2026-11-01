@@ -24,13 +24,36 @@ static func show_step(p: PlayScreen, id: int, entry: Dictionary) -> bool:
 	var slide := 0.0 if p.app.progress.settings.reduce_motion() else seconds
 	if slide > 0.0:
 		var tween := p.create_tween().set_parallel(true)
-		tween.tween_property(p._board, "automaton", target, slide)
+		if UiLook.depth:
+			tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tween.tween_property(p._board, "guard_time", float(entry["index"]) + 1.0, slide)
 		tween.tween_property(
 			p._tape_view, "scroll", p._tape_view.head_scroll(p._tape_view.current), slide
 		)
-		await tween.finished
+		# A slide or a carry goes through every cell of the step's path in turn.
+		var cells: Array = entry.get("path", [])
+		var chain := p.create_tween()
+		if UiLook.depth:
+			chain.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		if entry["event"] == "TELEPORTED":
+			# Walk to the teleporter (through any ice before it), then appear on its other end.
+			var walk := cells.size() - 1
+			for i in walk:
+				var cell_on_way: Array = cells[i]
+				var on_way := Vector2(int(cell_on_way[0]), int(cell_on_way[1]))
+				chain.tween_property(p._board, "automaton", on_way, slide / 2.0 / float(walk))
+			chain.tween_callback(func() -> void: p._board.automaton = target)
+			chain.tween_interval(slide / 2.0)
+		elif cells.size() > 1:
+			for cell_on_path: Array in cells:
+				var at := Vector2(int(cell_on_path[0]), int(cell_on_path[1]))
+				chain.tween_property(p._board, "automaton", at, slide / float(cells.size()))
+		else:
+			chain.tween_property(p._board, "automaton", target, slide)
+		await chain.finished
 	else:
 		p._board.automaton = target
+		p._board.guard_time = float(entry["index"]) + 1.0
 		p._tape_view.scroll = p._tape_view.head_scroll(p._tape_view.current)
 	if id != p._run_id:
 		return false

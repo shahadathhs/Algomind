@@ -68,6 +68,8 @@ File size, module structure, and reuse are specified in `docs/README_CODE_STANDA
 
 The design system is **Instruction Tape**; the full rules are in `docs/README_VISUAL_DESIGN.md`. When touching UI:
 
+> **Depth direction (approved, not yet built).** The owner approved a depth version of this style (soft shadows, face shading, keys with a lip, a 2.5D board): `docs/README_VISUAL_DESIGN.md` section 14 and `docs/README_3D_VIEW_PLAN.md`. The rules below describe the shipped code. Work on the depth track follows section 14, which allows soft shadows, a ground gradient, face shading, and the 2.5D board and keeps the other bans (no glow, blur on content, particles, glass, or emoji). Do not mix the two styles on one screen.
+
 - The unit is the tile: square with the top-right corner chamfered. Board cells are square.
 - One accent: signal yellow, used as a fill with ink on top; never as text or a line on the light ground.
 - Exactly one primary (yellow) button per screen. Secondary actions are outlined tiles; tertiary are underlined text.

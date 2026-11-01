@@ -1,5 +1,5 @@
 import { apiBaseUrl } from "@/lib/api";
-import type { BoardData, Dir } from "@/lib/board";
+import { type BoardData, type Dir, tilesOf } from "@/lib/board";
 
 /**
  * The published campaign as the public site shows it: worlds, chapters inside a world, and levels
@@ -76,6 +76,7 @@ export function boardFromContent(content: unknown): BoardData | null {
     walls: wallPoints as { x: number; y: number }[],
     goal,
     automaton: { ...start, dir },
+    ...tilesOf(content),
   };
 }
 

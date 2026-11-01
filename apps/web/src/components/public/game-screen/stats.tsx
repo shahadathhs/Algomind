@@ -15,7 +15,15 @@ export function Stats({ data }: { data: ScreenData }) {
         RESULT
       </SvgCaption>
       {stats.map((stat, i) => (
-        <TileGraphic key={stat.label} x={20 + i * 120} y={650} w={110} h={50} variant="ghost">
+        <TileGraphic
+          look="depth"
+          key={stat.label}
+          x={20 + i * 120}
+          y={650}
+          w={110}
+          h={50}
+          variant="ghost"
+        >
           <text
             x={75 + i * 120}
             y={673}

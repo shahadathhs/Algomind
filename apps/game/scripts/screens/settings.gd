@@ -6,6 +6,7 @@ extends ScreenBase
 
 const THEME_NAMES: Array[String] = ["system", "light", "dark"]
 const SPEED_NAMES: Array[String] = ["slow", "normal", "fast"]
+const LOOK_NAMES: Array[String] = ["flat", "depth"]
 
 var _back: TileButton
 var _title: Label
@@ -46,6 +47,7 @@ func _build() -> void:
 	_list.add_child(UiRows.gap(10.0))
 	_list.add_child(UiRows.caption("LOOK"))
 	_list.add_child(UiRows.segment_row("THEME", THEME_NAMES, settings.theme(), _set_theme))
+	_list.add_child(UiRows.segment_row("STYLE", LOOK_NAMES, settings.look(), _set_look))
 
 	_restore_scroll.call_deferred()
 	if not OS.has_feature("web"):
@@ -120,6 +122,11 @@ func _toggle_motion() -> void:
 
 func _set_speed(option: String) -> void:
 	app.progress.settings.set_run_speed(option)
+	_changed()
+
+
+func _set_look(option: String) -> void:
+	app.progress.settings.set_look(option)
 	_changed()
 
 

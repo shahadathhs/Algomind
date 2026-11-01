@@ -22,6 +22,13 @@ static func nested_loops(level: Dictionary) -> bool:
 	return (requires.get("mechanics", []) as Array).has(NESTED_LOOPS)
 
 
+## True when the level lists the mechanic recursion (a procedure may CALL, and a CALL may carry a
+## sensor).
+static func recursion(level: Dictionary) -> bool:
+	var requires: Dictionary = level.get("requires", {})
+	return (requires.get("mechanics", []) as Array).has(ContractLimits.RECURSION_MECHANIC)
+
+
 ## True when the level offers INC, so a loop can count with N and the screen shows the counter.
 static func has_counter(level: Dictionary) -> bool:
 	return (level.get("availableCommands", []) as Array).has(ContractLimits.INC_OP)
@@ -62,4 +69,20 @@ static func derived(level: Dictionary) -> Array[String]:
 		out.append("markers")
 	if has_sweep(level):
 		out.append("visit_all")
+	if level.has("startProgram"):
+		out.append("start_program")
+	if level.has("patrols"):
+		out.append("patrol")
+	if level.has("locks"):
+		out.append("keys")
+	if level.has("deliveries"):
+		out.append("delivery")
+	if level.has("switches"):
+		out.append("switch")
+	if level.has("teleports"):
+		out.append("teleport")
+	if level.has("ice"):
+		out.append("ice")
+	if level.has("belts"):
+		out.append("belts")
 	return out

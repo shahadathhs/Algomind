@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   explainResult,
+  patrolCell,
   simulate,
   simulateAll,
   solve,
@@ -20,6 +21,7 @@ const invalidFixtures = loadFixtures("levels/invalid");
 const runFixtures = loadFixtures("runs");
 const solverFixtures = loadFixtures("solver");
 const boardFixtures = loadFixtures("boards");
+const patrolFixtures = loadFixtures("patrols");
 
 test("the fixture suite is large enough and self-describing", () => {
   assert.ok(validFixtures.length >= 5);
@@ -32,6 +34,7 @@ test("the fixture suite is large enough and self-describing", () => {
     ...runFixtures,
     ...solverFixtures,
     ...boardFixtures,
+    ...patrolFixtures,
   ]) {
     assert.equal(typeof data.description, "string", `${name} needs a description`);
     assert.ok(data.description.length > 0, `${name} needs a description`);
@@ -105,5 +108,15 @@ for (const { name, data } of solverFixtures) {
   test(`solver fixture: ${name}`, () => {
     assert.deepEqual(validateLevel(data.level).issues, []);
     assert.deepEqual(solve(data.level), data.expected);
+  });
+}
+
+for (const { name, data } of patrolFixtures) {
+  test(`patrol fixture: ${name}`, () => {
+    const cells = [];
+    for (let step = 0; step < data.cells.length; step += 1) {
+      cells.push(patrolCell(data.patrol, step));
+    }
+    assert.deepEqual(cells, data.cells);
   });
 }

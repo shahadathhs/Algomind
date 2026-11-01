@@ -9,6 +9,16 @@ extends RefCounted
 
 enum State { READY, RUNNING, PAUSED, SUCCEEDED, FAILED }
 
+## The failures that an instruction caused (the others end the run without one).
+const FAILING_REASONS := [
+	"BLOCKED_BY_WALL",
+	"BLOCKED_BY_BOUNDARY",
+	"BLOCKED_BY_DOOR",
+	"HIT_BY_PATROL",
+	"UNDELIVERED",
+	"BLOCKED_BY_GATE",
+]
+
 var level: Dictionary
 var state := State.READY
 ## The simulator result for the program that was started; empty while READY.
@@ -90,14 +100,30 @@ func automaton_state() -> Dictionary:
 	return {"position": entry["position"], "direction": entry["direction"]}
 
 
-## Cells the automaton has stood on so far, start included, as Vector2i.
-func trail() -> Array[Vector2i]:
+## Every cell the automaton has entered so far, in order and with repeats, the start first. A step
+## on a level with ice or belts lists all the cells it went through (its `path`); otherwise a move
+## that was not blocked entered the cell it ended on. Effects of the board (keys, crates, switches)
+## are replayed from this list.
+func route() -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	var start_cell: Array = level["initialState"]["position"]
 	cells.append(Vector2i(int(start_cell[0]), int(start_cell[1])))
 	for i in cursor:
-		var cell: Array = trace()[i]["position"]
-		var point := Vector2i(int(cell[0]), int(cell[1]))
+		var entry: Dictionary = trace()[i]
+		var entered: Array = []
+		if entry.has("path"):
+			entered = entry["path"]
+		elif entry["op"] == "MOVE_FORWARD" and not str(entry["event"]).begins_with("BLOCKED"):
+			entered = [entry["position"]]
+		for cell: Array in entered:
+			cells.append(Vector2i(int(cell[0]), int(cell[1])))
+	return cells
+
+
+## Cells the automaton has stood on so far, start included, as Vector2i, each once.
+func trail() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for point in route():
 		if not cells.has(point):
 			cells.append(point)
 	return cells
@@ -135,7 +161,7 @@ func failing_node() -> Array:
 	if state != State.FAILED:
 		return []
 	var reason: String = result.get("reason", "")
-	if reason == "BLOCKED_BY_WALL" or reason == "BLOCKED_BY_BOUNDARY":
+	if FAILING_REASONS.has(reason):
 		return trace()[trace().size() - 1]["node"]
 	return []
 

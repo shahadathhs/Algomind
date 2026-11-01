@@ -50,12 +50,20 @@ static func _run(
 	if ContractLimits.is_if(op):
 		return _run_if(run, node, path, round_number, call_path)
 	if ContractLimits.is_call(op):
+		if node.has("when") and not RunSensors.sense(run, String(node["when"])):
+			return null
+		if not (run["procs"] as Dictionary).has(node["name"]):
+			return RunStep.finish("FAILED", "INVALID_INSTRUCTION", null, run)
+		run["depth"] = int(run["depth"]) + 1
+		if int(run["depth"]) > ContractLimits.CALL_DEPTH_MAX:
+			return RunStep.finish("FAILED", "TOO_DEEP", null, run)
 		var target: Dictionary = run["procs"][node["name"]]
 		var body: Array = target["node"]["body"]
 		for j in body.size():
 			result = _run(run, body[j], [target["index"], j], null, path)
 			if result != null:
 				return result
+		run["depth"] = int(run["depth"]) - 1
 		return null
 
 	var items: Array = node["body"]
@@ -142,6 +150,8 @@ static func simulate(level: Dictionary, program: Array) -> Dictionary:
 	if goal.has("position"):
 		goal_cell = Vector2i(int(goal["position"][0]), int(goal["position"][1]))
 	var start_cell := Vector2i(int(start[0]), int(start[1]))
+	var top := ProgramShape.top_place(_has_recursion(level))
+	var names := ProgramShape.proc_names(program)
 	# The run state lives in one Dictionary so that step() can change it.
 	var run := {
 		"width": int(board["width"]),
@@ -156,19 +166,36 @@ static func simulate(level: Dictionary, program: Array) -> Dictionary:
 		"direction": String(initial["direction"]),
 		"trace": [],
 		"max_steps": int(level["constraints"]["maxSteps"]),
-		"procs": ProgramShape.reachable_procs(program),
+		"procs": ProgramShape.reachable_procs(program, top),
+		"depth": 0,
+		"patrols": level.get("patrols", []),
+		"keys": RunLocks.tables(level)["keys"],
+		"doors": RunLocks.tables(level)["doors"],
+		"held": {},
+		"items": RunItems.tables(level)["items"],
+		"docks": RunItems.tables(level)["docks"],
+		"ice": _ice_cells(level),
+		"belts": _belt_cells(level),
+		"portals": _portal_cells(level),
+		"routed": level.has("ice") or level.has("belts") or level.has("teleports"),
+		"switches": RunGates.tables(level)["switches"],
+		"gates": RunGates.tables(level)["gates"],
+		"starts_open": RunGates.tables(level)["starts_open"],
+		"flipped": {},
+		"carrying": -1,
+		"delivered": {},
 	}
 
 	for i in program.size():
 		var node: Variant = program[i]
 		if typeof(node) == TYPE_DICTIONARY and ContractLimits.is_proc(node.get("op")):
 			# A definition: skipped when well formed, a content error when not.
-			if not ProgramShape.is_runnable(node, ProgramShape.TOP, {}):
+			if not ProgramShape.is_runnable(node, top, names):
 				return RunStep.finish("FAILED", "INVALID_INSTRUCTION", null, run)
 			continue
 		if (run["trace"] as Array).size() >= int(run["max_steps"]):
 			return RunStep.finish("FAILED", "STEP_LIMIT", null, run)
-		if not ProgramShape.is_runnable(node, ProgramShape.TOP, run["procs"]):
+		if not ProgramShape.is_runnable(node, top, run["procs"]):
 			return RunStep.finish("FAILED", "INVALID_INSTRUCTION", null, run)
 		var result: Variant = _run(run, node, [i], null, null)
 		if result != null:
@@ -196,3 +223,42 @@ static func simulate_all(level: Dictionary, program: Array) -> Dictionary:
 		"steps": steps,
 		"results": results,
 	}
+
+
+## The ice cells of a level as a set of cells.
+static func _ice_cells(level: Dictionary) -> Dictionary:
+	var out := {}
+	for cell: Array in level.get("ice", []):
+		out[Vector2i(int(cell[0]), int(cell[1]))] = true
+	return out
+
+
+## The belts of a level: cell to the name of the direction it carries.
+static func _belt_cells(level: Dictionary) -> Dictionary:
+	var out := {}
+	for belt: Dictionary in level.get("belts", []):
+		out[Vector2i(int(belt["cell"][0]), int(belt["cell"][1]))] = String(belt["direction"])
+	return out
+
+
+## The teleporters of a level: each end to the cell of the other end.
+static func _portal_cells(level: Dictionary) -> Dictionary:
+	var out := {}
+	for pair: Dictionary in level.get("teleports", []):
+		var a := Vector2i(int(pair["a"][0]), int(pair["a"][1]))
+		var b := Vector2i(int(pair["b"][0]), int(pair["b"][1]))
+		out[a] = b
+		out[b] = a
+	return out
+
+
+## True when the level lists the mechanic recursion.
+static func _has_recursion(level: Dictionary) -> bool:
+	var requires: Variant = level.get("requires")
+	if typeof(requires) != TYPE_DICTIONARY:
+		return false
+	var mechanics: Variant = requires.get("mechanics")
+	return (
+		typeof(mechanics) == TYPE_ARRAY
+		and (mechanics as Array).has(ContractLimits.RECURSION_MECHANIC)
+	)

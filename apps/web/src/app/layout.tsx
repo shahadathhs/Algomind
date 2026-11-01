@@ -34,7 +34,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <style>{".reveal{opacity:1!important;transform:none!important}"}</style>
         </noscript>
       </head>
-      <body className="min-h-screen bg-ground text-ink">{children}</body>
+      {/* suppressHydrationWarning: browser extensions (ColorZilla, Grammarly and others) add
+          attributes to <body> before React hydrates; that is not a mismatch in our markup. */}
+      <body className="min-h-screen bg-ground text-ink" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
