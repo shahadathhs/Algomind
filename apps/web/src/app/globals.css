@@ -50,6 +50,12 @@ body {
   color: var(--ink);
 }
 
+/* A board far below the screen is not drawn until it is near: the levels page holds over a hundred. */
+.deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
+}
+
 @layer components {
   .look-depth .key {
     --lip: 4px;
