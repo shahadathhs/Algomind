@@ -42,6 +42,9 @@ export const POOL_LEVELS = DAILY_POOL as readonly LevelDef[];
  * Idempotent: anything that already exists (by slug, title) is left alone. Controlled by
  * SEED_STARTER_CAMPAIGN (default on outside production, off in production).
  */
+/** A level takes a handful of queries; allow a slow, far-away database plenty of time for them. */
+const SEED_TRANSACTION = { maxWait: 15_000, timeout: 60_000 } as const;
+
 @Injectable()
 export class StarterCampaignSeed implements OnApplicationBootstrap {
   private readonly logger = new Logger(StarterCampaignSeed.name);
@@ -91,44 +94,47 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
     // Check everything before writing anything.
     const prepared = missing.map((entry) => ({ entry, item: prepareLevel(entry.def) }));
 
-    await this.prisma.$transaction(async (tx) => {
-      const worlds = new Map<string, string>();
-      const chapters = new Map<string, string>();
-      const worldId = async (title: string, description: string): Promise<string> => {
-        const known = worlds.get(title);
-        if (known) return known;
-        const world =
-          (await tx.world.findFirst({ where: { title }, orderBy: { order: "asc" } })) ??
-          (await tx.world.create({
-            data: {
-              title,
-              description,
-              order: ((await tx.world.aggregate({ _max: { order: true } }))._max.order ?? -1) + 1,
-            },
-          }));
-        worlds.set(title, world.id);
-        return world.id;
-      };
-      const chapterId = async (wid: string, title: string): Promise<string> => {
-        const key = `${wid}/${title}`;
-        const known = chapters.get(key);
-        if (known) return known;
-        const chapter =
-          (await tx.chapter.findFirst({ where: { worldId: wid, title } })) ??
-          (await tx.chapter.create({
-            data: {
-              title,
-              worldId: wid,
-              order:
-                ((await tx.chapter.aggregate({ where: { worldId: wid }, _max: { order: true } }))
-                  ._max.order ?? -1) + 1,
-            },
-          }));
-        chapters.set(key, chapter.id);
-        return chapter.id;
-      };
-
-      for (const { entry, item } of prepared) {
+    // One transaction per level, not one for the whole campaign: against a database in another region
+    // every query costs a round trip, and a single transaction of 100 levels outlives Prisma's
+    // 5 second limit. A level and its place go in together or not at all, and a seed that stops
+    // half way carries on from the missing levels at the next start.
+    const worlds = new Map<string, string>();
+    const chapters = new Map<string, string>();
+    for (const { entry, item } of prepared) {
+      await this.prisma.$transaction(async (tx) => {
+        const worldId = async (title: string, description: string): Promise<string> => {
+          const known = worlds.get(title);
+          if (known) return known;
+          const world =
+            (await tx.world.findFirst({ where: { title }, orderBy: { order: "asc" } })) ??
+            (await tx.world.create({
+              data: {
+                title,
+                description,
+                order: ((await tx.world.aggregate({ _max: { order: true } }))._max.order ?? -1) + 1,
+              },
+            }));
+          worlds.set(title, world.id);
+          return world.id;
+        };
+        const chapterId = async (wid: string, title: string): Promise<string> => {
+          const key = `${wid}/${title}`;
+          const known = chapters.get(key);
+          if (known) return known;
+          const chapter =
+            (await tx.chapter.findFirst({ where: { worldId: wid, title } })) ??
+            (await tx.chapter.create({
+              data: {
+                title,
+                worldId: wid,
+                order:
+                  ((await tx.chapter.aggregate({ where: { worldId: wid }, _max: { order: true } }))
+                    ._max.order ?? -1) + 1,
+              },
+            }));
+          chapters.set(key, chapter.id);
+          return chapter.id;
+        };
         const wid = await worldId(entry.world.title, entry.world.description);
         const cid = await chapterId(wid, entry.chapterTitle);
         await createPublishedLevel(
@@ -137,8 +143,8 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
           { chapterId: cid, orderInChapter: entry.orderInChapter, dailyPool: false },
           "Recorded by the starter campaign seed.",
         );
-      }
-    });
+      }, SEED_TRANSACTION);
+    }
     this.logger.log(
       `Created ${missing.length} starter level(s): ${missing.map((l) => l.def.slug).join(", ")}`,
     );
@@ -149,16 +155,16 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
     const missing = await this.missing(POOL_LEVELS);
     if (missing.length === 0) return;
     const prepared = missing.map((def) => prepareLevel(def));
-    await this.prisma.$transaction(async (tx) => {
-      for (const item of prepared) {
+    for (const item of prepared) {
+      await this.prisma.$transaction(async (tx) => {
         await createPublishedLevel(
           tx,
           item,
           { chapterId: null, orderInChapter: 0, dailyPool: true },
           "Recorded by the daily pool seed.",
         );
-      }
-    });
+      }, SEED_TRANSACTION);
+    }
     this.logger.log(`Created ${missing.length} daily pool level(s).`);
   }
 
