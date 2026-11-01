@@ -42,6 +42,15 @@ export const POOL_LEVELS = DAILY_POOL as readonly LevelDef[];
  * Idempotent: anything that already exists (by slug, title) is left alone. Controlled by
  * SEED_STARTER_CAMPAIGN (default on outside production, off in production).
  */
+/**
+ * Checks a level (validator, reference solution, solver) and gives the event loop a turn first, so a
+ * small instance that spends minutes on the whole campaign still answers its health check.
+ */
+async function prepareChecked(def: LevelDef): Promise<ReturnType<typeof prepareLevel>> {
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  return prepareLevel(def);
+}
+
 /** A level takes a handful of queries; allow a slow, far-away database plenty of time for them. */
 const SEED_TRANSACTION = { maxWait: 15_000, timeout: 60_000 } as const;
 
@@ -54,17 +63,36 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
     private readonly config: AppConfig,
   ) {}
 
+  /**
+   * In production the seed runs in the background, after the API has started listening: checking a
+   * hundred levels takes minutes on a small instance, and a host that sees no open port for that long
+   * fails the deploy. Elsewhere the start waits for the seed, so a local database is ready when the
+   * API is.
+   */
   async onApplicationBootstrap(): Promise<void> {
+    if (this.config.seedStarterCampaign === "never") return;
+    if (this.config.nodeEnv === "production") {
+      void this.run();
+      return;
+    }
+    await this.run();
+  }
+
+  private async run(): Promise<void> {
     const mode = this.config.seedStarterCampaign;
-    if (mode === "never") return;
-    if (mode === "when-empty" && (await this.prisma.level.count()) > 0) return;
     try {
+      if (mode === "when-empty" && (await this.prisma.level.count()) > 0) return;
       await this.seed();
     } catch (error) {
-      if (error instanceof SeedContentError || this.config.nodeEnv === "production") throw error;
-      this.logger.warn(
-        `Starter campaign seed skipped: ${error instanceof Error ? error.message : "failed"}`,
-      );
+      // A seed that cannot finish is reported loudly; the levels it did add stay, and the next start
+      // carries on from the missing ones.
+      const message = error instanceof Error ? error.message : "failed";
+      if (this.config.nodeEnv === "production" || error instanceof SeedContentError) {
+        this.logger.error(`Starter campaign seed stopped: ${message}`, (error as Error)?.stack);
+        if (this.config.nodeEnv !== "production") throw error;
+        return;
+      }
+      this.logger.warn(`Starter campaign seed skipped: ${message}`);
     }
   }
 
@@ -91,8 +119,6 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
     const missingSlugs = new Set((await this.missing(LEVELS.map((l) => l.def))).map((d) => d.slug));
     const missing = LEVELS.filter((l) => missingSlugs.has(l.def.slug));
     if (missing.length === 0) return;
-    // Check everything before writing anything.
-    const prepared = missing.map((entry) => ({ entry, item: prepareLevel(entry.def) }));
 
     // One transaction per level, not one for the whole campaign: against a database in another region
     // every query costs a round trip, and a single transaction of 100 levels outlives Prisma's
@@ -100,7 +126,8 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
     // half way carries on from the missing levels at the next start.
     const worlds = new Map<string, string>();
     const chapters = new Map<string, string>();
-    for (const { entry, item } of prepared) {
+    for (const entry of missing) {
+      const item = await prepareChecked(entry.def);
       await this.prisma.$transaction(async (tx) => {
         const worldId = async (title: string, description: string): Promise<string> => {
           const known = worlds.get(title);
@@ -154,8 +181,8 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
   private async seedPool(): Promise<void> {
     const missing = await this.missing(POOL_LEVELS);
     if (missing.length === 0) return;
-    const prepared = missing.map((def) => prepareLevel(def));
-    for (const item of prepared) {
+    for (const def of missing) {
+      const item = await prepareChecked(def);
       await this.prisma.$transaction(async (tx) => {
         await createPublishedLevel(
           tx,
