@@ -50,6 +50,39 @@ body {
   color: var(--ink);
 }
 
+/*
+ * The bar for a page on its way (components/public/nav-progress.tsx): it creeps toward the end while the
+ * page loads and fills when it arrives. It sits over the scroll bar, which it hides meanwhile.
+ */
+.nav-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 70;
+  height: 4px;
+  background: var(--ink);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  opacity: 0;
+  pointer-events: none;
+}
+.nav-progress[data-phase="loading"] {
+  opacity: 1;
+  transform: scaleX(0.85);
+  transition:
+    transform 10s cubic-bezier(0.1, 0.6, 0.3, 1),
+    opacity 80ms;
+}
+.nav-progress[data-phase="done"] {
+  opacity: 0;
+  transform: scaleX(1);
+  transition:
+    transform 120ms ease-out,
+    opacity 220ms ease-out 120ms;
+}
+body:has(.nav-progress:not([data-phase="idle"])) .scroll-progress {
+  opacity: 0;
+}
+
 /* A board far below the screen is not drawn until it is near: the levels page holds over a hundred. */
 .deferred {
   content-visibility: auto;

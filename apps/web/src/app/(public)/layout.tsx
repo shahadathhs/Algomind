@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { NavProgress } from "@/components/public/nav-progress";
 import { SiteFooter } from "@/components/public/site-footer";
 import { SiteHeader } from "@/components/public/site-header";
 
@@ -13,6 +14,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
       >
         Skip to content
       </a>
+      <NavProgress />
       <div className="scroll-progress" aria-hidden="true" />
       <SiteHeader />
       <main id="main" tabIndex={-1} className="outline-none">

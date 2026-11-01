@@ -21,7 +21,7 @@ export function LoadingBlock({
     <section>
       <Container>
         <Rule />
-        <div role="status" className="py-12 sm:py-[72px]">
+        <div role="status" data-loading="" className="py-12 sm:py-[72px]">
           <p className="text-xs font-bold tracking-[2px] text-mute uppercase">{`Loading ${label}`}</p>
           <ul aria-hidden="true" className="mt-8 grid grid-cols-2 gap-x-5 gap-y-6 sm:grid-cols-5">
             {Array.from({ length: tiles }, (_, i) => (
