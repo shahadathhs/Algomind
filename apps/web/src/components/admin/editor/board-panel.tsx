@@ -14,7 +14,6 @@ import {
 import { applyTool, resizeBoard, type Tool } from "@/lib/admin/board-tools";
 import {
   NO_TILE_STATE,
-  tileAt,
   type TileState,
   type TileTool,
   applyTileTool,
@@ -28,6 +27,7 @@ import {
   type Direction,
 } from "@/lib/admin/level-model";
 import { Field, OutlineAction, SelectField } from "../ui";
+import { BoardCells } from "./board-cells";
 import { BoardTabs } from "./board-tabs";
 import { TileToolbox } from "./tile-toolbox";
 import type { ContentProps } from "./content-props";
@@ -50,9 +50,7 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
   const content = onBoard(level, index);
   const onChange = (next: typeof content) => onLevelChange(editBoard(level, index, () => next));
   const { width, height } = content.board;
-  const [sx, sy] = content.initialState.position;
   const sweep = isSweep(content.goal);
-  const [gx, gy] = content.goal.position ?? [-1, -1];
   const tools = sweep ? TOOLS.filter((t) => t.id !== "goal") : TOOLS;
   const activeTool = tools.some((t) => t.id === tool) ? tool : "wall";
   const clickCell = (x: number, y: number) => {
@@ -65,36 +63,6 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
     }
     onChange(applyTool(content, activeTool, x, y));
   };
-  const cells = [];
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const isWall = content.board.walls.some(([wx, wy]) => wx === x && wy === y);
-      const isStart = x === sx && y === sy;
-      const isGoal = x === gx && y === gy;
-      const tile = tileAt(content, x, y);
-      const waiting =
-        (tileState.pending !== null && tileState.pending[0] === x && tileState.pending[1] === y) ||
-        tileState.route.some(([rx, ry]) => rx === x && ry === y);
-      const label = `Cell ${x + 1}, ${y + 1}: ${isStart ? "start" : isGoal ? "goal" : isWall ? "wall" : (tile?.word ?? "floor")}`;
-      cells.push(
-        <button
-          key={`${x}-${y}`}
-          type="button"
-          aria-label={label}
-          onClick={() => clickCell(x, y)}
-          className={`flex aspect-square items-center justify-center text-[15px] font-bold outline-offset-[-4px] ${
-            isWall
-              ? "bg-wall text-on-ink"
-              : isGoal
-                ? "bg-signal text-on-signal"
-                : "bg-floor text-ink"
-          } ${isStart ? "outline-[3px] -outline-offset-[5px] outline-ink" : ""}`}
-        >
-          {isStart ? "S" : isGoal ? "G" : isWall ? "W" : waiting ? "?" : (tile?.mark ?? "")}
-        </button>,
-      );
-    }
-  }
   /** Arrow keys move between the tools, as in any radio group. */
   function moveTool(e: React.KeyboardEvent<HTMLButtonElement>, index: number) {
     const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
@@ -171,14 +139,7 @@ export function BoardPanel({ content: level, onChange: onLevelChange }: ContentP
               </button>
             ))}
           </div>
-          <div
-            role="group"
-            aria-label="Board cells"
-            className="grid max-w-[560px] gap-[2px] bg-faint p-[2px]"
-            style={{ gridTemplateColumns: `repeat(${width}, minmax(0, 1fr))` }}
-          >
-            {cells}
-          </div>
+          <BoardCells content={content} tileState={tileState} onCell={clickCell} />
           <TileToolbox
             content={level}
             tool={tileTool}
