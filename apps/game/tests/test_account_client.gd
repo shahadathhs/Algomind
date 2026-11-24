@@ -131,6 +131,41 @@ func test_a_401_on_a_call_refreshes_once_and_retries() -> void:
 	assert_eq(_server.count("auth/refresh"), 1)
 
 
+func test_a_refresh_that_cannot_reach_the_server_after_a_401_keeps_the_session() -> void:
+	_server.on("POST", "auth/login", AccountFixtures.session("a@example.com", "acc1", "ref1"))
+	_server.on("GET", "me/progress", AccountFixtures.fail(401, "UNAUTHORIZED"))
+	_server.on("POST", "auth/refresh", AccountFixtures.offline())
+	await _client.sign_in("a@example.com", "a-long-enough-password")
+	var result := await _client.call_authed("GET", "me/progress")
+	assert_false(result["ok"])
+	assert_eq(result["error"], "offline", "a dropped connection is not the end of the session")
+	assert_string_contains(result["message"], "NO CONNECTION")
+	assert_true(_account.signed_in(), "the player is not signed out")
+	assert_eq(_account.refresh_token, "ref1")
+
+
+func test_a_refresh_answer_that_arrives_after_sign_out_is_ignored() -> void:
+	_account.start("a@example.com", "ref1")
+	_server.on("POST", "auth/logout", AccountFixtures.ok(null, 204))
+	var slow := AccountFixtures.session("a@example.com", "acc2", "ref2")
+	slow["delay_frames"] = 3
+	_server.on("POST", "auth/refresh", slow)
+	var call: Array = [null]
+	_call_into(call, 0)  # its refresh is still on its way...
+	await _client.sign_out()  # ...while the player signs out
+	assert_false(_account.signed_in())
+	for i in 60:
+		if call[0] != null:
+			break
+		await get_tree().process_frame
+	assert_eq(_server.count("auth/refresh"), 1, "the refresh was asked for")
+	assert_false(_account.signed_in(), "its late answer must not sign the device back in")
+	assert_eq((call[0] as Dictionary)["error"], "signed_out")
+	var again := Account.new(PATH)
+	again.load_data()
+	assert_false(again.signed_in(), "and nothing was stored on the device")
+
+
 func test_calls_while_signed_out_make_no_request() -> void:
 	var result := await _client.call_authed("GET", "me/progress")
 	assert_eq(result["error"], "signed_out")

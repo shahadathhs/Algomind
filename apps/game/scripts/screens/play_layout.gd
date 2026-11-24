@@ -189,11 +189,13 @@ static func _place_controls(
 		x += w + GAP
 
 
-## Which control buttons are shown in the bottom row, with relative widths.
+## Which control buttons are shown in the bottom row, with relative widths. NEXT only when the
+## next level is unlocked (ProgressStore.next_unlocked); otherwise Levels and Replay, as at the
+## end of the campaign.
 static func control_plan(p: PlayScreen) -> Array:
 	match p._session.state:
 		PlaySession.State.SUCCEEDED:
-			if p.app.campaign.next_after(p._entry["id"]).is_empty():
+			if p.app.progress.next_unlocked(p.app.campaign, p._entry["id"]).is_empty():
 				return [[p._levels, 0.4], [p._replay, 0.6]]
 			return [[p._levels, 0.27], [p._replay, 0.3], [p._next, 0.43]]
 		PlaySession.State.FAILED:

@@ -50,21 +50,12 @@ static func default_data() -> Dictionary:
 
 func load_data() -> void:
 	results.load_data()
-	recovered_from_backup = false
-	started_fresh = true
+	var found := AtomicFile.read_recovered(path, _sanitize)
 	data = default_data()
-	var main: Variant = _read(path)
-	if main != null:
-		data = main
-		started_fresh = false
-		return
-	if FileAccess.file_exists(path):
-		DirAccess.copy_absolute(path, path + ".corrupt")
-	var backup: Variant = _read(path + ".bak")
-	if backup != null:
-		data = backup
-		started_fresh = false
-		recovered_from_backup = true
+	started_fresh = found["data"] == null
+	recovered_from_backup = found["from_backup"]
+	if not started_fresh:
+		data = found["data"]
 
 
 ## Writes the data atomically. Returns false when the write failed; the previous save is then
@@ -188,6 +179,16 @@ func is_unlocked(campaign: Campaign, index: int) -> bool:
 	return level_state(campaign, index) != "locked"
 
 
+## The level after `level_id` in campaign order when it is unlocked, else {}: at the end of the
+## campaign, or when a level before it is unsolved (a solved level can sit after an unsolved one).
+## NEXT after a solved level uses it, so that it never opens a locked level.
+func next_unlocked(campaign: Campaign, level_id: String) -> Dictionary:
+	var index := campaign.index_of(level_id) + 1
+	if index < 1 or index >= campaign.entries.size() or not is_unlocked(campaign, index):
+		return {}
+	return campaign.entries[index]
+
+
 ## The level Play should open: the last played one if it is unlocked, else the first unfinished
 ## one, else the last level of the campaign.
 func level_to_play(campaign: Campaign) -> int:
@@ -199,13 +200,8 @@ func level_to_play(campaign: Campaign) -> int:
 	return mini(first_unfinished_index(campaign), campaign.entries.size() - 1)
 
 
-## Parsed, sanitized data from a file; null when the file is missing, unreadable, or from a
-## newer version than this build understands.
-func _read(file_path: String) -> Variant:
-	return _sanitize(AtomicFile.read_json(file_path))
-
-
-## Keeps only well-formed parts. Bad entries are dropped one by one instead of failing the file.
+## Keeps only well-formed parts. Bad entries are dropped one by one instead of failing the file;
+## null for data that is not a Dictionary or is from a version this build does not understand.
 static func _sanitize(parsed: Variant) -> Variant:
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return null
@@ -244,4 +240,8 @@ static func _sanitize(parsed: Variant) -> Variant:
 			clean["settings"]["tutorialDone"] = raw_settings["tutorialDone"]
 		if typeof(raw_settings.get("updatedAt")) == TYPE_FLOAT:
 			clean["settings"]["updatedAt"] = float(raw_settings["updatedAt"])
+		# The look stays on this device (it is not synced), so it is kept the way the coach flag is.
+		var look: Variant = raw_settings.get("look")
+		if typeof(look) == TYPE_STRING and Settings.LOOKS.has(look):
+			clean["settings"]["look"] = look
 	return clean

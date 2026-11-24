@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable } from "@nestjs/common";
 import type { Prisma } from "../../generated/prisma/client.js";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
 import { unprocessable } from "../../core/http/errors.js";
+import { eraseAuditEmails } from "../audit/audit-erasure.js";
 import { PasswordService } from "../auth/password.service.js";
 import { deleteReportsOf } from "../leaderboards/reports.service.js";
 import { mergeCompletion, shouldReplaceSettings } from "./me.merge.js";
@@ -10,6 +11,9 @@ import type { ProgressView, SettingsPayload, SyncBody } from "./me.schemas.js";
 const toDate = (seconds: number): Date => new Date(Math.round(seconds * 1000));
 const toSeconds = (date: Date): number => date.getTime() / 1000;
 
+/** The most levels one player keeps. A sync may send more; the rest is ignored, not refused. */
+const MAX_STORED_COMPLETIONS = 1000;
+
 /**
  * A player's cloud progress. The merge only ever adds or improves, so a sync can never lose a
  * completion, and running the same sync twice leaves the same result:
@@ -17,7 +21,9 @@ const toSeconds = (date: Date): number => date.getTime() / 1000;
  *  - for one level the newer level version wins (a score is never read against other content);
  *  - for the same version the fewer commands win;
  *  - the earliest completion time is kept;
- *  - settings: the newest change wins.
+ *  - settings: the newest change wins;
+ *  - at most MAX_STORED_COMPLETIONS levels are kept: beyond it a new level is ignored, while a
+ *    level already stored still improves.
  */
 @Injectable()
 export class MeService {
@@ -43,6 +49,7 @@ export class MeService {
         const at = toDate(item.completedAt ?? Date.now() / 1000);
         const row = stored.get(item.levelSlug);
         if (!row) {
+          if (stored.size >= MAX_STORED_COMPLETIONS) continue;
           const created = await tx.levelProgress.create({
             data: {
               userId,
@@ -82,7 +89,10 @@ export class MeService {
     return (await this.settings(userId)) as SettingsPayload;
   }
 
-  /** Deletes the account and, by cascade, its sessions, progress, results, badges, and share links. */
+  /**
+   * Deletes the account and, by cascade, its sessions, progress, results, badges, and share links.
+   * The email address leaves the audit log in the same transaction.
+   */
   async deleteAccount(userId: string, password: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) return true;
@@ -98,6 +108,7 @@ export class MeService {
       ]);
     }
     await this.prisma.$transaction(async (tx) => {
+      await eraseAuditEmails(tx, userId);
       await deleteReportsOf(tx, userId, user.publicId);
       await tx.user.delete({ where: { id: userId } });
     });

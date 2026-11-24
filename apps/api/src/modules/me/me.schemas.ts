@@ -34,6 +34,7 @@ export const completionSchema = z.object({
 });
 
 export const syncBodySchema = z.object({
+  /** At most 1,000 per request; a player keeps at most 1,000 in all (me.service.ts). */
   completed: z.array(completionSchema).max(1000),
   settings: settingsPayloadSchema.optional(),
 });

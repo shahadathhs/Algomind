@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, type ReactNode } from "react";
-import { ThemeToggle } from "@/components/public/theme-toggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Wordmark } from "@/components/ui/wordmark";
 import { CHANGE_PASSWORD_PATH, SIGN_IN_PATH } from "@/lib/admin/config";
 import { OutlineAction } from "./ui";

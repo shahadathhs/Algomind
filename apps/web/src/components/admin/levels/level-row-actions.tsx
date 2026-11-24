@@ -7,6 +7,7 @@ import { TextAction } from "../text-action";
 export function LevelRowActions({
   level,
   confirming,
+  duplicating,
   onDuplicate,
   onAskDelete,
   onConfirmDelete,
@@ -14,6 +15,8 @@ export function LevelRowActions({
 }: {
   level: LevelSummary;
   confirming: boolean;
+  /** A copy of this level is being created: Duplicate waits for it, so a second click cannot create two. */
+  duplicating: boolean;
   onDuplicate: () => void;
   onAskDelete: () => void;
   onConfirmDelete: () => void;
@@ -22,7 +25,9 @@ export function LevelRowActions({
   const deletable = level.status === "DRAFT" && level.publishedVersion === null;
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <TextAction onClick={onDuplicate}>Duplicate</TextAction>
+      <TextAction onClick={onDuplicate} disabled={duplicating}>
+        Duplicate
+      </TextAction>
       {deletable &&
         (confirming ? (
           <span className="flex items-center gap-3">

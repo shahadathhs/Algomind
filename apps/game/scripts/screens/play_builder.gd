@@ -1,6 +1,6 @@
 class_name PlayBuilder
 extends RefCounted
-## Creates the child nodes of the play screen and hands them back through its fields.
+## Creates the tape and the child nodes of the play screen and hands them back through its fields.
 
 
 static func build(p: PlayScreen, available: Array[String]) -> void:
@@ -18,6 +18,26 @@ static func build(p: PlayScreen, available: Array[String]) -> void:
 		p.add_child(stat)
 		p._stats.append(stat)
 	_build_controls(p)
+
+
+## The tape of this level. It holds what is already known to be on it: the tape the player left
+## on the way to another screen (args["tape"], see PlayReturn) when the screen is built again,
+## else the start program of a debug level.
+static func make_tape(p: PlayScreen) -> TapeModel:
+	var level: Dictionary = p._level
+	var tape := TapeModel.new(
+		int(level["constraints"]["maxCommands"]),
+		LevelMechanics.available(level),
+		LevelMechanics.nested_loops(level),
+		LevelMechanics.recursion(level)
+	)
+	var left: Variant = p.args.get("tape")
+	if typeof(left) == TYPE_ARRAY:
+		tape.load_program(left)
+	elif level.has("startProgram"):
+		# A debug level starts with a program to fix.
+		tape.load_program(level["startProgram"])
+	return tape
 
 
 static func make_button(

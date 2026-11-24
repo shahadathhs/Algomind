@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { BoardPanel } from "./editor/board-panel";
 import { ChecksPanel } from "./editor/checks-panel";
+import { DiscardDraftControl } from "./editor/discard-draft-control";
 import { localCheck, parIsReferenceFor } from "@/lib/admin/level-model";
 import { DetailsPanel } from "./editor/details-panel";
 import { EditorTabs, type TabId } from "./editor/editor-tabs";
@@ -214,9 +215,7 @@ export function LevelEditor({ levelId }: { levelId: string }) {
           </div>
           {level.publishedVersion !== null && (
             <div className="mt-10">
-              <OutlineAction type="button" onClick={() => void discardDraft()}>
-                Discard this draft
-              </OutlineAction>
+              <DiscardDraftControl onDiscard={() => void discardDraft()} />
             </div>
           )}
         </>

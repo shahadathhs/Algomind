@@ -226,41 +226,6 @@ export function slotsOf(program: Instruction[]): number {
   return programSlots(program as Program);
 }
 
-/** The unsaved-edit backup. It holds level content only, never tokens or credentials. */
-export type DraftBackup = {
-  savedAt: number;
-  baseUpdatedAt: string;
-  content: LevelContent;
-  referenceSolution: Instruction[];
-};
-
-const BACKUP_PREFIX = "algomind-admin-draft:";
-
-export function readBackup(levelId: string): DraftBackup | null {
-  try {
-    const raw = window.localStorage.getItem(BACKUP_PREFIX + levelId);
-    return raw ? (JSON.parse(raw) as DraftBackup) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function writeBackup(levelId: string, backup: DraftBackup): void {
-  try {
-    window.localStorage.setItem(BACKUP_PREFIX + levelId, JSON.stringify(backup));
-  } catch {
-    // Storage may be blocked; saving to the server is the real path.
-  }
-}
-
-export function clearBackup(levelId: string): void {
-  try {
-    window.localStorage.removeItem(BACKUP_PREFIX + levelId);
-  } catch {
-    // Nothing to clear.
-  }
-}
-
 /** What "par" means for this level: the fewest slots, or the reference solution's when IF, PROC, INC, MARK, nested loops, a sweep goal or test boards are used. */
 export function parName(content: LevelContent): string {
   return parIsReferenceFor(content) ? "Reference solution" : "Par";

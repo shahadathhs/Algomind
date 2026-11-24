@@ -60,8 +60,9 @@ static func show_step(p: PlayScreen, id: int, entry: Dictionary) -> bool:
 	if blocked and slide > 0.0:
 		await _nudge(p, entry["direction"])
 	elif slide == 0.0:
-		# Reduce motion: a short beat so each step is still readable.
-		await p.get_tree().create_timer(seconds).timeout
+		# Reduce motion: a short beat so each step is still readable. The beat is the screen's own,
+		# like the slides: when the screen is freed meanwhile it never ends, so nothing resumes.
+		await p.create_tween().tween_interval(seconds).finished
 	return id == p._run_id
 
 

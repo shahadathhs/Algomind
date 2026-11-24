@@ -30,9 +30,8 @@ static func open_pause(p: PlayScreen) -> void:
 			p._close_overlay()
 			p._on_reset()
 	)
-	var here := {"back": "play", "back_args": {"level_id": p._entry["id"]}}
-	if daily:
-		here["back_args"] = {"daily": p._entry["daily"]}
+	# Settings and How to play lead back to this level with the tape as it is.
+	var here := PlayReturn.target(p)
 	overlay.how_to_play.connect(func() -> void: p.navigate.emit("how_to_play", here))
 	overlay.open_settings.connect(func() -> void: p.navigate.emit("settings", here))
 	overlay.back_to_levels.connect(

@@ -88,20 +88,27 @@ Duplications found in review and since removed (do not re-copy): `TextAction` an
 | Pure data modules (`starter-campaign.data.ts`, `daily-pool.data.ts`, fixture JSON, seed catalogs)                                               | Data, not logic; keep entries one per level                                            |
 | Contract mirrors: `packages/level-contract/src/validate.ts`, `apps/game/scripts/contract/level_validator.gd` (and their simulator/solver twins) | Rule parity outranks size; if they are ever split, split both sides in the same change |
 
-## 9. Refactor backlog (current state, measured 2026-10-19)
+## 9. Refactor backlog (current state, measured 2026-11-24)
 
-The splits listed in the first review are done: the editor panels, campaign manager, level list, level editor and game screen on the web; `levels.service.ts` in the API (reads, drafts, publishing, playtests, transfer); `play.gd` in the game. Behavior was unchanged: tests stayed green and the 102 debug screenshots were byte-identical before and after.
+The splits listed in the first review are done: the editor panels, campaign manager, level list, level editor and game screen on the web; `levels.service.ts` in the API (reads, drafts, publishing, playtests, transfer); `play.gd` in the game. Behavior was unchanged: tests stayed green and the 102 debug screenshots were byte-identical before and after. Since then `play.gd` (its tape moved to `PlayBuilder` and `PlayReturn`) and `bff.ts` (its origin check and error helper moved out) dropped under the soft limit too.
 
-Files still over the soft limit (300), all under the ceiling. Split the part you touch when you next edit them:
+Files still over the soft limit (300), all under the ceiling. Split the part you touch when you next edit them (`make size-check` lists them with their current line counts):
 
-| File                                                     | Lines | Note                                                     |
-| -------------------------------------------------------- | ----- | -------------------------------------------------------- |
-| `apps/game/scripts/screens/play.gd`                      | 408   | state-to-view and player actions; split on the next edit |
-| `apps/web/src/lib/admin/session-manager.ts`              | 366   | refresh, locks and broadcast; split by concern           |
-| `apps/api/src/modules/campaign/campaign.service.ts`      | 350   | worlds, chapters and order                               |
-| `apps/api/src/modules/levels/admin-levels.controller.ts` | 326   | route declarations with Swagger metadata                 |
-| `apps/api/src/modules/levels/levels.service.ts`          | 320   | drafts                                                   |
-| `apps/web/src/lib/admin/bff.ts`                          | 306   | proxy request shaping                                    |
+| File                                                     | Lines | Note                                                          |
+| -------------------------------------------------------- | ----- | ------------------------------------------------------------- |
+| `packages/level-contract/src/types.ts`                   | 405   | the contract's types                                          |
+| `apps/web/src/lib/admin/admin-api.ts`                    | 383   | one typed function per admin route                            |
+| `apps/game/scripts/screens/worlds.gd`                    | 363   | the worlds screen                                             |
+| `apps/web/src/lib/admin/session-manager.ts`              | 366   | refresh, locks and broadcast; split by concern                |
+| `apps/api/src/modules/campaign/campaign.service.ts`      | 361   | worlds, chapters and order                                    |
+| `apps/api/src/modules/levels/admin-levels.controller.ts` | 326   | route declarations with Swagger metadata                      |
+| `apps/web/src/app/(public)/how-to-play/page.tsx`         | 324   | a page that holds its own content                             |
+| `apps/api/src/modules/levels/levels.service.ts`          | 320   | drafts                                                        |
+| `apps/web/src/lib/admin/tile-tools.ts`                   | 312   | the tile tools of the board editor                            |
+| `apps/web/src/components/ui/depth-board-graphic.tsx`     | 307   | the depth board drawing                                       |
+| `packages/level-contract/src/simulate.ts`                | 304   | contract mirror of the GDScript run scripts                   |
+| `apps/game/scripts/ui/board_view_25d.gd`                 | 303   | the 2.5D board                                                |
+| `apps/api/src/modules/levels/level-analysis.ts`          | 301   | validation and analysis (the gates are in `publish-gates.ts`) |
 
 Exempt (section 8): `starter-campaign.data.ts`, `daily-pool.data.ts`, `level_validator.gd`, `validate.ts`.
 

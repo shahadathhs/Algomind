@@ -1,7 +1,7 @@
 import { SignInForm } from "@/components/admin/sign-in-form";
 import { Wordmark } from "@/components/ui/wordmark";
 import { safeNext } from "@/lib/admin/config";
-import { END_NOTES, SIGN_IN_ERRORS } from "@/lib/admin/messages";
+import { endNote, signInError } from "@/lib/admin/messages";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -21,8 +21,8 @@ export default async function SignInPage({ searchParams }: { searchParams: Searc
       <h1 className="mb-8 text-[34px] leading-tight tracking-[1px] uppercase">Sign in</h1>
       <SignInForm
         next={safeNext(first(params.next))}
-        initialError={error ? (SIGN_IN_ERRORS[error] ?? SIGN_IN_ERRORS.unavailable) : undefined}
-        note={reason ? END_NOTES[reason] : undefined}
+        initialError={error ? signInError(error) : undefined}
+        note={reason ? endNote(reason) : undefined}
       />
     </main>
   );

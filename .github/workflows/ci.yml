@@ -1,4 +1,4 @@
-# One pipeline. Pull requests and pushes run the quality gates. Pushes to main continue
+# One pipeline. Pull requests and pushes to main run the quality gates. Pushes to main continue
 # through the API deploy, an APK build, and the rolling "latest" release. A version bump
 # (make release v=X.Y.Z) publishes Algomind vX.Y.Z; v* tags also produce releases.
 # Secrets and variables: docs/CI.md.
@@ -6,7 +6,7 @@ name: CI/CD
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
     tags: ["v*"]
   pull_request:
     branches: [main]

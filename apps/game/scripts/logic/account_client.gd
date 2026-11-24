@@ -20,6 +20,10 @@ var _send: Callable
 var _access_token := ""
 var _refreshing := false
 var _access_expires_at := 0.0
+## Counted up whenever the session is forgotten on this device. An answer the server gives to a
+## refresh that was asked for before that belongs to the session the player left, so it is not
+## stored: it would sign the device back in with a token the server has revoked.
+var _forgotten := 0
 
 
 func _init(stored: Account, sender: Callable) -> void:
@@ -55,16 +59,26 @@ func delete_account(password: String) -> Dictionary:
 func call_authed(method: String, path: String, body: Variant = null) -> Dictionary:
 	var token := await _fresh_access_token()
 	if token.is_empty():
-		var state := "signed_out" if not account.signed_in() else "offline"
-		return _failed(state, describe({"error": state, "status": 0, "json": null}))
+		return _no_token()
 	var result: Dictionary = await _send.call(method, path, body, token)
 	if not result["ok"] and int(result["status"]) == 401:
 		_access_token = ""
 		token = await _fresh_access_token()
 		if token.is_empty():
-			return _failed("signed_out", "YOUR SESSION ENDED. SIGN IN AGAIN")
+			return _no_token(true)
 		result = await _send.call(method, path, body, token)
 	return _wrap(result)
+
+
+## The failure of a call that has no access token. "signed_out" only when the session really
+## ended on this device; a refresh that failed on the way leaves it, and the call is "offline".
+## `session_ended` picks the sentence for a session the server just refused to refresh.
+func _no_token(session_ended: bool = false) -> Dictionary:
+	if account.signed_in():
+		return _failed("offline", describe({"error": "offline", "status": 0, "json": null}))
+	if session_ended:
+		return _failed("signed_out", "YOUR SESSION ENDED. SIGN IN AGAIN")
+	return _failed("signed_out", describe({"error": "signed_out", "status": 0, "json": null}))
 
 
 ## A short, plain sentence for a failed result: the server's reason or the connection problem.
@@ -154,9 +168,12 @@ func _is_fresh() -> bool:
 
 ## Exchanges the refresh token for a new pair. "" when it fails; a rejection ends the session.
 func _refresh() -> String:
+	var asked_before := _forgotten
 	var result: Dictionary = await _send.call(
 		"POST", "auth/refresh", {"refreshToken": account.refresh_token}, ""
 	)
+	if asked_before != _forgotten:
+		return ""  # signed out (or deleted) meanwhile: this answer is not for this device
 	if result["ok"] and _accept_session(result["json"]):
 		return _access_token
 	if int(result["status"]) == 401:
@@ -167,6 +184,7 @@ func _refresh() -> String:
 func _forget() -> void:
 	_access_token = ""
 	_access_expires_at = 0.0
+	_forgotten += 1
 	account.clear()
 
 

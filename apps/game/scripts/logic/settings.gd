@@ -3,7 +3,7 @@ extends RefCounted
 ## The player's settings, stored inside the progress file (data["settings"]).
 ##
 ## Changing a synced setting stamps `updatedAt`, so the newest change wins when settings are
-## merged across devices. The first-run coach flag is local only.
+## merged across devices. The first-run coach flag and the look are local only.
 
 const THEMES: Array[String] = ["system", "light", "dark"]
 const LOOK_FLAT := "flat"
@@ -30,7 +30,7 @@ func set_theme(value: String) -> void:
 
 
 ## The look of the game on this device: depth (the default) or flat. It is not synced, because what
-## a device can draw smoothly differs from device to device.
+## a device can draw smoothly differs from device to device. It is saved with the progress.
 func look() -> String:
 	var value: Variant = _s().get("look", LOOK_DEFAULT)
 	return value if typeof(value) == TYPE_STRING and LOOKS.has(value) else LOOK_DEFAULT

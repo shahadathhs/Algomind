@@ -39,7 +39,7 @@ export function useCampaignTree() {
   }, [dirty]);
 
   /** Runs a change, then reloads. Resolves true only when the change succeeded. */
-  const run = useCallback(
+  const apply = useCallback(
     async (action: () => Promise<unknown>, done?: string): Promise<boolean> => {
       setNotice(null);
       setError(null);
@@ -56,16 +56,32 @@ export function useCampaignTree() {
     [load],
   );
 
+  /**
+   * Runs a change unless the order has edits that were not saved yet: the reload that follows a
+   * change replaces the tree and would drop them. Resolves true only when the change succeeded.
+   */
+  const run = useCallback(
+    async (action: () => Promise<unknown>, done?: string): Promise<boolean> => {
+      if (dirty) {
+        setError("The order has unsaved changes. Save the order first.");
+        return false;
+      }
+      return apply(action, done);
+    },
+    [apply, dirty],
+  );
+
   function edit(next: Tree) {
     setTree(next);
     setDirty(true);
     setNotice(null);
   }
 
+  /** Saves the order edits; it is the one change that may run while they are unsaved. */
   async function saveOrder() {
     if (!tree) return;
     setSaving(true);
-    await run(() => api.saveOrder(orderBody(tree)), "Order saved.");
+    await apply(() => api.saveOrder(orderBody(tree)), "Order saved.");
     setSaving(false);
   }
 

@@ -30,10 +30,11 @@ func _init(
 	recursion = allow_recursion
 
 
-## Puts a copy of `program` on the tape, closed and with nothing selected: the start program of a
-## debug level, which the player then edits like any other. `program` is a program of the level
-## (the level validator has checked its commands and its length). False, with the tape left empty,
-## when it is not an array or does not fit the limit.
+## Puts a copy of `program` on the tape and selects nothing: the start program of a debug level,
+## which the player then edits like any other, or the tape of this level as it was left on the
+## screen before (see PlayReturn). What is open is a flag inside a node, so a loop or an IF that
+## was being built is open again. False, with the tape left empty, when it is not an array or does
+## not fit the limit.
 func load_program(program: Variant) -> bool:
 	nodes = []
 	selected = -1

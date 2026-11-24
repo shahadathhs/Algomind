@@ -1,0 +1,293 @@
+{
+  "description": "Campaign level \"Gate and crate\" (deliveries + switches), solved by the exact search.",
+  "level": {
+    "goal": {
+      "type": "reach_tile",
+      "position": [4, 1]
+    },
+    "slug": "gate-and-crate",
+    "board": {
+      "walls": [
+        [2, 0],
+        [3, 0],
+        [2, 2],
+        [3, 2]
+      ],
+      "width": 5,
+      "height": 3
+    },
+    "hints": [
+      "The switch lies on the way there and on the way back.",
+      "Each pass flips the gate. Count the passes."
+    ],
+    "title": "Gate and crate",
+    "levelId": "d67c224a-5379-40f1-92f6-6eaa6edf7152",
+    "requires": {
+      "mechanics": []
+    },
+    "switches": [
+      {
+        "gate": [2, 1],
+        "switch": [1, 1]
+      }
+    ],
+    "deliveries": [
+      {
+        "dock": [1, 0],
+        "item": [3, 1]
+      }
+    ],
+    "difficulty": "hard",
+    "constraints": {
+      "maxSteps": 120,
+      "maxCommands": 16
+    },
+    "description": "",
+    "initialState": {
+      "position": [0, 1],
+      "direction": "east"
+    },
+    "levelVersion": 1,
+    "schemaVersion": 1,
+    "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+  },
+  "program": [
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "TURN_LEFT"
+    },
+    {
+      "op": "TURN_LEFT"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "TURN_RIGHT"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "TURN_LEFT"
+    },
+    {
+      "op": "TURN_LEFT"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "TURN_LEFT"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    }
+  ],
+  "programIssues": [],
+  "expected": {
+    "status": "SUCCEEDED",
+    "reason": "GOAL_REACHED",
+    "steps": 16,
+    "finalState": {
+      "position": [4, 1],
+      "direction": "east"
+    },
+    "blockedCell": null,
+    "trace": [
+      {
+        "index": 0,
+        "op": "MOVE_FORWARD",
+        "node": [0],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [1, 1],
+        "direction": "east",
+        "event": "SWITCHED"
+      },
+      {
+        "index": 1,
+        "op": "MOVE_FORWARD",
+        "node": [1],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [2, 1],
+        "direction": "east",
+        "event": "MOVED"
+      },
+      {
+        "index": 2,
+        "op": "MOVE_FORWARD",
+        "node": [2],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [3, 1],
+        "direction": "east",
+        "event": "ITEM_TAKEN"
+      },
+      {
+        "index": 3,
+        "op": "TURN_LEFT",
+        "node": [3],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [3, 1],
+        "direction": "north",
+        "event": "TURNED"
+      },
+      {
+        "index": 4,
+        "op": "TURN_LEFT",
+        "node": [4],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [3, 1],
+        "direction": "west",
+        "event": "TURNED"
+      },
+      {
+        "index": 5,
+        "op": "MOVE_FORWARD",
+        "node": [5],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [2, 1],
+        "direction": "west",
+        "event": "MOVED"
+      },
+      {
+        "index": 6,
+        "op": "MOVE_FORWARD",
+        "node": [6],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [1, 1],
+        "direction": "west",
+        "event": "SWITCHED"
+      },
+      {
+        "index": 7,
+        "op": "TURN_RIGHT",
+        "node": [7],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [1, 1],
+        "direction": "north",
+        "event": "TURNED"
+      },
+      {
+        "index": 8,
+        "op": "MOVE_FORWARD",
+        "node": [8],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [1, 0],
+        "direction": "north",
+        "event": "ITEM_DROPPED"
+      },
+      {
+        "index": 9,
+        "op": "TURN_LEFT",
+        "node": [9],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [1, 0],
+        "direction": "west",
+        "event": "TURNED"
+      },
+      {
+        "index": 10,
+        "op": "TURN_LEFT",
+        "node": [10],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [1, 0],
+        "direction": "south",
+        "event": "TURNED"
+      },
+      {
+        "index": 11,
+        "op": "MOVE_FORWARD",
+        "node": [11],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [1, 1],
+        "direction": "south",
+        "event": "SWITCHED"
+      },
+      {
+        "index": 12,
+        "op": "TURN_LEFT",
+        "node": [12],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [1, 1],
+        "direction": "east",
+        "event": "TURNED"
+      },
+      {
+        "index": 13,
+        "op": "MOVE_FORWARD",
+        "node": [13],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [2, 1],
+        "direction": "east",
+        "event": "MOVED"
+      },
+      {
+        "index": 14,
+        "op": "MOVE_FORWARD",
+        "node": [14],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [3, 1],
+        "direction": "east",
+        "event": "MOVED"
+      },
+      {
+        "index": 15,
+        "op": "MOVE_FORWARD",
+        "node": [15],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [4, 1],
+        "direction": "east",
+        "event": "GOAL_REACHED"
+      }
+    ]
+  }
+}

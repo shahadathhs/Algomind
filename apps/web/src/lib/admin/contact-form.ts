@@ -46,7 +46,11 @@ export function issueProblems(issues: unknown): ContactProblems {
   const out: ContactProblems = {};
   if (!Array.isArray(issues)) return out;
   for (const i of issues as { path?: unknown; message?: unknown }[]) {
-    if (typeof i.path === "string" && i.path in CONTACT_LIMITS && typeof i.message === "string") {
+    if (
+      typeof i.path === "string" &&
+      Object.hasOwn(CONTACT_LIMITS, i.path) &&
+      typeof i.message === "string"
+    ) {
       out[i.path as ContactField] ??= i.message;
     }
   }

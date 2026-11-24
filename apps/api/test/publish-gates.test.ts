@@ -1,17 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { analyzeLevel, contentHash } from "../src/modules/levels/level-analysis.js";
 import {
-  analyzeLevel,
-  contentHash,
   failedGates,
   type MinimumClient,
   type RegistryVersion,
-} from "../src/modules/levels/level-analysis.js";
+} from "../src/modules/levels/publish-gates.js";
 import { level, SOLUTION } from "./support/level.js";
 
 const MINIMUM: MinimumClient = { version: "0.0.1", supportedMechanics: ["move", "turn"] };
 const REGISTRY: RegistryVersion[] = [{ version: "0.0.1", supportedMechanics: ["move", "turn"] }];
 
-/** Gates for a level, with every other gate satisfied unless the test says otherwise. */
+/** Gates for a campaign level, with every gate satisfied unless the test says otherwise. */
 function gates(
   content: unknown,
   solution: unknown,
@@ -21,6 +20,7 @@ function gates(
     analysis: analyzeLevel(content, solution),
     hasSolvedPlaytest: true,
     chapterId: "chapter-1",
+    dailyPool: false,
     minimum: MINIMUM,
     registry: REGISTRY,
     ...overrides,
@@ -239,6 +239,15 @@ describe("publish gates", () => {
 
   it("placement: refuses a level that is not in a chapter", () => {
     expect(codes(gates(level(), SOLUTION, { chapterId: null }))).toEqual(["PLACEMENT_REQUIRED"]);
+  });
+
+  it("placement: a daily-pool level has no chapter and publishes without one", () => {
+    const pool = { chapterId: null, dailyPool: true };
+    expect(gates(level(), SOLUTION, pool)).toEqual([]);
+    // It still meets every other gate.
+    expect(codes(gates(level(), SOLUTION, { ...pool, hasSolvedPlaytest: false }))).toEqual([
+      "PLAYTEST_REQUIRED",
+    ]);
   });
 
   it("reports every failed gate at once, not only the first", () => {

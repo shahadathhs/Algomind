@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MobileNav, type NavItem } from "@/components/public/mobile-nav";
-import { ThemeToggle } from "@/components/public/theme-toggle";
 import { Container } from "@/components/ui/container";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Wordmark } from "@/components/ui/wordmark";
 
 const NAV: readonly NavItem[] = [

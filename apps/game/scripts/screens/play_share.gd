@@ -36,15 +36,13 @@ static func share(p: PlayScreen) -> void:
 		_show(p, "SHARE", "")
 
 
-## Opens the board of this level, or of the day for a daily; Back returns to the play screen.
+## Opens the board of this level, or of the day for a daily; Back returns to the play screen with
+## the tape as it is.
 static func ranking(p: PlayScreen) -> void:
-	var back_args := {"level_id": p._entry["id"]}
 	var board := {"scope": "level", "key": p._entry["id"], "title": p._level["title"]}
 	if p._entry.has("daily"):
-		back_args = {"daily": p._entry["daily"]}
 		board = {"scope": "daily", "key": p._entry["daily"]}
-	board["back"] = "play"
-	board["back_args"] = back_args
+	board.merge(PlayReturn.target(p))
 	p.navigate.emit("leaderboard", board)
 
 

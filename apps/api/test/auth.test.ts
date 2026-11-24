@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { goodPassword, makeAuth } from "./support/services.js";
 
 async function failure(promise: Promise<unknown>) {
@@ -82,6 +82,62 @@ describe("refresh tokens", () => {
   it("rejects a token that was never issued", async () => {
     const { auth } = makeAuth();
     expect(await failure(auth.refresh("not-a-real-token"))).toMatchObject({ status: 401 });
+  });
+
+  it("deletes the tokens that expired before the refresh, and keeps the revoked ones", async () => {
+    const { auth, db } = makeAuth();
+    const session = await auth.register("a@example.com", goodPassword());
+    const issued = db.refreshToken.rows[0] as { userId: string; familyId: string };
+    const hour = 3_600_000;
+    const past = new Date(Date.now() - hour);
+    const future = new Date(Date.now() + hour);
+    const row = (id: string, expiresAt: Date, revokedAt: Date | null) =>
+      db.refreshToken.rows.push({ ...issued, id, tokenHash: id, expiresAt, revokedAt });
+    row("expired", past, null);
+    row("expired-and-revoked", past, past);
+    row("revoked", future, past);
+    const cleanup = vi.spyOn(db.refreshToken, "deleteMany");
+
+    // A refused refresh cleans nothing.
+    expect(await failure(auth.refresh("not-a-real-token"))).toMatchObject({ status: 401 });
+    expect(cleanup).not.toHaveBeenCalled();
+
+    const before = Date.now();
+    await auth.refresh(session.refreshToken);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    // The cutoff is the moment of the refresh: everything that expired before it goes.
+    const { where } = cleanup.mock.calls[0]![0] as { where: { expiresAt: { lt: Date } } };
+    expect(where.expiresAt.lt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(where.expiresAt.lt.getTime()).toBeLessThanOrEqual(Date.now());
+
+    // Left: the token just rotated, the revoked one that has not expired (reuse detection needs
+    // it), and the new one.
+    const left = db.refreshToken.rows.map((r) => r.id);
+    expect(left).toHaveLength(3);
+    expect(left).toContain("revoked");
+    expect(left).not.toContain("expired");
+    expect(left).not.toContain("expired-and-revoked");
+  });
+
+  it("still answers the refresh when that cleanup fails", async () => {
+    const { auth, db } = makeAuth();
+    const session = await auth.register("a@example.com", goodPassword());
+    vi.spyOn(db.refreshToken, "deleteMany").mockRejectedValueOnce(
+      new Error("database unavailable"),
+    );
+    const warn = vi
+      .spyOn((auth as unknown as { logger: { warn: (message: string) => void } }).logger, "warn")
+      .mockImplementation(() => undefined);
+
+    const next = await auth.refresh(session.refreshToken);
+    expect(warn).toHaveBeenCalledWith(
+      "Expired refresh tokens were not removed: database unavailable",
+    );
+    // The rotation stands: the new token works, and the spent one is refused.
+    expect(await auth.refresh(next.refreshToken)).toMatchObject({
+      user: { email: "a@example.com" },
+    });
+    expect(await failure(auth.refresh(session.refreshToken))).toMatchObject({ status: 401 });
   });
 
   it("logout revokes the session, and is quiet for an unknown token", async () => {

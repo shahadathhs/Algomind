@@ -69,8 +69,14 @@ describe("submission input", () => {
     const body = { levelSlug: "first-step", levelVersion: 1, program: SOLUTION };
     expect(submissionBodySchema.safeParse(body).success).toBe(true);
     expect(submissionBodySchema.safeParse({ ...body, program: [] }).success).toBe(false);
-    const withScore = { ...body, program: [{ op: "MOVE_FORWARD", points: 999 }] };
-    expect(submissionBodySchema.safeParse(withScore).success).toBe(false);
+    // The envelope does not describe a node's fields; the contract refuses the extra one.
+    const withScore = [{ op: "MOVE_FORWARD", points: 999 }];
+    expect(submissionBodySchema.safeParse({ ...body, program: withScore }).success).toBe(true);
+    expect(verifySubmission(level(), withScore)).toMatchObject({
+      ok: false,
+      code: "PROGRAM_INVALID",
+      issues: [{ path: "program[0].points", code: "UNKNOWN_FIELD" }],
+    });
   });
 });
 

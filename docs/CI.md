@@ -6,16 +6,16 @@
 
 `.github/workflows/ci.yml` is one pipeline. Pull requests run the gates; pushes to `main` continue through deploy, build, and release.
 
-| Job          | Runs for             | What it does                                                                                                                                                                                         |
-| ------------ | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `quality`    | every push and PR    | Design-token drift check, generating the Prisma client and building `level-contract` (the type-aware lint needs both), oxlint (type-aware) and prettier, `tsc` type checks, and all TypeScript tests |
-| `api`        | every push and PR    | Applies migrations to an empty PostgreSQL 17 service container, then builds the API                                                                                                                  |
-| `web`        | every push and PR    | Production `next build`                                                                                                                                                                              |
-| `game`       | every push and PR    | `gdlint` and `gdformat --check`, then headless Godot (in Docker) loads the project and runs the GUT tests, which include every level-contract fixture (copied in by `make game-fixtures`)            |
-| `docker`     | every push and PR    | Builds the API and web images, starts the database, API, and web with Compose, checks `/v1/health/ready` and the landing page                                                                        |
-| `deploy-api` | `main`               | Calls the Render deploy hook, then polls the Render API until the deploy is live (fails the run if it fails or times out)                                                                            |
-| `apk`        | `main` and `v*` tags | Resolves the version, injects the version code and API URL, builds a debug APK in the Godot container, writes a SHA-256, uploads                                                                     |
-| `release`    | `main` and `v*` tags | Refreshes the rolling **Latest build** release, calls the Vercel deploy hook, and publishes **Algomind vX.Y.Z** when `VERSION` is new                                                                |
+| Job          | Runs for               | What it does                                                                                                                                                                                         |
+| ------------ | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quality`    | PRs and pushes to main | Design-token drift check, generating the Prisma client and building `level-contract` (the type-aware lint needs both), oxlint (type-aware) and prettier, `tsc` type checks, and all TypeScript tests |
+| `api`        | PRs and pushes to main | Applies migrations to an empty PostgreSQL 17 service container, then builds the API                                                                                                                  |
+| `web`        | PRs and pushes to main | Production `next build`                                                                                                                                                                              |
+| `game`       | PRs and pushes to main | `gdlint` and `gdformat --check`, then headless Godot (in Docker) loads the project and runs the GUT tests, which include every level-contract fixture (copied in by `make game-fixtures`)            |
+| `docker`     | PRs and pushes to main | Builds the API and web images, starts the database, API, and web with Compose, checks `/v1/health/ready` and the landing page                                                                        |
+| `deploy-api` | `main`                 | Calls the Render deploy hook, then polls the Render API until the deploy is live (fails the run if it fails or times out)                                                                            |
+| `apk`        | `main` and `v*` tags   | Resolves the version, injects the version code and API URL, builds a debug APK in the Godot container, writes a SHA-256, uploads                                                                     |
+| `release`    | `main` and `v*` tags   | Refreshes the rolling **Latest build** release, calls the Vercel deploy hook, and publishes **Algomind vX.Y.Z** when `VERSION` is new                                                                |
 
 **Status:** the pipeline has run end to end on GitHub. On the first merge to `main` all eight jobs passed, including the APK build and the release. At that time the Render, Vercel, signing-key, and API-URL settings were not configured, so the deploy job took its documented "skip" path and the first APK used a one-off signing key and had no API URL. They are configured now (see the table below), but the automated deploy through the Render and Vercel hooks has not run yet. `VERSION` is now 0.1.0 (loops ship in it), a version with no release, so the next merge to `main` publishes v0.1.0. The workflow passes `actionlint`.
 
@@ -35,7 +35,7 @@ Both refuse the same version or a lower one. `release` also refuses to run with 
 ## Principles
 
 - **One command surface.** The `Makefile` is how you run everything locally. CI runs the same commands, so "passes locally" means "passes in CI".
-- **Gates before deploys.** Pull requests and every push run the quality gates. Only `main` continues into deploy and release jobs.
+- **Gates before deploys.** Pull requests and pushes to `main` run the quality gates. Only `main` continues into deploy and release jobs.
 - **Fail closed.** A deploy job fails the run if the deployment does not go live. Missing optional secrets produce a visible warning, never a silent skip of something critical.
 - **Pinned and reproducible.** Lockfiles are frozen in CI (`pnpm install --frozen-lockfile`), tool versions are pinned, and Dependabot keeps actions and dependencies current.
 

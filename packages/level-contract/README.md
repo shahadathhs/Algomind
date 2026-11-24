@@ -9,12 +9,16 @@ This README is written so that the rules can be implemented in another language 
 ```
 schema/level.v1.schema.json            JSON Schema (draft 2020-12) of the public level
 schema/level-authoring.v1.schema.json  the same plus the required referenceSolution
-src/constants.ts                       limits, command names, directions, patterns
-src/types.ts                           TypeScript types
-src/validate.ts                        validateLevel, validateAuthoringLevel, validateProgram
-src/simulate.ts                        simulate
-src/explain.ts                         explainResult (all player-facing failure text)
-src/solve.ts                           solve
+src/constants.ts                       limits, command names, sensors, directions, patterns
+src/types.ts                           TypeScript types; IssueCode, RunReason and TraceEvent are the full lists
+src/validate.ts                        validateLevel, validateAuthoringLevel, validateProgram (with
+                                       validate-pairs.ts for paired tiles and validate-tiles.ts for ice and belts)
+src/program-shape.ts, slots.ts         what a program node may hold; programSlots
+src/simulate.ts                        simulate (with simulate-boards.ts for simulateAll, boardsOf, levelOnBoard)
+src/world.ts                           World: the board the simulator and the solver move through
+src/explain.ts                         explainResult and REASON_MESSAGES (all player-facing failure text)
+src/solve.ts, solve-repeat.ts          solve, without and with loops
+src/patrol.ts, scoring.ts              patrolCell, patrolMeeting; scoreResult
 fixtures/                              levels (valid, invalid), runs, solver; see fixtures/README.md
 test/                                  node --test suites, including one that runs every fixture
 dist/                                  compiled output (git-ignored, produced by `pnpm build`)
@@ -67,7 +71,7 @@ A program is an ordered list of instruction nodes. A node is a primitive (`{ "op
 { "op": "REPEAT", "count": 6, "body": [{ "op": "MOVE_FORWARD" }, { "op": "TURN_RIGHT" }] }
 ```
 
-A loop's `count` is a whole number from 2 to 11 and its `body` is 1 to 8 primitives. **A loop cannot contain a loop.**
+A loop's `count` is a whole number from 2 to 11 and its `body` is 1 to 8 primitives. **A loop cannot contain a loop**, apart from the one level of nesting that the mechanic `nested_loops` allows (see Counter and nested loops, below).
 
 A second loop, `{ "op": "REPEAT_UNTIL", "until": "BLOCKED", "body": [...] }`, has no count: before each round it checks whether a wall or the board edge is straight ahead and runs the body again only while it is not. The condition is checked before the first round too, so the body can run zero times. A level offers it by listing `REPEAT_UNTIL` in `availableCommands` (the mechanic `repeat_until`). Its body rules, its slots (1 plus the body), and its step counting are those of `REPEAT`; a loop inside either loop is `NESTED_REPEAT`; `until` must be `BLOCKED` (`INVALID_VALUE`, `REQUIRED`, or `INVALID_TYPE` at `program[i].until`); a `count` on it, or an `until` on a `REPEAT`, is `UNKNOWN_FIELD`. A body that is never blocked runs until the step limit. A level offers loops by listing `REPEAT` in `availableCommands`; the mechanic name `repeat` is then required of the client (the API derives it from the command, so `requires.mechanics` does not repeat it). An empty program is valid.
 
@@ -107,23 +111,30 @@ The solver does not search `IF` programs. With `IF` offered it still finds the b
 
 All are inclusive. Lengths of strings are counted in Unicode code points (not UTF-16 units or bytes). They live in `src/constants.ts` (`LIMITS`), and a test keeps the JSON Schema in sync.
 
-| Field                         | Limit                                                                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `schemaVersion`               | must be `1`                                                                                                                 |
-| `levelId`, `slug`             | 1 to 64 characters, lowercase letters and digits in hyphen-separated groups (`^[a-z0-9]+(-[a-z0-9]+)*$`)                    |
-| `levelVersion`                | integer, 1 to 1,000,000                                                                                                     |
-| `title`                       | 1 to 60 characters                                                                                                          |
-| `description`                 | 0 to 280 characters                                                                                                         |
-| `difficulty`                  | `easy`, `medium`, or `hard`                                                                                                 |
-| `requires.mechanics`          | at most 8 entries, unique, each 1 to 32 characters matching `^[a-z][a-z0-9_]*$`                                             |
-| `board.width`, `board.height` | integer, 3 to 12                                                                                                            |
-| `board.walls`                 | at most 100 unique cells                                                                                                    |
-| `availableCommands`           | 1 to 9 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, `INC`, `MARK`, `REPEAT`, `REPEAT_UNTIL`, `IF`, `PROC` |
-| `REPEAT` `count`              | integer, 2 to 11                                                                                                            |
-| `REPEAT` `body`               | 1 to 8 primitive instructions (no `REPEAT`)                                                                                 |
-| `constraints.maxCommands`     | integer, 1 to 64                                                                                                            |
-| `constraints.maxSteps`        | integer, 1 to 1000                                                                                                          |
-| `hints`                       | at most 5 entries, each 1 to 140 characters                                                                                 |
+| Field                                          | Limit                                                                                                                       |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `schemaVersion`                                | must be `1`                                                                                                                 |
+| `levelId`, `slug`                              | 1 to 64 characters, lowercase letters and digits in hyphen-separated groups (`^[a-z0-9]+(-[a-z0-9]+)*$`)                    |
+| `levelVersion`                                 | integer, 1 to 1,000,000                                                                                                     |
+| `title`                                        | 1 to 60 characters                                                                                                          |
+| `description`                                  | 0 to 280 characters                                                                                                         |
+| `difficulty`                                   | `easy`, `medium`, or `hard`                                                                                                 |
+| `requires.mechanics`                           | at most 8 entries, unique, each 1 to 32 characters matching `^[a-z][a-z0-9_]*$`                                             |
+| `board.width`, `board.height`                  | integer, 3 to 12                                                                                                            |
+| `board.walls`                                  | at most 100 unique cells                                                                                                    |
+| `availableCommands`                            | 1 to 9 unique entries from `MOVE_FORWARD`, `TURN_LEFT`, `TURN_RIGHT`, `INC`, `MARK`, `REPEAT`, `REPEAT_UNTIL`, `IF`, `PROC` |
+| `REPEAT` `count`                               | integer, 2 to 11, or `"N"` (the counter; needs `INC` offered)                                                               |
+| `REPEAT` `body`                                | 1 to 8 items (primitives and `IF`s), plus at most one loop, and only when the level lists `nested_loops`                    |
+| `IF` `then` / `else`                           | 1 to 4 / 0 to 4 primitives; the `else` may hold one more `IF` instead (a chain of at most 6)                                |
+| `PROC` `body`                                  | 1 to 8 items (primitives, `IF`s and loops; a `CALL` too with the mechanic `recursion`)                                      |
+| calls inside each other                        | at most 24 running at once (the next ends the run with `TOO_DEEP`)                                                          |
+| `extraBoards`                                  | 1 to 5                                                                                                                      |
+| `patrols`                                      | 1 to 3 guards, each with 2 to 12 cells (a `loop` pattern needs at least 4)                                                  |
+| `locks`, `deliveries`, `switches`, `teleports` | 1 to 3 pairs each                                                                                                           |
+| `ice`, `belts`                                 | at most 30 ice cells and 20 belts                                                                                           |
+| `constraints.maxCommands`                      | integer, 1 to 64                                                                                                            |
+| `constraints.maxSteps`                         | integer, 1 to 1000                                                                                                          |
+| `hints`                                        | at most 5 entries, each 1 to 140 characters                                                                                 |
 
 `requires.mechanics` names are free-form within the pattern: the validator does not know which mechanics a game build supports; the API and the client compare the list with what they support. The first command set needs no mechanics, so the list is normally empty; `REPEAT` needs the mechanic `repeat`, which the API adds from `availableCommands`.
 
@@ -139,28 +150,68 @@ Each issue is `{ path, code, message }`, matching the error contract in `docs/RE
 
 ### Issue codes
 
-| Code                         | Meaning                                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------------------- |
-| `INVALID_TYPE`               | wrong JSON type, a non-integer where an integer is required, or a malformed `[x, y]` pair   |
-| `REQUIRED`                   | a required field is absent                                                                  |
-| `UNKNOWN_FIELD`              | a field the schema does not define                                                          |
-| `UNSUPPORTED_SCHEMA_VERSION` | `schemaVersion` is an integer other than 1                                                  |
-| `OUT_OF_RANGE`               | a number outside its inclusive range                                                        |
-| `LENGTH_OUT_OF_RANGE`        | a string or array shorter or longer than allowed                                            |
-| `INVALID_FORMAT`             | a string that fails its pattern (`levelId`, `slug`, mechanic names)                         |
-| `INVALID_VALUE`              | a string outside its enum (`difficulty`, `initialState.direction`, `goal.type`)             |
-| `OUTSIDE_BOARD`              | a wall, the start, or the goal outside the board                                            |
-| `DUPLICATE_WALL`             | a wall repeats an earlier wall (reported at the later index)                                |
-| `START_ON_WALL`              | the start cell is a wall                                                                    |
-| `GOAL_ON_WALL`               | the goal cell is a wall                                                                     |
-| `GOAL_EQUALS_START`          | the goal cell is the start cell                                                             |
-| `UNKNOWN_COMMAND`            | a command name that is not one of the four (also an unknown `op` in a program)              |
-| `DUPLICATE_COMMAND`          | a known command repeated in `availableCommands` (reported at the later index)               |
-| `DUPLICATE_MECHANIC`         | a mechanic repeated in `requires.mechanics` (reported at the later index)                   |
-| `COMMAND_NOT_AVAILABLE`      | a known `op` that the level's `availableCommands` does not offer                            |
-| `TOO_MANY_COMMANDS`          | a program that uses more slots than `constraints.maxCommands`; reported at the program path |
-| `NESTED_REPEAT`              | a `REPEAT` inside the body of a `REPEAT`; reported at the inner `op`                        |
-| `NESTED_IF`                  | an `IF` inside the branch of an `IF`; reported at the inner `op`                            |
+| Code                         | Meaning                                                                                                                                                          |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `INVALID_TYPE`               | wrong JSON type, a non-integer where an integer is required, or a malformed `[x, y]` pair                                                                        |
+| `REQUIRED`                   | a required field is absent                                                                                                                                       |
+| `UNKNOWN_FIELD`              | a field the schema does not define                                                                                                                               |
+| `UNSUPPORTED_SCHEMA_VERSION` | `schemaVersion` is an integer other than 1                                                                                                                       |
+| `OUT_OF_RANGE`               | a number outside its inclusive range                                                                                                                             |
+| `LENGTH_OUT_OF_RANGE`        | a string or array shorter or longer than allowed                                                                                                                 |
+| `INVALID_FORMAT`             | a string that fails its pattern (`levelId`, `slug`, mechanic names)                                                                                              |
+| `INVALID_VALUE`              | a string outside its enum (`difficulty`, `initialState.direction`, `goal.type`)                                                                                  |
+| `OUTSIDE_BOARD`              | a wall, the start, or the goal outside the board                                                                                                                 |
+| `DUPLICATE_WALL`             | a wall repeats an earlier wall (reported at the later index)                                                                                                     |
+| `START_ON_WALL`              | the start cell is a wall                                                                                                                                         |
+| `GOAL_ON_WALL`               | the goal cell is a wall                                                                                                                                          |
+| `GOAL_EQUALS_START`          | the goal cell is the start cell (for `visit_all`: the board has fewer than two floor cells)                                                                      |
+| `UNKNOWN_COMMAND`            | a command name that is not one of the nine in `COMMAND_NAMES` (also an unknown `op` in a program)                                                                |
+| `DUPLICATE_COMMAND`          | a known command repeated in `availableCommands` (reported at the later index)                                                                                    |
+| `DUPLICATE_MECHANIC`         | a mechanic repeated in `requires.mechanics` (reported at the later index)                                                                                        |
+| `COMMAND_NOT_AVAILABLE`      | a known `op` that the level's `availableCommands` does not offer                                                                                                 |
+| `TOO_MANY_COMMANDS`          | a program that uses more slots than `constraints.maxCommands`; reported at the program path                                                                      |
+| `NESTED_REPEAT`              | a loop where it may not stand: inside an `IF` branch, a second-level loop without the `nested_loops` mechanic, or a third-level loop; reported at the inner `op` |
+| `NESTED_IF`                  | an `IF` that is not the next of an else-if chain: inside a `then` branch, in an `else` beside other items, or the seventh of a chain; reported at the inner `op` |
+| `NESTED_PROC`                | a `PROC` that is not at the top level; reported at its `op`                                                                                                      |
+| `CALL_NOT_ALLOWED`           | a `CALL` in an `IF` branch, or in a `PROC` (unless the level lists `recursion` and it stands directly in the body); reported at its `op`                         |
+| `DUPLICATE_PROCEDURE`        | two `PROC` nodes with the same `name`; reported at the later `name`                                                                                              |
+| `UNDEFINED_PROCEDURE`        | a `CALL` whose `name` no `PROC` defines; reported at its `name`                                                                                                  |
+| `PATROL_ON_WALL`             | a guard's cell is a wall                                                                                                                                         |
+| `PATROL_ON_START`            | a guard's cell is the start cell                                                                                                                                 |
+| `PATROL_CELLS_REPEAT`        | a guard's cell repeats an earlier cell of that guard                                                                                                             |
+| `PATROL_NOT_CONNECTED`       | a guard's cell is not next to the cell before it                                                                                                                 |
+| `PATROLS_WITH_BOARDS`        | the level has `extraBoards`, which guards cannot be combined with                                                                                                |
+| `LOCK_ON_WALL`               | a key or a door is on a wall                                                                                                                                     |
+| `LOCK_ON_START`              | a key or a door is on the start cell                                                                                                                             |
+| `LOCK_ON_GOAL`               | a key or a door is on the target                                                                                                                                 |
+| `LOCK_CELLS_REPEAT`          | a key or a door repeats an earlier key or door                                                                                                                   |
+| `LOCKS_WITH_BOARDS`          | the level has `extraBoards`, which keys and doors cannot be combined with                                                                                        |
+| `LOCKS_WITH_SWEEP`           | the goal is `visit_all`, which keys and doors cannot be combined with                                                                                            |
+| `DELIVERY_ON_WALL`           | a crate or a dock is on a wall                                                                                                                                   |
+| `DELIVERY_ON_START`          | a crate or a dock is on the start cell                                                                                                                           |
+| `DELIVERY_ON_GOAL`           | a crate or a dock is on the target                                                                                                                               |
+| `DELIVERY_CELLS_REPEAT`      | a crate or a dock repeats an earlier crate or dock, or a key or door                                                                                             |
+| `DELIVERIES_WITH_BOARDS`     | the level has `extraBoards`, which crates and docks cannot be combined with                                                                                      |
+| `DELIVERIES_WITH_SWEEP`      | the goal is `visit_all`, which crates and docks cannot be combined with                                                                                          |
+| `SWITCH_ON_WALL`             | a switch or a gate is on a wall                                                                                                                                  |
+| `SWITCH_ON_START`            | a switch or a gate is on the start cell                                                                                                                          |
+| `SWITCH_ON_GOAL`             | a switch or a gate is on the target                                                                                                                              |
+| `SWITCH_CELLS_REPEAT`        | a switch or a gate repeats an earlier switch or gate, key or door, crate or dock                                                                                 |
+| `SWITCHES_WITH_BOARDS`       | the level has `extraBoards`, which switches and gates cannot be combined with                                                                                    |
+| `SWITCHES_WITH_SWEEP`        | the goal is `visit_all`, which switches and gates cannot be combined with                                                                                        |
+| `ICE_ON_WALL`                | an ice cell is a wall                                                                                                                                            |
+| `ICE_CELLS_REPEAT`           | an ice cell repeats an earlier ice cell                                                                                                                          |
+| `ICE_WITH_BOARDS`            | the level has `extraBoards`, which ice cannot be combined with                                                                                                   |
+| `BELT_ON_WALL`               | a belt is on a wall                                                                                                                                              |
+| `BELT_CELLS_REPEAT`          | a belt repeats an earlier belt                                                                                                                                   |
+| `BELT_ON_ICE`                | a belt is on an ice cell                                                                                                                                         |
+| `BELTS_WITH_BOARDS`          | the level has `extraBoards`, which belts cannot be combined with                                                                                                 |
+| `TELEPORT_ON_WALL`           | an end of a teleporter pair is on a wall                                                                                                                         |
+| `TELEPORT_ON_START`          | an end of a teleporter pair is on the start cell                                                                                                                 |
+| `TELEPORT_ON_GOAL`           | an end of a teleporter pair is on the target                                                                                                                     |
+| `TELEPORT_CELLS_REPEAT`      | an end of a teleporter pair repeats an earlier end, or a cell of any other tile (keys, doors, crates, docks, switches, gates, ice, belts)                        |
+| `TELEPORTS_WITH_BOARDS`      | the level has `extraBoards`, which teleporters cannot be combined with                                                                                           |
+| `TELEPORTS_WITH_SWEEP`       | the goal is `visit_all`, which teleporters cannot be combined with                                                                                               |
 
 ### Exact validation rules
 
@@ -175,10 +226,10 @@ Each issue is `{ path, code, message }`, matching the error contract in `docs/RE
    - a well-formed wall equal to an earlier well-formed wall is `DUPLICATE_WALL` at the later index;
    - `START_ON_WALL` at `initialState.position`, `GOAL_ON_WALL` at `goal.position`, and `GOAL_EQUALS_START` at `goal.position` when both cells are well-formed.
 9. `board.walls` with more than 100 entries is `LENGTH_OUT_OF_RANGE` at `board.walls` (each entry is still checked).
-10. `availableCommands`: an empty array is `LENGTH_OUT_OF_RANGE`. Per entry: a non-string is `INVALID_TYPE`; a string that is not one of the four names (names are case sensitive) is `UNKNOWN_COMMAND`; a known name seen earlier is `DUPLICATE_COMMAND`.
+10. `availableCommands`: an empty array is `LENGTH_OUT_OF_RANGE`. Per entry: a non-string is `INVALID_TYPE`; a string that is not one of the nine names in `COMMAND_NAMES` (names are case sensitive) is `UNKNOWN_COMMAND`; a known name seen earlier is `DUPLICATE_COMMAND`.
 11. `requires.mechanics`: more than 8 entries is `LENGTH_OUT_OF_RANGE` at `requires.mechanics`. Per entry: type, length, pattern as in rule 5; a valid name seen earlier is `DUPLICATE_MECHANIC`.
 12. `hints`: more than 5 entries is `LENGTH_OUT_OF_RANGE` at `hints`. Per entry: type and length as in rule 5.
-13. `goal.type` must be `"reach_tile"` (`INVALID_VALUE` otherwise, `REQUIRED` if absent).
+13. `goal.type` must be `"reach_tile"` or `"visit_all"` (`INVALID_VALUE` otherwise, `REQUIRED` if absent).
 14. **Goal equals start is invalid.** A level the empty program would solve is not a puzzle. (Decision; the docs were silent.)
 15. A goal that cannot be reached is **not** a validation issue. The solver decides that (publish gates use `solve`).
 16. Authoring only: `referenceSolution` is required and is checked like a program (below) against the level's own `availableCommands` and `constraints.maxCommands`, with paths starting `referenceSolution`. Whether it actually solves the level is checked by running `simulate`, not by the validator.
@@ -221,12 +272,26 @@ Run the nodes in order. For the node at index `i` (zero-based), with `steps` ste
 
 The goal is only tested when a move enters it. The start cell is never the goal in a valid level.
 
+### Trace events
+
+A step has one event, the most notable thing that happened in it:
+
+| Event                                                                          | When                                                                                                                             |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `MOVED`, `TURNED`, `COUNTED`, `MARKED`                                         | a plain move, a turn, `INC`, `MARK`                                                                                              |
+| `KEY_TAKEN`, `ITEM_TAKEN`, `ITEM_DROPPED`, `SWITCHED`, `TELEPORTED`            | the step entered a key, a crate (with empty hands), the dock of the crate carried, a switch, a teleporter; these replace `MOVED` |
+| `SLID`                                                                         | a move that entered more than one cell (ice)                                                                                     |
+| `CARRIED`                                                                      | a turn, `INC` or `MARK` after which a belt moved the automaton                                                                   |
+| `GOAL_REACHED`                                                                 | the target was entered, or the last floor cell of a `visit_all` board                                                            |
+| `BLOCKED_BY_BOUNDARY`, `BLOCKED_BY_WALL`, `BLOCKED_BY_DOOR`, `BLOCKED_BY_GATE` | a refused move; the run ends with the same reason                                                                                |
+| `HIT_BY_PATROL`, `UNDELIVERED`                                                 | a guard reached the automaton, or the target was entered with a crate still to deliver; the run ends                             |
+
 ### Result
 
 ```json
 {
   "status": "SUCCEEDED | FAILED",
-  "reason": "GOAL_REACHED | BLOCKED_BY_WALL | BLOCKED_BY_BOUNDARY | PROGRAM_ENDED | STEP_LIMIT | INVALID_INSTRUCTION",
+  "reason": "GOAL_REACHED | BLOCKED_BY_WALL | BLOCKED_BY_BOUNDARY | BLOCKED_BY_DOOR | BLOCKED_BY_GATE | HIT_BY_PATROL | UNDELIVERED | PROGRAM_ENDED | STEP_LIMIT | TOO_DEEP | INVALID_INSTRUCTION",
   "steps": 2,
   "finalState": { "position": [1, 2], "direction": "east" },
   "blockedCell": [2, 2],
@@ -239,20 +304,25 @@ The goal is only tested when a move enters it. The start cell is never the goal 
 - `status` is `SUCCEEDED` only with reason `GOAL_REACHED`.
 - `finalState` is the state after the last step (the initial state when no step ran). On a blocked move it is the state before the blocked move.
 - `blockedCell` is the attempted target cell for the two `BLOCKED_BY_*` reasons, otherwise `null`. The key is always present.
-- Each trace entry has exactly the keys `index` (0-based step number), `op` (always a primitive), `node` (where the primitive sits: `[i]` at the top level, `[i, j]` in the body of the loop at `i`), `round` (1-based round of that loop, or `null` outside a loop), `position` and `direction` (the state **after** the step; unchanged position for a blocked move), and `event` (`MOVED`, `TURNED`, `GOAL_REACHED`, `BLOCKED_BY_WALL`, `BLOCKED_BY_BOUNDARY`). `STEP_LIMIT`, `PROGRAM_ENDED`, and `INVALID_INSTRUCTION` add no trace entry.
+- Each trace entry has exactly the keys `index` (0-based step number), `op` (the action that ran), `node` (where the action sits: `[i]` at the top level, `[i, j]` in the body of the loop at `i`, and the longer paths described under Programs), `call` (the path of the `CALL` that is running, or `null`), `counter` (the value of `N` after the step), `round` (1-based round of that loop, or `null` outside a loop), `position` and `direction` (the state **after** the step; unchanged position for a blocked move), and `event` (one of the events below). On a level with `ice`, `belts` or `teleports` it also has `path`: the cells the step entered, in order. `STEP_LIMIT`, `PROGRAM_ENDED`, `INVALID_INSTRUCTION` and `TOO_DEEP` add no trace entry.
 
 ### Player-facing text
 
 `explainResult(result)` maps a reason to plain language. All of it lives in `src/explain.ts` (`REASON_MESSAGES`):
 
-| Reason                | Text                                                       |
-| --------------------- | ---------------------------------------------------------- |
-| `GOAL_REACHED`        | Level solved.                                              |
-| `BLOCKED_BY_WALL`     | The automaton tried to move into a wall.                   |
-| `BLOCKED_BY_BOUNDARY` | The automaton tried to move off the board.                 |
-| `PROGRAM_ENDED`       | The program ended before the goal.                         |
-| `STEP_LIMIT`          | The program ran too long and was stopped.                  |
-| `INVALID_INSTRUCTION` | The program contains an instruction this level cannot run. |
+| Reason                | Text                                                              |
+| --------------------- | ----------------------------------------------------------------- |
+| `GOAL_REACHED`        | Level solved.                                                     |
+| `BLOCKED_BY_WALL`     | The automaton tried to move into a wall.                          |
+| `BLOCKED_BY_BOUNDARY` | The automaton tried to move off the board.                        |
+| `PROGRAM_ENDED`       | The program ended before the goal.                                |
+| `STEP_LIMIT`          | The program ran too long and was stopped.                         |
+| `INVALID_INSTRUCTION` | The program contains an instruction this level cannot run.        |
+| `HIT_BY_PATROL`       | A guard reached the automaton.                                    |
+| `BLOCKED_BY_DOOR`     | The automaton tried to go through a locked door.                  |
+| `BLOCKED_BY_GATE`     | The automaton tried to go through a shut gate.                    |
+| `UNDELIVERED`         | The automaton reached the target before every item was delivered. |
+| `TOO_DEEP`            | The procedures called each other too many times.                  |
 
 The game shows these in capitals per `docs/README_VISUAL_DESIGN.md` section 7. The text is not part of the fixtures.
 

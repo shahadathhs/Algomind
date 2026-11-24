@@ -17,9 +17,9 @@ const schema = z
     SUPER_ADMIN_EMAIL: z.string().trim().min(1).optional(),
     SUPER_ADMIN_PASS: z.string().min(1).optional(),
     // Number of reverse proxies in front of the API (1 on Render); 0 means clients connect directly.
-    // Create the starter campaign (4 worlds, 5 chapters, 19 published levels) on startup: true always
-    // adds what is missing, false never does. Unset: always outside production, and in production
-    // only while the database has no levels at all (so a fresh install is playable).
+    // Create the starter campaign (20 worlds, 48 chapters, 113 published levels) on startup: true
+    // always adds what is missing, false never does. Unset: always outside production, and in
+    // production only while the database has no levels at all (so a fresh install is playable).
     SEED_STARTER_CAMPAIGN: z.enum(["true", "false", "1", "0"]).optional(),
     TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
     // Tell the web app to refresh its public pages after a publish or unpublish. Both are needed.

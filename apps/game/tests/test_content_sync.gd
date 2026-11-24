@@ -171,21 +171,42 @@ func test_level_needing_a_newer_game_is_skipped_but_known_mechanics_play() -> vo
 	assert_eq(campaign.errors.size(), 1)
 
 
-func test_app_state_prefers_downloaded_levels_and_falls_back() -> void:
-	var bundled := Campaign.from_data(
+## A bundled campaign of one level, "b1".
+func _bundled() -> Campaign:
+	return Campaign.from_data(
 		{
 			"worlds":
 			[{"id": "b", "title": "B", "chapters": [{"id": "c", "title": "C", "levels": ["b1"]}]}]
 		},
 		func(id: String) -> Variant: return ContentFixtures.level(id)
 	)
+
+
+func test_app_state_prefers_downloaded_levels_and_falls_back() -> void:
 	var progress := ProgressStore.new("user://test_content_progress.json")
-	var state := AppState.new(bundled, progress, _store)
+	var state := AppState.new(_bundled(), progress, _store)
 	assert_eq(state.source, "bundled")
 	var routes := {
 		"campaign": ContentFixtures.catalog({"one": 1}), "levels/one": ContentFixtures.served("one")
 	}
 	await ContentSync.refresh(ContentFixtures.fetcher(routes, []), _store)
-	state = AppState.new(bundled, progress, _store)
+	state = AppState.new(_bundled(), progress, _store)
 	assert_eq(state.source, "downloaded")
 	assert_eq(state.campaign.entries[0]["id"], "one")
+
+
+func test_app_state_keeps_the_bundled_levels_until_the_download_is_complete() -> void:
+	var progress := ProgressStore.new("user://test_content_progress.json")
+	var routes := {
+		"campaign": ContentFixtures.catalog({"one": 1, "two": 1}),
+		"levels/one": ContentFixtures.served("one"),
+	}
+	await ContentSync.refresh(ContentFixtures.fetcher(routes, []), _store)
+	var state := AppState.new(_bundled(), progress, _store)
+	assert_eq(state.source, "bundled", "the levels that arrived do not hide the bundled ones")
+	assert_eq(state.campaign.entries[0]["id"], "b1")
+	routes["levels/two"] = ContentFixtures.served("two")
+	await ContentSync.refresh(ContentFixtures.fetcher(routes, []), _store)
+	state = AppState.new(_bundled(), progress, _store)
+	assert_eq(state.source, "downloaded")
+	assert_eq(state.campaign.entries.size(), 2)

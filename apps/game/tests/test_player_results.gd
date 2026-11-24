@@ -16,9 +16,15 @@ func after_each() -> void:
 
 
 func _remove() -> void:
-	for suffix in ["", ".tmp"]:
+	for suffix in ["", ".tmp", ".bak", ".corrupt"]:
 		if FileAccess.file_exists(PATH + suffix):
 			DirAccess.remove_absolute(PATH + suffix)
+
+
+func _write(text: String) -> void:
+	var file := FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string(text)
+	file.close()
 
 
 func _program(count: int) -> Array:
@@ -90,12 +96,62 @@ func test_clearing_points_keeps_the_unsent_programs() -> void:
 
 
 func test_a_damaged_file_starts_empty() -> void:
-	var file := FileAccess.open(PATH, FileAccess.WRITE)
-	file.store_string("{ not json")
-	file.close()
+	_write("{ not json")
 	_results.load_data()
 	assert_eq(_results.total, -1)
 	assert_true(_results.queue.is_empty())
+	assert_true(_results.started_fresh, "nothing could be used")
+
+
+func test_a_missing_file_starts_fresh() -> void:
+	_results.load_data()
+	assert_true(_results.started_fresh)
+	assert_false(_results.recovered_from_backup)
+	assert_eq(_results.total, -1)
+	assert_true(_results.queue.is_empty())
+	assert_false(FileAccess.file_exists(PATH + ".corrupt"), "there was nothing to keep")
+
+
+func test_a_damaged_file_is_kept_and_the_last_good_copy_is_used() -> void:
+	_results.queue_result("a", 1, _program(3), 3)
+	_results.save()
+	_results.queue_result("b", 1, _program(2), 2)
+	_results.save()
+	_write("{ not json")
+	_results.load_data()
+	assert_true(_results.recovered_from_backup)
+	assert_false(_results.started_fresh)
+	assert_eq(_results.pending(), ["a"] as Array[String], "what the last good copy held")
+	assert_true(FileAccess.file_exists(PATH + ".corrupt"), "the damaged file is kept")
+
+
+func test_a_file_of_another_version_is_kept_and_the_last_good_copy_is_used() -> void:
+	_results.queue_result("a", 1, _program(3), 3)
+	_results.save()
+	_results.save()
+	_write(JSON.stringify({"version": PlayerResults.VERSION + 1, "queue": {}}))
+	_results.load_data()
+	assert_true(_results.recovered_from_backup)
+	assert_eq(_results.pending(), ["a"] as Array[String])
+	assert_true(FileAccess.file_exists(PATH + ".corrupt"))
+
+
+func test_the_next_save_heals_the_file_and_leaves_the_good_backup_alone() -> void:
+	_results.queue_result("a", 1, _program(3), 3)
+	_results.save()
+	_results.save()
+	_write("{ not json")
+	_results.load_data()
+	_results.queue_result("c", 1, _program(2), 2)
+	assert_true(_results.save())
+	var again := PlayerResults.new(PATH)
+	again.load_data()
+	assert_false(again.started_fresh, "the main file can be read again")
+	assert_false(again.recovered_from_backup)
+	assert_eq(again.pending(), ["a", "c"] as Array[String])
+	var backup := PlayerResults.new(PATH + ".bak")
+	backup.load_data()
+	assert_eq(backup.pending(), ["a"] as Array[String], "the backup is not the damaged file")
 
 
 func test_entries_without_a_program_are_ignored_on_load() -> void:

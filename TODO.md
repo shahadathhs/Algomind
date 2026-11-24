@@ -7,6 +7,8 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 **Not done: no screen has been looked at for the work below. It needs a window, so the owner will run it in another session at home.** Everything here passes the headless checks only (lint, typecheck, tests, fixtures). Nothing was tested on a device or in a browser.
 
 - [ ] Run `make game-shots` (3 sizes x 2 themes: 390x844, 360x640, 412x915) and look at every image before calling a screen done (AGENTS.md, "Verify before you claim")
+- [ ] Dashboard in a browser, from the fixes of 2026-11-24 (not seen on a screen): the confirmation before Discard this draft; the restore offer after a save conflict; the error when a world or chapter is changed while the order has unsaved changes; Duplicate greyed out while a copy is made; sign-in and session restore still working with the per-address limits
+- [ ] Game on a device, from the fixes of 2026-11-24: Pause, then Settings or How to play, then Back, shows the program as it was; Style flat stays flat after a restart; NEXT is not offered after a solved level whose successor is locked
 - [ ] Social screens: home link row, world (stars on tiles), account link row, solved play screen (Share, Ranking), profile, badges, leaderboard, daily (list in [docs/README_SOCIAL_PLAN.md](docs/README_SOCIAL_PLAN.md), section 6)
 - [ ] Repeat until (world 4): the palette tile, the UNTIL header and the round count while running
 - [ ] If and sensors (world 5): the six-tile palette at 360 px (labels such as END LOOP may clip), nested IF brackets inside a loop bracket, the dashed ELSE divider, select-then-cycle on the IF header, `play_debug.gd` has no IF syntax for screenshots yet
@@ -69,14 +71,14 @@ The plan and the reasons are in [docs/README_ROADMAP.md](docs/README_ROADMAP.md)
 - [x] `patrols` in the contract (types, both validators, both schemas, both simulators, the solver over time, 30 fixtures), the API mechanic `patrol` and analysis, guards on the flat and depth boards, six levels (71 levels, 13 worlds)
 - [ ] The stop-by-step strip and numbered stops for patrols (guards can now be authored in the dashboard)
 - [ ] A solved playtest of the six Patrol levels; look at the guard on a device
-- [ ] Reset Render's database when deploying (a new world was added after Sweep)
+- [x] Reset Render's database when deploying (a new world was added after Sweep)
 
 ## Done 2026-10-31: the Debug world (restructure phase 2)
 
 - [x] `startProgram` in the contract (types, both validators, both schemas, 5 fixtures), the API gate and mechanic, the game's tape and objective, and five levels (65 levels, 12 worlds)
 - [x] Author a start program in the dashboard (Solution tab)
 - [ ] A solved playtest of the five Debug levels; Reset must be checked to restore the start program on a device
-- [ ] Reset Render's database when deploying (the seed only adds, and the Debug world sits between existing worlds)
+- [x] Reset Render's database when deploying (the seed only adds, and the Debug world sits between existing worlds)
 
 ## Done 2026-10-31: depth look phase 6 (the public site)
 
@@ -116,7 +118,7 @@ Plan: [docs/README_WORLD_RESTRUCTURE_PLAN.md](docs/README_WORLD_RESTRUCTURE_PLAN
 - [x] Bundled par fixed (`scripts/bundle-levels.mjs` no longer overwrites the server's par with a first-board solver result)
 - [x] Local database reset and reseeded; the game bundle regenerated from the API (`make game-bundle`)
 - [x] API tests (294) and the GDScript tests (394) pass
-- [ ] Reset Render's database when deploying (the seed only adds; the old 82 levels stay otherwise)
+- [x] Reset Render's database when deploying (the seed only adds; the old 82 levels stay otherwise)
 - [ ] Look at the 6 new levels and the changed order on a screen; a solved playtest for every level of worlds 1 to 12
 - [ ] The Debug world (needs a prefilled tape, restructure phase 2) and the new world 12 level the plan asked for (dropped: every Sweep level already has a tight step budget)
 - [ ] Limits in Memory (21 on every level) and the repeated hints in Procedures and Wall follower, from the audit, section 5
@@ -146,7 +148,7 @@ Plan: [docs/README_WORLD_RESTRUCTURE_PLAN.md](docs/README_WORLD_RESTRUCTURE_PLAN
 - [x] Seed and campaign tests (`apps/api/test/starter-campaign.test.ts`)
 - [x] Update the docs that say "nineteen" (`README_ARCHITECTURE.md`, `DEPLOY.md`)
 - [x] Reset the local database and reseed (`make db-reset`)
-- [ ] Reset Render's database when deploying
+- [x] Reset Render's database when deploying
 - [x] Regenerate the game's bundled levels (`scripts/bundle-levels.mjs`)
 - [x] Saved progress for removed slugs is kept and ignored, never crashes (game test `test_progress_for_a_removed_level_is_kept_and_ignored`; the API merge stores any slug)
 
@@ -201,6 +203,10 @@ Plan: [docs/README_WORLD_RESTRUCTURE_PLAN.md](docs/README_WORLD_RESTRUCTURE_PLAN
 - [x] Step 7c: worlds 8 to 10, Counters (a counter and loops in loops), Memory (breadcrumbs, else-if chains, the search of Tremaux), Sweep (visit every cell): contract, both simulators, editors, API gates, 22 levels (see [docs/README_GAME_RULES.md](docs/README_GAME_RULES.md), sections 3.6 to 3.8). Open: look at the new tape, breadcrumbs and sweep readouts on screen; playtest worlds 4 to 10
 
 ## Open items
+
+- [ ] CI never boots the API the way production does: the container smoke test runs it with `NODE_ENV=development` (compose.yaml), so a production-mode start is only tried by the Render deploy.
+- [ ] Deploys fail on Render when Neon has suspended the database (`update_failed` while every gate passes; three times on 2026-11-24, and the same commits deployed once something had queried the API). See docs/DEPLOY.md. Either the deploy job keeps the database awake (`GET /v1/health/ready` until the deploy is live) or the container's start command retries `prisma migrate deploy`.
+- [ ] `next` needs a Dependabot update like any other dependency: with 16.4.2 `next build` refuses to run when a coding agent starts it (a known security advisory), and it was bumped to 16.4.6 by hand in the working tree on 2026-11-24.
 
 - [ ] Add the ten-world ladder and multi-board levels to the architecture doc's contract section when world 7 is designed
 - [ ] Move the API's in-memory rate limiter to a shared store before running more than one instance
