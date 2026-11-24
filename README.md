@@ -170,7 +170,7 @@ make version v=0.2.0    # bump the version everywhere (no git); make release als
 
 ## Quality and delivery
 
-- **Gates on every push and pull request:** design-token drift, hand-written colors, type-aware lint and formatting, type checks, tests, a clean-database migration check for the API, production builds, GDScript lint and headless Godot tests, and a container smoke test that starts the database, API, and web together.
+- **Gates on pull requests and pushes to `main`:** design-token drift, hand-written colors, type-aware lint and formatting, type checks, tests, a clean-database migration check for the API, production builds, GDScript lint and headless Godot tests, and a container smoke test that starts the database, API, and web together.
 - **On `main`:** deploy the API to Render and wait for it to go live, build a signed debug APK, refresh a rolling "latest build" release, and publish a versioned release when the `VERSION` file names a new version.
 - **Conventional Commits** are enforced by a hook. Work happens on `dev` and reaches `main` through a pull request.
 
