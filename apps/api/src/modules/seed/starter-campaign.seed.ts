@@ -41,7 +41,9 @@ export const POOL_LEVELS = DAILY_POOL as readonly LevelDef[];
  * Creates the starter worlds, chapters, and published levels (starter-campaign.data.ts), the daily
  * pool (daily-pool.data.ts), and the default badges, so a fresh install is a complete game.
  * Idempotent: anything that already exists (by slug, title) is left alone. Controlled by
- * SEED_STARTER_CAMPAIGN (default on outside production, off in production).
+ * SEED_STARTER_CAMPAIGN: true always adds what is missing and false never does. Unset (the
+ * default) always adds it outside production; in production it runs only while the database has
+ * no levels at all, so a fresh install is playable (see core/config/env.ts).
  */
 /**
  * Checks a level (validator, reference solution, solver) and gives the event loop a turn first, so a
@@ -228,7 +230,7 @@ export class StarterCampaignSeed implements OnApplicationBootstrap {
     this.logger.log(`Created ${DEFAULT_ACHIEVEMENTS.length} default badges.`);
   }
 
-  /** The registry row for this app version, supporting the three initial commands. */
+  /** The registry row for this app version, supporting every mechanic the starter campaign uses. */
   private async seedClientVersion(): Promise<void> {
     if (await this.prisma.clientVersion.findUnique({ where: { version: APP_VERSION } })) return;
     const hasMinimum = await this.prisma.clientVersion.findFirst({ where: { isMinimum: true } });

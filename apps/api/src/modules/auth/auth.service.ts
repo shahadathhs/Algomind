@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   UnauthorizedException,
   UnprocessableEntityException,
 } from "@nestjs/common";
@@ -58,6 +59,8 @@ export function normalizeEmail(email: string): string {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly passwords: PasswordService,
@@ -140,7 +143,24 @@ export class AuthService {
       throw invalidRefreshToken();
     }
     await this.touch(user.id);
+    await this.removeExpiredRefreshTokens(now);
     return this.session(user, newToken);
+  }
+
+  /**
+   * An expired row is of no use: the token is refused, and reuse detection needs only the revoked
+   * rows that have not expired yet. So each successful refresh clears the expired ones. It is
+   * housekeeping: the tokens are already rotated, so a failure here is logged and the refresh
+   * still answers (a client that had to retry would present the token it just spent, which counts
+   * as reuse).
+   */
+  private async removeExpiredRefreshTokens(now: Date): Promise<void> {
+    try {
+      await this.prisma.refreshToken.deleteMany({ where: { expiresAt: { lt: now } } });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Expired refresh tokens were not removed: ${reason}`);
+    }
   }
 
   /** Idempotent: unknown, expired, and already revoked tokens all succeed silently. */

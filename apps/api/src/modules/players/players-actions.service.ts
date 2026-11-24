@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { conflict, isUniqueViolation, notFound } from "../../core/http/errors.js";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
+import { eraseAuditEmails } from "../audit/audit-erasure.js";
 import { AuditService, type AuditAction } from "../audit/audit.service.js";
 import { deleteReportsOf } from "../leaderboards/reports.service.js";
 import { nameKey } from "../profile/name-rules.js";
@@ -30,7 +31,7 @@ export class PlayersActionsService {
     adminId: string,
     action: AuditAction,
     id: string,
-    detail: Record<string, string | number | null>,
+    detail: Record<string, string | number | null> = {},
   ) {
     return this.audit.record(tx, {
       userId: adminId,
@@ -157,7 +158,9 @@ export class PlayersActionsService {
       if (user.email !== confirmEmail.trim().toLowerCase()) {
         throw conflict("EMAIL_MISMATCH", "The email typed does not match the player's email.");
       }
-      await this.record(tx, adminId, "PLAYER_DELETED", id, { email: user.email });
+      // The event itself carries no email: once the account is gone, the address is gone with it.
+      await this.record(tx, adminId, "PLAYER_DELETED", id);
+      await eraseAuditEmails(tx, id);
       await deleteReportsOf(tx, id, user.publicId);
       await tx.user.delete({ where: { id } });
     });

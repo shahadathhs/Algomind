@@ -40,10 +40,14 @@ export class MeController {
     summary: "Send local progress; the server merges it and returns the merged result.",
     description:
       "Idempotent. Union of solved levels, the newer level version wins, the fewer commands win " +
-      "for the same version, the earliest completion time is kept, the newest settings win.",
+      "for the same version, the earliest completion time is kept, the newest settings win. " +
+      "At most 1,000 levels are kept per player; a completion beyond that is ignored.",
   })
   @ApiResponse({ status: 422, description: "The body is not a valid progress payload." })
+  @ApiResponse({ status: 429, description: "Too many attempts; see Retry-After." })
   sync(@Body() body: unknown, @Req() req: AuthenticatedRequest): Promise<ProgressView> {
+    const hit = this.limiter.hit(`sync:${req.user.id}`, 60, 60 * 1000);
+    if (!hit.allowed) throw tooManyRequests(hit.retryAfterSeconds);
     return this.me.sync(req.user.id, parseInput(syncBodySchema, body));
   }
 

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { analyzeLevel } from "../src/modules/levels/level-analysis.js";
 import {
-  analyzeLevel,
   failedGates,
   type MinimumClient,
   type RegistryVersion,
-} from "../src/modules/levels/level-analysis.js";
+} from "../src/modules/levels/publish-gates.js";
 import { level } from "./support/level.js";
 
 const COMMANDS = ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT", "REPEAT"];
@@ -58,6 +58,7 @@ describe("levels that offer REPEAT", () => {
       analysis: analyzeLevel(STAIRS, SOLUTION),
       hasSolvedPlaytest: true,
       chapterId: "chapter-1",
+      dailyPool: false,
       minimum: old,
       registry,
     });
@@ -75,6 +76,7 @@ describe("levels that offer REPEAT", () => {
       analysis: analyzeLevel(STAIRS, SOLUTION),
       hasSolvedPlaytest: true,
       chapterId: "chapter-1",
+      dailyPool: false,
       minimum,
       registry: [{ version: "0.1.0", supportedMechanics: ["move", "turn", "repeat"] }],
     });

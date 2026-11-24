@@ -61,8 +61,10 @@ export class AuthController {
   async login(@Body() body: LoginBody, @Req() req: Request): Promise<AuthSession> {
     const { email, password } = parseBody(loginSchema, body);
     const normalized = normalizeEmail(email);
-    this.limit(`login:${req.ip}:${normalized}`, 10);
+    // The per-IP limit comes first: counted the other way round, one address would add a bucket
+    // per email it tries before the IP limit stopped it.
     this.limit(`login-ip:${req.ip}`, 60);
+    this.limit(`login:${req.ip}:${normalized}`, 10);
     const session = await this.auth.login(normalized, password);
     this.limiter.reset(`login:${req.ip}:${normalized}`);
     return session;

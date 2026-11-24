@@ -5,7 +5,7 @@ import { conflict, unprocessable } from "../../core/http/errors.js";
 import { PrismaService } from "../../core/prisma/prisma.service.js";
 import { AuditService } from "../audit/audit.service.js";
 import { ClientVersionsService } from "../client-versions/client-versions.service.js";
-import { analyzeLevel, contentHash, failedGates, type Analysis } from "./level-analysis.js";
+import { analyzeLevel, contentHash, type Analysis } from "./level-analysis.js";
 import {
   type Db,
   type Json,
@@ -17,6 +17,7 @@ import {
 import { jsonOrNull } from "./level-views.js";
 import type { LevelView, ValidateResponse, ValidationSummary } from "./levels.schemas.js";
 import { LevelsReadService } from "./levels-read.service.js";
+import { failedGates } from "./publish-gates.js";
 
 @Injectable()
 export class LevelsPublishService {
@@ -43,6 +44,7 @@ export class LevelsPublishService {
       analysis,
       hasSolvedPlaytest: solvedForCurrentContent,
       chapterId: level.chapterId,
+      dailyPool: level.dailyPool,
       minimum,
       registry,
     });
