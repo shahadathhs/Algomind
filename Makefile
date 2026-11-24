@@ -15,7 +15,7 @@ GDFORMAT  := uvx --from $(GDTOOLKIT) gdformat
 GDPATHS   := $(GAME)/scripts $(GAME)/tests
 
 .DEFAULT_GOAL := help
-.PHONY: help setup env install lint format typecheck test check tokens tokens-check colors-check size-check web-smoke api-smoke \
+.PHONY: help setup env install lint format typecheck test check tokens tokens-check colors-check size-check fixtures web-smoke api-smoke \
         db-up db-down db-reset db-psql \
         api-generate api-dev api-build api-start api-migrate api-migration \
         web-dev web-build web-start \
@@ -80,6 +80,11 @@ colors-check: ## Fail if a color is hand-written outside the design tokens
 
 size-check: ## Fail if a source file is over 450 lines (lists files over 300)
 	pnpm size:check
+
+fixtures: ## Regenerate the campaign run fixtures (bundled levels with several board tools) from the solver
+	pnpm --filter @algomind/level-contract build
+	node scripts/campaign-fixtures.mjs
+	pnpm exec prettier --write packages/level-contract/fixtures/runs >/dev/null
 
 web-smoke: ## Browser test of the dashboard publish flow (running API and web; needs E2E_EMAIL, E2E_PASSWORD)
 	pnpm smoke:web

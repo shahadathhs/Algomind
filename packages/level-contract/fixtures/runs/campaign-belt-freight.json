@@ -1,0 +1,365 @@
+{
+  "description": "Campaign level \"Belt freight\" (patrols + deliveries + belts), solved by the exact search.",
+  "level": {
+    "goal": {
+      "type": "reach_tile",
+      "position": [6, 0]
+    },
+    "slug": "belt-freight",
+    "belts": [
+      {
+        "cell": [1, 0],
+        "direction": "west"
+      }
+    ],
+    "board": {
+      "walls": [
+        [7, 0],
+        [7, 1],
+        [7, 4]
+      ],
+      "width": 8,
+      "height": 5
+    },
+    "hints": [
+      "The belt carries you off the way to the dock.",
+      "The guard crosses the cells below the crate."
+    ],
+    "title": "Belt freight",
+    "levelId": "0d61a1be-6378-453b-81ca-68030575bb66",
+    "patrols": [
+      {
+        "cells": [
+          [2, 1],
+          [3, 1]
+        ],
+        "pattern": "back_and_forth"
+      }
+    ],
+    "requires": {
+      "mechanics": []
+    },
+    "deliveries": [
+      {
+        "dock": [2, 0],
+        "item": [3, 0]
+      }
+    ],
+    "difficulty": "hard",
+    "constraints": {
+      "maxSteps": 120,
+      "maxCommands": 19
+    },
+    "description": "",
+    "initialState": {
+      "position": [0, 0],
+      "direction": "east"
+    },
+    "levelVersion": 1,
+    "schemaVersion": 1,
+    "availableCommands": ["MOVE_FORWARD", "TURN_LEFT", "TURN_RIGHT"]
+  },
+  "program": [
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "TURN_RIGHT"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "TURN_LEFT"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "TURN_LEFT"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "TURN_LEFT"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "TURN_LEFT"
+    },
+    {
+      "op": "TURN_LEFT"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    },
+    {
+      "op": "MOVE_FORWARD"
+    }
+  ],
+  "programIssues": [],
+  "expected": {
+    "status": "SUCCEEDED",
+    "reason": "GOAL_REACHED",
+    "steps": 19,
+    "finalState": {
+      "position": [6, 0],
+      "direction": "east"
+    },
+    "blockedCell": null,
+    "trace": [
+      {
+        "index": 0,
+        "op": "MOVE_FORWARD",
+        "node": [0],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [0, 0],
+        "direction": "east",
+        "event": "SLID",
+        "path": [
+          [1, 0],
+          [0, 0]
+        ]
+      },
+      {
+        "index": 1,
+        "op": "TURN_RIGHT",
+        "node": [1],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [0, 0],
+        "direction": "south",
+        "event": "TURNED",
+        "path": []
+      },
+      {
+        "index": 2,
+        "op": "MOVE_FORWARD",
+        "node": [2],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [0, 1],
+        "direction": "south",
+        "event": "MOVED",
+        "path": [[0, 1]]
+      },
+      {
+        "index": 3,
+        "op": "MOVE_FORWARD",
+        "node": [3],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [0, 2],
+        "direction": "south",
+        "event": "MOVED",
+        "path": [[0, 2]]
+      },
+      {
+        "index": 4,
+        "op": "TURN_LEFT",
+        "node": [4],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [0, 2],
+        "direction": "east",
+        "event": "TURNED",
+        "path": []
+      },
+      {
+        "index": 5,
+        "op": "MOVE_FORWARD",
+        "node": [5],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [1, 2],
+        "direction": "east",
+        "event": "MOVED",
+        "path": [[1, 2]]
+      },
+      {
+        "index": 6,
+        "op": "MOVE_FORWARD",
+        "node": [6],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [2, 2],
+        "direction": "east",
+        "event": "MOVED",
+        "path": [[2, 2]]
+      },
+      {
+        "index": 7,
+        "op": "MOVE_FORWARD",
+        "node": [7],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [3, 2],
+        "direction": "east",
+        "event": "MOVED",
+        "path": [[3, 2]]
+      },
+      {
+        "index": 8,
+        "op": "TURN_LEFT",
+        "node": [8],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [3, 2],
+        "direction": "north",
+        "event": "TURNED",
+        "path": []
+      },
+      {
+        "index": 9,
+        "op": "MOVE_FORWARD",
+        "node": [9],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [3, 1],
+        "direction": "north",
+        "event": "MOVED",
+        "path": [[3, 1]]
+      },
+      {
+        "index": 10,
+        "op": "MOVE_FORWARD",
+        "node": [10],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [3, 0],
+        "direction": "north",
+        "event": "ITEM_TAKEN",
+        "path": [[3, 0]]
+      },
+      {
+        "index": 11,
+        "op": "TURN_LEFT",
+        "node": [11],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [3, 0],
+        "direction": "west",
+        "event": "TURNED",
+        "path": []
+      },
+      {
+        "index": 12,
+        "op": "MOVE_FORWARD",
+        "node": [12],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [2, 0],
+        "direction": "west",
+        "event": "ITEM_DROPPED",
+        "path": [[2, 0]]
+      },
+      {
+        "index": 13,
+        "op": "TURN_LEFT",
+        "node": [13],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [2, 0],
+        "direction": "south",
+        "event": "TURNED",
+        "path": []
+      },
+      {
+        "index": 14,
+        "op": "TURN_LEFT",
+        "node": [14],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [2, 0],
+        "direction": "east",
+        "event": "TURNED",
+        "path": []
+      },
+      {
+        "index": 15,
+        "op": "MOVE_FORWARD",
+        "node": [15],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [3, 0],
+        "direction": "east",
+        "event": "MOVED",
+        "path": [[3, 0]]
+      },
+      {
+        "index": 16,
+        "op": "MOVE_FORWARD",
+        "node": [16],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [4, 0],
+        "direction": "east",
+        "event": "MOVED",
+        "path": [[4, 0]]
+      },
+      {
+        "index": 17,
+        "op": "MOVE_FORWARD",
+        "node": [17],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [5, 0],
+        "direction": "east",
+        "event": "MOVED",
+        "path": [[5, 0]]
+      },
+      {
+        "index": 18,
+        "op": "MOVE_FORWARD",
+        "node": [18],
+        "call": null,
+        "counter": 1,
+        "round": null,
+        "position": [6, 0],
+        "direction": "east",
+        "event": "GOAL_REACHED",
+        "path": [[6, 0]]
+      }
+    ]
+  }
+}
