@@ -429,6 +429,7 @@ The last world has no rule of its own. Each level puts two to four of the board 
 - **Step:** execute one primitive action at a time.
 - **Pause/Resume:** stop or continue execution.
 - **Reset:** restore the initial simulation state while preserving the program.
+- **Kept across screens:** opening Settings or How to play from the pause menu, or the ranking from the solved screen, and coming back restores the level with the program as it was left (a loop or an `IF` being built is open again).
 - **Retry:** allow edits after a failure.
 - **Success feedback:** clearly communicate that the objective is complete.
 
@@ -437,6 +438,8 @@ The last world has no rule of its own. Each level puts two to four of the board 
 Use explicit states: `READY`, `RUNNING`, `PAUSED`, `SUCCEEDED`, `FAILED`.
 
 The program cannot be edited while `RUNNING`. Editing from `PAUSED`, `SUCCEEDED`, or `FAILED` returns the simulation to `READY`.
+
+After a solve, NEXT opens the next level in campaign order only when that level is unlocked. A solved level that sits after an unsolved one (the campaign was reordered, or progress was merged from another device) stays replayable, but its NEXT is not offered: the solved screen shows Levels and Replay, as at the end of the campaign.
 
 ### Outcomes and messages
 
@@ -534,7 +537,7 @@ Save on the device:
 - Highest unlocked level (recomputed from completions and the current campaign order, so reordering never strands a player).
 - Best solution metrics per level (fewest commands, fewest steps), when applicable.
 - Last played level.
-- Settings: sound, music, vibration, reduce motion, run speed, and theme (system, light, dark).
+- Settings: sound, music, vibration, reduce motion, run speed, and theme (system, light, dark), which are synced; and the style (flat or depth), which stays on the device.
 
 Use a versioned save format so updates can change the data structure without losing progress. Writes must be safe against interruption: if the app closes unexpectedly, previously saved progress stays intact.
 
@@ -582,6 +585,7 @@ The core game remains playable without a constant internet connection.
 - Local progress keeps saving offline.
 - The game clearly indicates when fresh levels are unavailable, and distinguishes “not downloaded” from “locked by progression.”
 - Network errors never block already-downloaded levels.
+- A downloaded campaign replaces the bundled levels, or the previous download, only once every level it names is on the device. A download that is cut short leaves the campaign in play whole, and the next refresh fetches only what is missing.
 - A bad response never replaces a valid cached level.
 - Account sync retries when connectivity returns.
 

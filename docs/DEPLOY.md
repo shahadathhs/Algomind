@@ -26,6 +26,8 @@ Checked on 2026-10-18: the API answers liveness and readiness with the database 
 
 > **Free tiers sleep.** A free Render service spins down when idle and takes a while to wake. The game must treat that as a delay, not a failure (retry with backoff), and the dashboard should show a loading state. Move to a paid instance before a public launch.
 
+> **A deploy fails when the database sleeps.** Neon suspends a database that no query has reached for a few minutes. A new container starts with `prisma migrate deploy` over the direct connection, and to a suspended database that cannot connect: the container exits and Render reports `update_failed`, while the previous deployment keeps serving (every gate in CI can be green). On 2026-11-24 three deploys failed this way after a quiet period, and the same commits went live as soon as something had queried the API first. Call `GET /v1/health/ready` before a deploy (it queries the database) and every 30 to 60 seconds until the deploy is live, or make the start command retry the migration until the database answers.
+
 ## 1. Database (Neon)
 
 1. Create a project in a region near the Render region.
