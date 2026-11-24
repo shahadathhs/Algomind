@@ -64,8 +64,13 @@ static func state(level_data: Dictionary, key: String) -> AppState:
 
 
 static func screen(host: Control, level_data: Dictionary, key: String) -> PlayScreen:
+	return opened(host, state(level_data, key), {"level_id": level_data["slug"]})
+
+
+## The play screen on `state`, opened with `args` as the shell opens it (see PlayScreen._build).
+static func opened(host: Control, state: AppState, args: Dictionary) -> PlayScreen:
 	var play: PlayScreen = load("res://scenes/play.tscn").instantiate()
 	play.persist = false
-	play.setup(state(level_data, key), {"level_id": level_data["slug"]})
+	play.setup(state, args)
 	host.add_child(play)
 	return play

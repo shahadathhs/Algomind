@@ -14,9 +14,16 @@ func after_each() -> void:
 
 
 func _remove() -> void:
-	for suffix in ["", ".tmp", ".bak"]:
+	for suffix in ["", ".tmp", ".bak", ".corrupt"]:
 		if FileAccess.file_exists(PATH + suffix):
 			DirAccess.remove_absolute(PATH + suffix)
+
+
+## The file when it is a saved state this build understands ({ ok: true }), else null.
+func _accept(parsed: Variant) -> Variant:
+	if typeof(parsed) == TYPE_DICTIONARY and parsed.get("ok", false) == true:
+		return parsed
+	return null
 
 
 func test_a_value_round_trips() -> void:
@@ -51,3 +58,43 @@ func test_reading_a_missing_or_damaged_file_gives_null_without_an_error() -> voi
 	file.store_string("{broken")
 	file.close()
 	assert_null(AtomicFile.read_json(PATH))
+
+
+func _write(file_path: String, text: String) -> void:
+	var file := FileAccess.open(file_path, FileAccess.WRITE)
+	file.store_string(text)
+	file.close()
+
+
+func test_a_usable_file_is_used_and_its_backup_is_left_alone() -> void:
+	AtomicFile.write_json(PATH, {"ok": true, "v": 1}, true)
+	AtomicFile.write_json(PATH, {"ok": true, "v": 2}, true)
+	var found := AtomicFile.read_recovered(PATH, _accept)
+	assert_false(found["from_backup"])
+	assert_eq(found["data"]["v"], 2.0)
+	assert_false(FileAccess.file_exists(PATH + ".corrupt"))
+
+
+func test_an_unusable_file_is_kept_and_replaced_by_its_backup() -> void:
+	AtomicFile.write_json(PATH, {"ok": true, "v": 1}, true)
+	AtomicFile.write_json(PATH, {"ok": true, "v": 2}, true)
+	_write(PATH, "{broken")
+	var found := AtomicFile.read_recovered(PATH, _accept)
+	assert_true(found["from_backup"])
+	assert_eq(found["data"]["v"], 1.0, "the last good copy")
+	assert_true(FileAccess.file_exists(PATH + ".corrupt"), "the damaged file is kept")
+	assert_null(AtomicFile.read_json(PATH), "and the main file is left as it was")
+
+
+func test_without_a_usable_file_there_is_no_data() -> void:
+	var missing := AtomicFile.read_recovered(PATH, _accept)
+	assert_null(missing["data"])
+	assert_false(missing["from_backup"])
+	assert_false(FileAccess.file_exists(PATH + ".corrupt"), "a missing file leaves nothing behind")
+	# Readable, but not what `accept` wants, in both files.
+	_write(PATH, JSON.stringify({"ok": false, "v": 1}))
+	_write(PATH + ".bak", JSON.stringify({"ok": false, "v": 0}))
+	var found := AtomicFile.read_recovered(PATH, _accept)
+	assert_null(found["data"])
+	assert_false(found["from_backup"])
+	assert_true(FileAccess.file_exists(PATH + ".corrupt"), "the file is still kept")

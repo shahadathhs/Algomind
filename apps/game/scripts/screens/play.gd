@@ -5,6 +5,9 @@ extends ScreenBase
 ## The simulation runs first and in one call (PlaySession.start). This screen then replays the
 ## resulting events with short animations. Animation length never changes the outcome, and with
 ## Reduce motion the tape and automaton jump instead of sliding.
+##
+## The shell builds the screen again when the player comes back from another screen; the tape
+## then comes from `args` (see PlayReturn).
 
 ## False in debug screenshots, which must not write progress.
 var persist := true
@@ -71,21 +74,12 @@ func _build() -> void:
 	_level = _entry["level"]
 	_boards = BoardProgress.new(_level)
 	_session = PlaySession.new(_boards.board_level())
-	var available := LevelMechanics.available(_level)
-	_tape = TapeModel.new(
-		int(_level["constraints"]["maxCommands"]),
-		available,
-		LevelMechanics.nested_loops(_level),
-		LevelMechanics.recursion(_level)
-	)
-	# A debug level starts with a program to fix.
-	if _level.has("startProgram"):
-		_tape.load_program(_level["startProgram"])
+	_tape = PlayBuilder.make_tape(self)
 	if persist and not _entry.has("daily"):
 		app.progress.set_last_level(_entry["id"])
 		app.progress.save()
 
-	PlayBuilder.build(self, available)
+	PlayBuilder.build(self, _tape.available)
 	_refresh()
 
 
@@ -256,7 +250,7 @@ func _on_step() -> void:
 
 
 func _on_next() -> void:
-	var next: Dictionary = app.campaign.next_after(_entry["id"])
+	var next: Dictionary = app.progress.next_unlocked(app.campaign, _entry["id"])
 	if not next.is_empty():
 		navigate.emit("play", {"level_id": next["id"]})
 

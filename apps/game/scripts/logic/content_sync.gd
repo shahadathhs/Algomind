@@ -5,9 +5,12 @@ extends RefCounted
 ## `refresh` asks the API for the published campaign tree, then fetches each level whose version
 ## is not already cached. Every level goes through LevelValidator before it is stored; one that
 ## fails is reported and the previously cached copy (if any) stays. A failed request changes
-## nothing. The result is
-## { status, updated, errors } with status one of "updated", "unchanged", "offline", "disabled",
-## or "invalid" (the API answered with something the game cannot read).
+## nothing. The catalog is saved only once every level it names is on the device: a download that
+## is cut short leaves the campaign in use (the bundled levels, or the previous download) whole,
+## and the next refresh fetches only what is missing. The result is
+## { status, updated, errors } with status one of "updated", "unchanged", "offline" (the API could
+## not be reached, or a level could not be downloaded), "disabled", or "invalid" (the API answered
+## with something the game cannot read: the catalog, or a level it refused to store).
 
 
 ## The campaign tree from `GET /v1/campaign` as the Campaign loader expects it, plus the levels
@@ -90,6 +93,7 @@ static func refresh(fetch: Callable, store: ContentStore) -> Dictionary:
 		result["status"] = "invalid"
 		return result
 	var fetched_any := false
+	var failed_download := false
 	for item: Dictionary in catalog["levels"]:
 		var slug: String = item["slug"]
 		var served := int(item["levelVersion"])
@@ -98,6 +102,7 @@ static func refresh(fetch: Callable, store: ContentStore) -> Dictionary:
 		var detail: Dictionary = await fetch.call("levels/%s" % slug)
 		if not detail["ok"]:
 			result["errors"].append("Level %s could not be downloaded." % slug)
+			failed_download = true
 			continue
 		var problem := store_level(store, slug, detail["json"])
 		if problem.is_empty():
@@ -105,6 +110,11 @@ static func refresh(fetch: Callable, store: ContentStore) -> Dictionary:
 			result["updated"] += 1
 		else:
 			result["errors"].append("Level %s was not saved: %s" % [slug, problem])
+	if not _is_complete(catalog, store):
+		# Levels are missing, so the catalog in use stays whole. The status says why: a dropped
+		# connection (the player can retry) or something the game cannot read.
+		result["status"] = "offline" if failed_download else "invalid"
+		return result
 	# Compare the normalized catalogs: the cached copy and the new one differ in number types only.
 	var previous := read_catalog(store.load_catalog())
 	if previous.is_empty() or JSON.stringify(previous) != JSON.stringify(catalog):
@@ -113,6 +123,15 @@ static func refresh(fetch: Callable, store: ContentStore) -> Dictionary:
 	if fetched_any:
 		result["status"] = "updated"
 	return result
+
+
+## True when every level the catalog names is on the device (at any version). Only such a catalog
+## may replace the one in use: with levels missing it would hide levels the player could play.
+static func _is_complete(catalog: Dictionary, store: ContentStore) -> bool:
+	for item: Dictionary in catalog["levels"]:
+		if store.load_level(item["slug"]) == null:
+			return false
+	return true
 
 
 ## Validates a level response and stores it. Returns "" on success, else why it was refused.

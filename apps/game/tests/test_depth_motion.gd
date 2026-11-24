@@ -119,6 +119,24 @@ func test_reduce_motion_sinks_a_key_at_once() -> void:
 	assert_eq(float(button.get("_sink")), 1.0)
 
 
+## Reduce motion waits a short beat on each step. The wait must belong to the screen, so that
+## nothing runs on it once the player has left; an engine error would fail this test.
+func test_leaving_the_screen_during_the_reduce_motion_beat_ends_the_step_quietly() -> void:
+	UiLook.animate = false
+	var host := Control.new()
+	host.size = Vector2(390.0, 844.0)
+	add_child_autofree(host)
+	var screen := WorldSupport.screen(host, WorldSupport.level(), "depth_motion")
+	screen.app.progress.settings.set_reduce_motion(true)
+	screen.app.progress.settings.set_run_speed("fast")
+	screen._on_command("MOVE_FORWARD")
+	assert_true(screen._start(PlaySession.State.PAUSED))
+	PlayAnimator.play_one_step(screen)
+	host.free()
+	await wait_seconds(0.4)  # longer than the beat of a step at the fast run speed
+	assert_engine_error_count(0, "the step did not come back on the freed screen")
+
+
 func test_a_sunk_key_moves_its_face_down_by_the_lip_and_keeps_its_base() -> void:
 	var rect := Rect2(0.0, 0.0, 100.0, 60.0)
 	var probe := KeyProbe.new()

@@ -6,6 +6,10 @@ extends RefCounted
 ## is only ever read by ProgressSync, the one place that uploads. `points` is the server's answer:
 ## the total and the best stars and points per level. The game never computes a total itself; the
 ## server's total wins. Nothing here touches the network.
+##
+## The file is kept like the progress file (see AtomicFile.read_recovered): the last good save is
+## `<path>.bak` and is used when the file is unreadable or of another version, so the programs
+## waiting to be sent are not lost to a damaged file.
 
 const VERSION := 1
 
@@ -24,6 +28,10 @@ var daily_best: Dictionary = {}
 var streak: Dictionary = {}
 ## Titles of badges earned and not shown yet.
 var badges: Array[String] = []
+## True when the file could not be used and the backup was.
+var recovered_from_backup := false
+## True when neither file could be used (or none existed) and the data is empty.
+var started_fresh := true
 
 
 func _init(save_path: String = "user://results.json") -> void:
@@ -38,9 +46,21 @@ func load_data() -> void:
 	daily_best = {}
 	streak = {}
 	badges = []
-	var parsed: Variant = AtomicFile.read_json(path)
-	if typeof(parsed) != TYPE_DICTIONARY or int(parsed.get("version", 0)) != VERSION:
-		return
+	var found := AtomicFile.read_recovered(path, _usable)
+	started_fresh = found["data"] == null
+	recovered_from_backup = found["from_backup"]
+	if not started_fresh:
+		_apply(found["data"])
+
+
+## The parsed file when this build can use it, else null (see AtomicFile.read_recovered).
+static func _usable(parsed: Variant) -> Variant:
+	if typeof(parsed) == TYPE_DICTIONARY and int(parsed.get("version", 0)) == VERSION:
+		return parsed
+	return null
+
+
+func _apply(parsed: Dictionary) -> void:
 	if typeof(parsed.get("queue")) == TYPE_DICTIONARY:
 		for slug: String in parsed["queue"]:
 			var entry: Variant = parsed["queue"][slug]
@@ -68,7 +88,7 @@ func save() -> bool:
 		"streak": streak,
 		"badges": badges,
 	}
-	return AtomicFile.write_json(path, data)
+	return AtomicFile.write_json(path, data, true)
 
 
 ## Remembers a solved program to send at the next sync. Per level only the program with the fewest

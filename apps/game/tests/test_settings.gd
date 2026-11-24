@@ -66,6 +66,26 @@ func test_settings_survive_a_restart() -> void:
 	assert_true(again.settings.tutorial_done())
 
 
+func test_the_look_survives_a_restart_and_stays_on_this_device() -> void:
+	assert_eq(_store.settings.look(), Settings.LOOK_DEFAULT)
+	_store.settings.set_look(Settings.LOOK_FLAT)
+	assert_true(_store.save())
+	var again := ProgressStore.new(PATH)
+	again.load_data()
+	assert_eq(again.settings.look(), Settings.LOOK_FLAT, "the style is still the one chosen")
+	assert_false(again.settings.synced_settings().has("look"), "but it is never sent to the server")
+	assert_eq(again.settings.settings_updated_at(), 0.0, "and it is not a synced change")
+
+
+func test_an_unknown_saved_look_falls_back_to_the_default() -> void:
+	var file := FileAccess.open(PATH, FileAccess.WRITE)
+	file.store_string(JSON.stringify({"version": 1, "settings": {"look": "neon"}}))
+	file.close()
+	var store := ProgressStore.new(PATH)
+	store.load_data()
+	assert_eq(store.settings.look(), Settings.LOOK_DEFAULT)
+
+
 func test_changing_a_synced_setting_stamps_the_time() -> void:
 	assert_eq(_store.settings.settings_updated_at(), 0.0)
 	_store.settings.set_sound(false)
