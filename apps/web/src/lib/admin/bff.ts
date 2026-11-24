@@ -1,5 +1,5 @@
 import { apiBaseUrl } from "@/lib/api";
-import type { ApiErrorBody, ApiTokens, SessionPayload } from "@/lib/api/types";
+import type { ApiTokens, SessionPayload } from "@/lib/api/types";
 import { clearRefreshCookie, isSecureCookie, readCookie, refreshCookie } from "./cookie";
 import {
   CHANGE_PASSWORD_PATH,
@@ -8,6 +8,9 @@ import {
   safeNext,
   sessionMaxAgeSeconds,
 } from "./config";
+import { isSameOrigin } from "./origin";
+import { problem } from "./problem";
+import { rateLimited, retryAfter } from "./rate-limit";
 
 /**
  * The web app's own server routes for the admin session (a backend for frontend). They keep the
@@ -20,35 +23,6 @@ const UPSTREAM_TIMEOUT_MS = 10_000;
 
 /** Auth paths the proxy refuses, because only the session routes may handle refresh tokens. */
 const SESSION_ONLY = new Set(["auth/login", "auth/refresh", "auth/logout", "auth/change-password"]);
-
-function problem(status: number, code: string, message: string): Response {
-  const body: ApiErrorBody = { statusCode: status, code, message };
-  return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
-}
-
-/** The configured public host (from SITE_URL), or null when it is not set. */
-function siteHost(): string | null {
-  try {
-    return process.env.SITE_URL ? new URL(process.env.SITE_URL).host : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Unsafe methods must come from this site: the Origin host has to match the site's own host. */
-export function isSameOrigin(req: Request): boolean {
-  const origin = req.headers.get("origin");
-  if (!origin) return false;
-  let host: string;
-  try {
-    host = new URL(origin).host;
-  } catch {
-    return false;
-  }
-  // The site's own host: the Host header the platform set for this request, or the configured
-  // public address. A forwarded-host header is never trusted: a caller can claim anything there.
-  return host === (req.headers.get("host") ?? new URL(req.url).host) || host === siteHost();
-}
 
 async function upstream(path: string, init: RequestInit): Promise<Response | null> {
   try {
@@ -153,6 +127,9 @@ export async function login(req: Request): Promise<Response> {
 
   if (!isSameOrigin(req)) return fail(403, "BAD_ORIGIN", "Request origin not allowed.", "origin");
 
+  const wait = retryAfter(req, "login");
+  if (wait !== null) return isForm ? redirect(`${SIGN_IN_PATH}?error=rate`) : rateLimited(wait);
+
   const creds = await readCredentials(req, isForm);
   if (!creds || !creds.email || !creds.password) {
     return fail(400, "INVALID_REQUEST", "Email and password are required.", "invalid");
@@ -195,6 +172,8 @@ export async function login(req: Request): Promise<Response> {
 /** POST /admin/api/session/refresh: rotates the cookie and returns a new access token. */
 export async function refresh(req: Request): Promise<Response> {
   if (!isSameOrigin(req)) return problem(403, "BAD_ORIGIN", "Request origin not allowed.");
+  const wait = retryAfter(req, "refresh");
+  if (wait !== null) return rateLimited(wait);
   const token = readCookie(req.headers.get("cookie"), REFRESH_COOKIE);
   if (!token) return problem(401, "NO_SESSION", "There is no session.");
 

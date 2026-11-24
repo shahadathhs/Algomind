@@ -1,10 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, SessionEndedError } from "@/lib/api/errors";
 import type { Instruction, LevelContent, LevelView } from "@/lib/admin/admin-api";
+import {
+  type DraftBackup,
+  clearBackup,
+  restorableBackup,
+  writeBackup,
+} from "@/lib/admin/draft-backup";
 import { apiMessage } from "@/lib/admin/messages";
-import { clearBackup, readBackup, writeBackup } from "@/lib/admin/level-model";
 import { useAdminApi } from "../use-admin-api";
 
 export type SaveState = "saved" | "unsaved" | "saving" | "failed";
@@ -22,7 +27,11 @@ export function useLevelDraft(levelId: string) {
   const [save, setSave] = useState<SaveState>("saved");
   const [notice, setNotice] = useState<EditorNotice | null>(null);
   const [conflict, setConflict] = useState(false);
-  const [restorable, setRestorable] = useState<ReturnType<typeof readBackup>>(null);
+  const [restorable, setRestorable] = useState<DraftBackup | null>(null);
+  // How many edits were made so far, so a save can tell whether any came in while it ran.
+  const editCount = useRef(0);
+  // The backup of the latest edit, to move it onto the draft a save creates underneath it.
+  const latestBackup = useRef<DraftBackup | null>(null);
 
   const adopt = useCallback((view: LevelView) => {
     setLevel(view);
@@ -38,11 +47,7 @@ export function useLevelDraft(levelId: string) {
     try {
       const view = await api.getLevel(levelId);
       adopt(view);
-      if (view.draft) {
-        const backup = readBackup(levelId);
-        setRestorable(backup && backup.baseUpdatedAt === view.draft.updatedAt ? backup : null);
-        if (backup && backup.baseUpdatedAt !== view.draft.updatedAt) clearBackup(levelId);
-      }
+      if (view.draft) setRestorable(restorableBackup(levelId, view.draft));
       setLoad({ kind: "ready" });
     } catch (err) {
       if (err instanceof SessionEndedError) return;
@@ -65,25 +70,46 @@ export function useLevelDraft(levelId: string) {
   }, [save]);
 
   function edit(nextContent: LevelContent, nextSolution: Instruction[]) {
+    editCount.current += 1;
     setContent(nextContent);
     setSolution(nextSolution);
     setSave("unsaved");
     setNotice(null);
     setRestorable(null);
-    writeBackup(levelId, {
+    const backup: DraftBackup = {
       savedAt: Date.now(),
       baseUpdatedAt,
       content: nextContent,
       referenceSolution: nextSolution,
-    });
+    };
+    latestBackup.current = backup;
+    writeBackup(levelId, backup);
   }
 
   function fail(err: unknown) {
     if (!(err instanceof SessionEndedError)) setNotice({ kind: "error", text: apiMessage(err) });
   }
 
+  /** Takes the server's answer to a save. An edit made while the request ran is not on the server. */
+  function saved(view: LevelView, editsWhenSent: number) {
+    const base = view.draft?.updatedAt ?? "";
+    setLevel(view);
+    setBaseUpdatedAt(base);
+    if (editCount.current === editsWhenSent) {
+      clearBackup(levelId);
+      setSave("saved");
+      return;
+    }
+    // The edits stay unsaved. Their backup now stands on the draft this save created, so that a
+    // reload does not take it for stale.
+    const latest = latestBackup.current;
+    if (latest) writeBackup(levelId, { ...latest, baseUpdatedAt: base });
+    setSave("unsaved");
+  }
+
   async function saveDraft() {
     if (!content) return;
+    const editsWhenSent = editCount.current;
     setSave("saving");
     setNotice(null);
     try {
@@ -92,10 +118,7 @@ export function useLevelDraft(levelId: string) {
         content,
         referenceSolution: solution,
       });
-      setLevel(view);
-      if (view.draft) setBaseUpdatedAt(view.draft.updatedAt);
-      clearBackup(levelId);
-      setSave("saved");
+      saved(view, editsWhenSent);
     } catch (err) {
       setSave("failed");
       if (err instanceof SessionEndedError) {
@@ -142,8 +165,10 @@ export function useLevelDraft(levelId: string) {
   async function discardDraft() {
     setNotice(null);
     try {
-      clearBackup(levelId);
       adopt(await api.discardDraft(levelId));
+      // Only now is the backup worthless: a failed discard leaves the draft and its edits.
+      clearBackup(levelId);
+      setRestorable(null);
     } catch (err) {
       fail(err);
     }

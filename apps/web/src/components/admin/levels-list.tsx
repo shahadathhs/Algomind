@@ -23,14 +23,17 @@ export function LevelsList() {
   const [creating, setCreating] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [duplicating, setDuplicating] = useState<string | null>(null);
 
   async function duplicate(level: LevelSummary) {
     setNotice(null);
+    setDuplicating(level.id);
     try {
       const copy = await api.duplicateLevel(level.id);
       router.push(`/admin/levels/${copy.id}`);
     } catch (err) {
       if (!(err instanceof SessionEndedError)) setNotice(apiMessage(err));
+      setDuplicating(null);
     }
   }
 
@@ -49,6 +52,7 @@ export function LevelsList() {
     <LevelRowActions
       level={level}
       confirming={confirmDelete === level.id}
+      duplicating={duplicating === level.id}
       onDuplicate={() => void duplicate(level)}
       onAskDelete={() => setConfirmDelete(level.id)}
       onConfirmDelete={() => void remove(level)}

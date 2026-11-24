@@ -1,4 +1,5 @@
 import type { LevelSummary } from "./admin-api";
+import { ownMessage } from "./messages";
 
 export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -32,5 +33,7 @@ export function parText(level: LevelSummary): string {
 }
 
 export function playtestText(level: LevelSummary): string {
-  return level.playtestState ? (PLAYTEST_LABEL[level.playtestState] ?? "None") : "No draft";
+  return level.playtestState
+    ? (ownMessage(PLAYTEST_LABEL, level.playtestState) ?? "None")
+    : "No draft";
 }
